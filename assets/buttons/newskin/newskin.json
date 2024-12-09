@@ -1,0 +1,380 @@
+{
+com.badlogic.gdx.graphics.g2d.BitmapFont: {
+	default-font: {
+		file: default.fnt
+		scaledSize: -1
+		markupEnabled: false
+		flip: false
+	}
+}
+com.badlogic.gdx.graphics.Color: {
+	green: {
+		r: 0
+		g: 1
+		b: 0
+		a: 1
+	}
+	white: {
+		r: 1
+		g: 1
+		b: 1
+		a: 1
+	}
+	red: {
+		r: 1
+		g: 0
+		b: 0
+		a: 1
+	}
+	black: {
+		r: 0
+		g: 0
+		b: 0
+		a: 1
+	}
+	gray: {
+		r: 0.8
+		g: 0.8
+		b: 0.8
+		a: 1
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
+	dialogDim: {
+		name: white
+		color: {
+			r: 0
+			g: 0
+			b: 0
+			a: 0.45
+		}
+	}
+	ButtonDown: {
+		name: ButtonButton
+		color: {
+			r: 0.8392157
+			g: 0.7882353
+			b: 0.7882353
+			a: 1
+		}
+	}
+	FightIconDown: {
+		name: FightIcon
+		color: {
+			r: 0.5372549
+			g: 0.5372549
+			b: 0.5372549
+			a: 1
+		}
+	}
+	MerchIconDown: {
+		name: MerchIcon
+		color: {
+			r: 0.56078434
+			g: 0.56078434
+			b: 0.56078434
+			a: 1
+		}
+	}
+	BossIconDown: {
+		name: BossIcon
+		color: {
+			r: 0.54901963
+			g: 0.54901963
+			b: 0.54901963
+			a: 1
+		}
+	}
+	StrEnemyIconDown: {
+		name: StrEnemyIcon
+		color: {
+			r: 0.56078434
+			g: 0.56078434
+			b: 0.56078434
+			a: 1
+		}
+	}
+	RandIconDown: {
+		name: RandIcon
+		color: {
+			r: 0.5921569
+			g: 0.5921569
+			b: 0.5921569
+			a: 1
+		}
+	}
+	TreasureIconDown: {
+		name: TreasureIcon
+		color: {
+			r: 0.6
+			g: 0.6
+			b: 0.6
+			a: 1
+		}
+	}
+	PlayerIconDown: {
+		name: PlayerIcon
+		color: {
+			r: 0.59607846
+			g: 0.59607846
+			b: 0.59607846
+			a: 1
+		}
+	}
+	DefaultDown: {
+		name: Default
+		color: {
+			r: 0.5803922
+			g: 0.5803922
+			b: 0.5803922
+			a: 1
+		}
+	}
+	HomeDown: {
+		name: Home
+		color: {
+			r: 0.5882353
+			g: 0.5882353
+			b: 0.5882353
+			a: 1
+		}
+	}
+	BackDown: {
+		name: Back
+		color: {
+			r: 0.6
+			g: 0.6
+			b: 0.6
+			a: 1
+		}
+	}
+	SaveDown: {
+		name: Save
+		color: {
+			r: 0.63529414
+			g: 0.63529414
+			b: 0.63529414
+			a: 1
+		}
+	}
+	SettingsDown: {
+		name: Settings
+		color: {
+			r: 0.61960787
+			g: 0.61960787
+			b: 0.61960787
+			a: 1
+		}
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Button$ButtonStyle: {
+	default: {
+		up: default-round
+		down: default-round-down
+		disabled: default-round
+	}
+	toggle: {
+		parent: default
+		checked: default-round-down
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.CheckBox$CheckBoxStyle: {
+	default: {
+		checkboxOn: check-on
+		checkboxOff: check-off
+		font: default-font
+		fontColor: white
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.ImageButton$ImageButtonStyle: {
+	default: {
+		up: Default
+		down: DefaultDown
+		disabled: DefaultDown
+		pressedOffsetX: 1
+		pressedOffsetY: 1
+	}
+	fightIcon: {
+		imageUp: FightIcon
+		imageDown: FightIconDown
+		imageDisabled: FightIconDown
+		imageChecked: FightIconDown
+	}
+	merchIcon: {
+		imageUp: MerchIcon
+		imageDown: MerchIconDown
+		imageDisabled: MerchIconDown
+		imageChecked: MerchIconDown
+	}
+	bossIcon: {
+		imageUp: BossIcon
+		imageDown: BossIconDown
+		imageDisabled: BossIconDown
+		imageChecked: BossIconDown
+	}
+	eliteIcon: {
+		imageUp: StrEnemyIcon
+		imageDown: StrEnemyIconDown
+		imageDisabled: StrEnemyIconDown
+		imageChecked: StrEnemyIconDown
+	}
+	randIcon: {
+		imageUp: RandIcon
+		imageDown: RandIconDown
+		imageDisabled: RandIconDown
+		imageChecked: RandIconDown
+	}
+	treasureIcon: {
+		imageUp: TreasureIcon
+		imageDown: TreasureIconDown
+		imageDisabled: TreasureIconDown
+		imageChecked: TreasureIconDown
+	}
+	playerIcon: {
+		imageUp: PlayerIcon
+		imageDown: PlayerIconDown
+		imageDisabled: PlayerIconDown
+		imageChecked: PlayerIconDown
+	}
+	homeIcon: {
+		imageUp: Home
+		imageDown: HomeDown
+	}
+	exitIcon: {
+		imageUp: Back
+		imageDown: BackDown
+	}
+	saveIcon: {
+		imageUp: Save
+		imageDown: SaveDown
+	}
+	settingsIcon: {
+		imageUp: Settings
+		imageDown: SettingsDown
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton$ImageTextButtonStyle: {
+	default: {
+		parent: default
+		font: default-font
+		fontColor: white
+		disabledFontColor: gray
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Label$LabelStyle: {
+	default: {
+		font: default-font
+		fontColor: white
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.List$ListStyle: {
+	default: {
+		font: default-font
+		fontColorSelected: white
+		fontColorUnselected: white
+		selection: selection
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.ProgressBar$ProgressBarStyle: {
+	default-horizontal: {
+		background: default-scroll
+		knob: default-round
+	}
+	default-vertical: {
+		background: default-slider
+		knob: default-round-large
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.ScrollPane$ScrollPaneStyle: {
+	default: {
+		background: default-rect
+		hScroll: default-scroll
+		hScrollKnob: default-round-large
+		vScroll: default-scroll
+		vScrollKnob: default-round-large
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.SelectBox$SelectBoxStyle: {
+	default: {
+		font: default-font
+		fontColor: white
+		background: default-select
+		scrollStyle: default
+		listStyle: default
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Slider$SliderStyle: {
+	default-horizontal: {
+		parent: default-horizontal
+	}
+	default-vertical: {
+		parent: default-vertical
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.SplitPane$SplitPaneStyle: {
+	default-horizontal: {
+		handle: default-splitpane
+	}
+	default-vertical: {
+		handle: default-splitpane-vertical
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle: {
+	default: {
+		parent: default
+		font: default-font
+		fontColor: white
+		disabledFontColor: gray
+		up: ButtonButton
+		down: ButtonDown
+	}
+	toggle: {
+		parent: default
+		downFontColor: red
+		checked: default-round-down
+	}
+	text_button: {
+		font: default-font
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
+	default: {
+		font: default-font
+		fontColor: white
+		background: textfield
+		cursor: cursor
+		selection: selection
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextTooltip$TextTooltipStyle: {
+	default: {
+		label: default
+		background: default-pane
+		wrapWidth: 150
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Touchpad$TouchpadStyle: {
+	default: {
+		background: default-pane
+		knob: default-round-large
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Tree$TreeStyle: {
+	default: {
+		plus: tree-plus
+		minus: tree-minus
+		selection: default-select-selection
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Window$WindowStyle: {
+	default: {
+		background: default-window
+		titleFont: default-font
+		titleFontColor: white
+	}
+	dialog: {
+		parent: default
+		stageBackground: dialogDim
+	}
+}
+}
