@@ -16,8 +16,6 @@ public class GameScreen implements Screen{
 	
 	private static final int MIN_WIDTH = 1280;
 	private static final int MIN_HEIGHT = 720;
-	private static final int MAX_WIDTH = 1080;
-    private static final int MAX_HEIGHT = 1920;
     public static int SELECTED_WIDTH = MIN_WIDTH;
     public static int SELECTED_HEIGHT = MIN_HEIGHT;
     
@@ -42,6 +40,10 @@ public class GameScreen implements Screen{
             break;
 		}
 	}
+	
+	public void switchToNewState(int scene) {
+        setCurrentState(scene);
+    }
 
 	@Override
 	public void show() {
@@ -63,12 +65,9 @@ public class GameScreen implements Screen{
 
 	@Override
 	public void resize(int width, int height) {
-		int finalWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
-        int finalHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height));
-
-        viewport.update(finalWidth, finalHeight, true);
+		viewport.update(width, height, true);
         viewport.apply();
-        viewport.getCamera().update(); 
+        viewport.getCamera().update();
 		
 	}
 

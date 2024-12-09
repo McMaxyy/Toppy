@@ -40,10 +40,20 @@ public class Storage {
     
     public static void loadAssets() {
         // Load the assets required for the game
-        assetManager.load("A.png", Texture.class);
-        assetManager.load("B.png", Texture.class);
-        assetManager.load("C.png", Texture.class);
-        assetManager.load("D.png", Texture.class);
+        assetManager.load("player.png", Texture.class);
+        assetManager.load("tiles/tree.png", Texture.class);
+        assetManager.load("tiles/rock.png", Texture.class);
+        assetManager.load("tiles/tree2.png", Texture.class);
+        assetManager.load("tiles/rock2.png", Texture.class);
+        assetManager.load("tiles/tree3.png", Texture.class);
+        assetManager.load("tiles/rock3.png", Texture.class);
+        assetManager.load("tiles/rock4.png", Texture.class);
+        assetManager.load("tiles/green_tile.png", Texture.class);
+        
+        assetManager.load("character/Running.png", Texture.class);
+        assetManager.load("character/Idle.png", Texture.class);
+        assetManager.load("character/Dying.png", Texture.class);
+        assetManager.load("character/Attacking.png", Texture.class);
         
         // Load pre-generated bitmap font files (.fnt and .png)
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
