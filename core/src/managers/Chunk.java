@@ -17,7 +17,6 @@ public class Chunk {
 
     private final List<Obstacle> obstacles;
     private final List<ObstacleInfo> pendingObstacles;
-    private final Random random;
     private final World world;
 
     public Chunk(int chunkX, int chunkY, int chunkSize, int tileSize, Random random, World world) {
@@ -25,7 +24,6 @@ public class Chunk {
         this.chunkY = chunkY;
         this.chunkSize = chunkSize;
         this.tileSize = tileSize;
-        this.random = random;
         this.world = world;
         this.obstacles = new ArrayList<>();
         this.pendingObstacles = new ArrayList<>();
@@ -41,7 +39,7 @@ public class Chunk {
 
             Rectangle newObstacleBounds = new Rectangle(x, y, tileSize, tileSize);
             if (isOverlapping(newObstacleBounds) || isOutOfBounds(newObstacleBounds)) {
-                i--; // Retry obstacle generation
+                i--;
                 continue;
             }
 
@@ -139,7 +137,7 @@ public class Chunk {
         fixtureDef.friction = 0.3f;
 
         fixtureDef.filter.categoryBits = CollisionFilter.OBSTACLE;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);
@@ -148,7 +146,7 @@ public class Chunk {
         return body;
     }
 
-    public void render(SpriteBatch batch, Texture groundTexture) {
+    public void renderGround(SpriteBatch batch, Texture groundTexture) {
         for (int x = 0; x < chunkSize; x++) {
             for (int y = 0; y < chunkSize; y++) {
                 float drawX = x * tileSize + chunkX * chunkSize * tileSize;
@@ -156,9 +154,14 @@ public class Chunk {
                 batch.draw(groundTexture, drawX, drawY, tileSize, tileSize);
             }
         }
+    }
 
+    public void renderObstacles(SpriteBatch batch, float playerY, boolean renderBehind) {
         for (Obstacle obstacle : obstacles) {
-            batch.draw(obstacle.texture, obstacle.bounds.x, obstacle.bounds.y, obstacle.bounds.width, obstacle.bounds.height);
+            if ((renderBehind && obstacle.bounds.y < playerY) || 
+                (!renderBehind && obstacle.bounds.y >= playerY)) {
+                batch.draw(obstacle.texture, obstacle.bounds.x, obstacle.bounds.y, obstacle.bounds.width, obstacle.bounds.height);
+            }
         }
     }
 

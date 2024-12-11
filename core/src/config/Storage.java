@@ -40,7 +40,6 @@ public class Storage {
     
     public static void loadAssets() {
         // Load the assets required for the game
-        assetManager.load("player.png", Texture.class);
         assetManager.load("tiles/tree.png", Texture.class);
         assetManager.load("tiles/rock.png", Texture.class);
         assetManager.load("tiles/tree2.png", Texture.class);
@@ -54,25 +53,22 @@ public class Storage {
         assetManager.load("character/Idle.png", Texture.class);
         assetManager.load("character/Dying.png", Texture.class);
         assetManager.load("character/Attacking.png", Texture.class);
+        assetManager.load("character/Spear.png", Texture.class);
         
-        // Load pre-generated bitmap font files (.fnt and .png)
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
         
         assetManager.finishLoading();
     }
     
     public void createFont() {
-        // Load the BitmapFont from the asset manager instead of generating it
         font = assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
         
-        // Load textures for button styles
         Texture borderTextureUp = new Texture(Gdx.files.internal("buttons/newskin/newskin_data/textbutton.9.png"));
         Texture borderTextureDown = new Texture(Gdx.files.internal("buttons/newskin/newskin_data/textbutton-down.9.png"));
         
         NinePatch borderPatchUp = new NinePatch(borderTextureUp, 1, 1, 1, 1);
         NinePatch borderPatchDown = new NinePatch(borderTextureDown, 1, 1, 1, 1);
       
-        // Set the styles for TextButton, Label, and TextField
         buttonStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
         buttonStyle.up = new NinePatchDrawable(borderPatchUp);
         buttonStyle.down = new NinePatchDrawable(borderPatchDown);

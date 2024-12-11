@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
@@ -45,7 +46,7 @@ public class GameProj implements Screen, ContactListener {
     private OrthographicCamera camera;
     private Box2DWorld world;
 
-    private Texture groundTexture, playerTexture;
+    private Texture groundTexture;
     private Player player;
     private ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
     private ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
@@ -83,7 +84,6 @@ public class GameProj implements Screen, ContactListener {
 
     private void createComponents() {
         groundTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
-        playerTexture = Storage.assetManager.get("player.png", Texture.class);
 
         player = new Player(world, animationManager, PLAYER_TILE_SIZE, this);
         batch = new SpriteBatch();
@@ -116,11 +116,19 @@ public class GameProj implements Screen, ContactListener {
         batch.begin();
         
         for (Chunk chunk : chunks.values()) {
-            chunk.render(batch, groundTexture);
+            chunk.renderGround(batch, groundTexture);
+        }
+
+        for (Chunk chunk : chunks.values()) {
+            chunk.renderObstacles(batch, player.getPosition().y, false);
         }
 
         player.render(batch, PLAYER_TILE_SIZE);
         player.update(delta);
+
+        for (Chunk chunk : chunks.values()) {
+            chunk.renderObstacles(batch, player.getPosition().y, true);
+        }
         
         batch.end();
         
@@ -136,17 +144,16 @@ public class GameProj implements Screen, ContactListener {
             (int) Math.floor(player.getPosition().y / (CHUNK_SIZE * TILE_SIZE))
         );
 
-        // Iterate through the chunk map and remove distant chunks
         chunks.entrySet().removeIf(entry -> {
             Vector2 chunkCoord = entry.getKey();
             double distance = Math.sqrt(Math.pow(playerChunkCoord.x - chunkCoord.x, 2) + Math.pow(playerChunkCoord.y - chunkCoord.y, 2));
 
-            if (distance > 2) { // Cull chunks beyond a 2-chunk radius
+            if (distance > 2) { 
                 Chunk chunk = entry.getValue();
-                chunk.dispose(); // Dispose of the chunk and its bodies
-                return true; // Remove from the map
+                chunk.dispose(); 
+                return true; 
             }
-            return false; // Keep the chunk
+            return false; 
         });
     }
 
@@ -197,7 +204,6 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void dispose() {
-        playerTexture.dispose();
         world.dispose();
         batch.dispose();
         chunkGenerator.shutdown();
@@ -208,8 +214,12 @@ public class GameProj implements Screen, ContactListener {
     	Fixture fixtureA = contact.getFixtureA();
         Fixture fixtureB = contact.getFixtureB();
         
-        if (isPlayerCollision(fixtureA, fixtureB)) {
-            
+        short categoryA = fixtureA.getFilterData().categoryBits;
+        short categoryB = fixtureB.getFilterData().categoryBits;
+        
+        if ((categoryA == CollisionFilter.SPEAR && categoryB == CollisionFilter.OBSTACLE) ||
+    		(categoryB == CollisionFilter.SPEAR && categoryA == CollisionFilter.OBSTACLE)) {
+            player.markForRemoval();
         }
     }
 
@@ -223,11 +233,4 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void postSolve(Contact contact, ContactImpulse impulse) {}
-
-    private boolean isPlayerCollision(Fixture fixtureA, Fixture fixtureB) {
-        return (fixtureA.getFilterData().categoryBits == CollisionFilter.PLAYER &&
-                fixtureB.getFilterData().categoryBits == CollisionFilter.OBSTACLE) ||
-               (fixtureB.getFilterData().categoryBits == CollisionFilter.PLAYER &&
-                fixtureA.getFilterData().categoryBits == CollisionFilter.OBSTACLE);
-    }
 }

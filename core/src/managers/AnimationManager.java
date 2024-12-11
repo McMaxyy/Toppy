@@ -4,15 +4,15 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.GdxRuntimeException;
 
 import config.Storage;
 
 public class AnimationManager {
-	private Animation<TextureRegion>[] idleAnimation = new Animation[4];;
-    private Animation<TextureRegion>[] runningAnimation = new Animation[4];
-    private Animation<TextureRegion>[] attackingAnimation = new Animation[4];;
-    private Animation<TextureRegion>[] dyingAnimation = new Animation[4];;
+	private Array<Animation<TextureRegion>> idleAnimation = new Array<>();
+	private Array<Animation<TextureRegion>> runningAnimation = new Array<>();
+	private Array<Animation<TextureRegion>> attackingAnimation = new Array<>();
+	private Array<Animation<TextureRegion>> dyingAnimation = new Array<>();
+
     
     private float animationTime = 0f;
     
@@ -42,10 +42,10 @@ public class AnimationManager {
         	left.add(RunningFrames[2][i]);
         	right.add(RunningFrames[3][i]);
         }
-        runningAnimation[0] = new Animation<>(0.1f, down, Animation.PlayMode.LOOP);
-        runningAnimation[1] = new Animation<>(0.1f, up, Animation.PlayMode.LOOP);
-        runningAnimation[2] = new Animation<>(0.1f, left, Animation.PlayMode.LOOP);
-        runningAnimation[3] = new Animation<>(0.1f, right, Animation.PlayMode.LOOP);
+        runningAnimation.add(new Animation<>(0.1f, down, Animation.PlayMode.LOOP));  // Index 0
+        runningAnimation.add(new Animation<>(0.1f, up, Animation.PlayMode.LOOP));    // Index 1
+        runningAnimation.add(new Animation<>(0.1f, left, Animation.PlayMode.LOOP));  // Index 2
+        runningAnimation.add(new Animation<>(0.1f, right, Animation.PlayMode.LOOP)); // Index 3
         
         up.clear();
         down.clear();
@@ -64,10 +64,10 @@ public class AnimationManager {
             right.add(DyingFrames[3][i]); 
         }
 
-        dyingAnimation[0] = new Animation<>(0.05f, down, Animation.PlayMode.NORMAL);
-        dyingAnimation[1] = new Animation<>(0.05f, up, Animation.PlayMode.NORMAL);
-        dyingAnimation[2] = new Animation<>(0.05f, left, Animation.PlayMode.NORMAL);
-        dyingAnimation[3] = new Animation<>(0.05f, right, Animation.PlayMode.NORMAL);
+        dyingAnimation.add(new Animation<>(0.05f, down, Animation.PlayMode.NORMAL));
+        dyingAnimation.add(new Animation<>(0.05f, up, Animation.PlayMode.NORMAL));
+        dyingAnimation.add(new Animation<>(0.05f, left, Animation.PlayMode.NORMAL));
+        dyingAnimation.add(new Animation<>(0.05f, right, Animation.PlayMode.NORMAL));
 
         up.clear();
         down.clear();
@@ -86,10 +86,10 @@ public class AnimationManager {
             right.add(AttackFrames[3][i]); 
         }
 
-        attackingAnimation[0] = new Animation<>(0.1f, down, Animation.PlayMode.NORMAL);
-        attackingAnimation[1] = new Animation<>(0.1f, up, Animation.PlayMode.NORMAL);
-        attackingAnimation[2] = new Animation<>(0.1f, left, Animation.PlayMode.NORMAL);
-        attackingAnimation[3] = new Animation<>(0.1f, right, Animation.PlayMode.NORMAL);
+        attackingAnimation.add(new Animation<>(0.1f, down, Animation.PlayMode.NORMAL));
+        attackingAnimation.add(new Animation<>(0.1f, up, Animation.PlayMode.NORMAL));
+        attackingAnimation.add(new Animation<>(0.1f, left, Animation.PlayMode.NORMAL));
+        attackingAnimation.add(new Animation<>(0.1f, right, Animation.PlayMode.NORMAL));
 
         up.clear();
         down.clear();
@@ -108,10 +108,10 @@ public class AnimationManager {
             right.add(IdleFrames[3][i]); 
         }
 
-        idleAnimation[0] = new Animation<>(0.2f, down, Animation.PlayMode.LOOP);
-        idleAnimation[1] = new Animation<>(0.2f, up, Animation.PlayMode.LOOP);
-        idleAnimation[2] = new Animation<>(0.2f, left, Animation.PlayMode.LOOP);
-        idleAnimation[3] = new Animation<>(0.2f, right, Animation.PlayMode.LOOP);
+        idleAnimation.add(new Animation<>(0.2f, down, Animation.PlayMode.LOOP));
+        idleAnimation.add(new Animation<>(0.2f, up, Animation.PlayMode.LOOP));
+        idleAnimation.add(new Animation<>(0.2f, left, Animation.PlayMode.LOOP));
+        idleAnimation.add(new Animation<>(0.2f, right, Animation.PlayMode.LOOP));
 
         up.clear();
         down.clear();
@@ -137,21 +137,21 @@ public class AnimationManager {
 	public TextureRegion getCurrentFrame(int direction) {
 		Animation<TextureRegion> currentAnimation;
 		
-		switch(currentState) {
-		case DYING:
-    		currentAnimation = dyingAnimation[direction];
-    		break;
+		switch (currentState) {
+        case DYING:
+            currentAnimation = dyingAnimation.get(direction);
+            break;
         case ATTACKING:
-            currentAnimation = attackingAnimation[direction];
+            currentAnimation = attackingAnimation.get(direction);
             break;
         case RUNNING:
-            currentAnimation = runningAnimation[direction];
+            currentAnimation = runningAnimation.get(direction);
             break;
         case IDLE:
         default:
-            currentAnimation = idleAnimation[direction];
+            currentAnimation = idleAnimation.get(direction);
             break;
-		}
+    }
 		
         TextureRegion currentFrame = currentAnimation.getKeyFrame(animationTime);
         
@@ -159,16 +159,16 @@ public class AnimationManager {
 	}
 	
 	public boolean isAnimationFinished(int direction) {
-		switch(currentState) {
-		case ATTACKING:
-			return attackingAnimation[direction].isAnimationFinished(animationTime);
-		case RUNNING:
-			return runningAnimation[direction].isAnimationFinished(animationTime);
-		case DYING:
-			return dyingAnimation[direction].isAnimationFinished(animationTime);
-		case IDLE:
-		default:
-			return idleAnimation[direction].isAnimationFinished(animationTime);
-		}
+		switch (currentState) {
+        case ATTACKING:
+            return attackingAnimation.get(direction).isAnimationFinished(animationTime);
+        case RUNNING:
+            return runningAnimation.get(direction).isAnimationFinished(animationTime);
+        case DYING:
+            return dyingAnimation.get(direction).isAnimationFinished(animationTime);
+        case IDLE:
+        default:
+            return idleAnimation.get(direction).isAnimationFinished(animationTime);
+    }
 	}
 }
