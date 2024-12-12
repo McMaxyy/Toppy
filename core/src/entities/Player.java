@@ -6,11 +6,12 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.Array;
 
 import config.Storage;
 import game.GameProj;
@@ -19,15 +20,18 @@ import managers.Box2DWorld;
 import managers.CollisionFilter;
 
 public class Player {
-    private Body body, spearBody;
-    private float speed, maxDistance = 100f, distanceTraveled;
+    private Body body;
+    private Array<Body> spearBodies = new Array<>();
+    private Array<Vector2> spearVelocities = new Array<>();
+    private Array<Vector2> spearStartPositions = new Array<>();
+    private float speed, maxDistance = 80f;
     private Vector2 velocity;
     private AnimationManager animationManager;
     private static int direction = 0;
     private GameProj gameP;
-    private boolean isAttacking = false;
     private Box2DWorld world;
     private boolean markedForRemoval = false;
+    private float spearCooldown = 0f;
 
     public Player(Box2DWorld world, AnimationManager animationManager, int size, GameProj gameP) {
         this.animationManager = animationManager;
@@ -58,15 +62,24 @@ public class Player {
     }
     
     public void update(float delta) {
+    	if (spearCooldown > 0) {
+            spearCooldown -= delta;
+        }
+    	
     	input(delta);
         updateAnimationState();
         getAnimationManager().update(Gdx.graphics.getDeltaTime());
         
-        if (spearBody != null) {
-        	distanceTraveled += velocity.len() * delta;
-        	
-        	if (distanceTraveled >= maxDistance || markedForRemoval)
-        		removeSpear();
+        for (int i = spearBodies.size - 1; i >= 0; i--) {
+            Body spearBody = spearBodies.get(i);
+            Vector2 startPosition = spearStartPositions.get(i);
+
+            Vector2 currentPosition = spearBody.getPosition();
+            float distanceTraveled = currentPosition.dst(startPosition);
+
+            if (distanceTraveled >= maxDistance || !world.getWorld().isLocked() && (spearBody == null || spearBody.getUserData() == null)) {
+                removeSpear(spearBody, i); 
+            }
         }
     }
 
@@ -85,11 +98,9 @@ public class Player {
         if (Gdx.input.isKeyPressed(Input.Keys.A)) moveX -= 1;
         if (Gdx.input.isKeyPressed(Input.Keys.D)) moveX += 1;
         
-        if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT) && spearBody == null) {
-        	getAnimationManager().setState(AnimationManager.State.ATTACKING);  
-        	isAttacking = true;
+        if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0) {
         	createSpear();
-        	return;
+        	spearCooldown = 0.2f;
         }  
         
     	move(moveX, moveY, delta);
@@ -100,18 +111,25 @@ public class Player {
     }
     
     private void updateAnimationState() {
-    	 if (getAnimationManager().getState() == AnimationManager.State.ATTACKING) {
-            if (getAnimationManager().isAnimationFinished(direction)) 
-            	isAttacking = false;
-            }
+        Vector3 mousePosition3D = gameP.getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+        Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
+        Vector2 playerPosition = body.getPosition();
+
+        float angle = (float) Math.toDegrees(Math.atan2(mousePosition.y - playerPosition.y, mousePosition.x - playerPosition.x));
+        if (angle < 0) angle += 360;
+
+        if (angle >= 45 && angle < 135) {
+            direction = 1;
+        } else if (angle >= 135 && angle < 225) {
+            direction = 2;
+        } else if (angle >= 225 && angle < 315) {
+            direction = 0;
+        } else {
+            direction = 3;
+        }
     }
 
-    public void move(float dx, float dy, float delta) {
-    	if (spearBody != null) {
-            body.setLinearVelocity(0, 0);
-            return;
-        }
-    	
+    public void move(float dx, float dy, float delta) {    	
         float magnitude = (float) Math.sqrt(dx * dx + dy * dy);
 
         if (magnitude > 0) {
@@ -136,45 +154,30 @@ public class Player {
     }
     
     private void createSpear() {
-        BodyDef spearBodyDef = new BodyDef();
-        spearBodyDef.type = BodyDef.BodyType.DynamicBody;
+        Vector3 mousePosition3D = gameP.getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+        Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
+        Vector2 playerPosition = body.getPosition();
 
-        float offsetX = 0;
-        float offsetY = 0;
+        float angle = (float) Math.atan2(mousePosition.y - playerPosition.y, mousePosition.x - playerPosition.x);
         float spearSpeed = 150f;
 
-        switch (direction) {
-            case 1: // Facing up
-                offsetY = 0.5f;
-                velocity = new Vector2(0, spearSpeed);
-                break;
-            case 0: // Facing down
-                offsetY = -0.5f;
-                velocity = new Vector2(0, -spearSpeed);
-                break;
-            case 2: // Facing left
-                offsetX = -0.5f;
-                velocity = new Vector2(-spearSpeed, 0);
-                break;
-            case 3: // Facing right
-                offsetX = 0.5f;
-                velocity = new Vector2(spearSpeed, 0);
-                break;
-        }
+        Vector2 velocity = new Vector2((float) Math.cos(angle) * spearSpeed, (float) Math.sin(angle) * spearSpeed);
 
-        spearBodyDef.position.set(body.getPosition().x + offsetX, body.getPosition().y + offsetY);
+        BodyDef spearBodyDef = new BodyDef();
+        spearBodyDef.type = BodyDef.BodyType.DynamicBody;
+        spearBodyDef.position.set(playerPosition.x + velocity.x / spearSpeed, playerPosition.y + velocity.y / spearSpeed);
+        spearBodyDef.angle = angle;
         spearBodyDef.bullet = true;
 
-        spearBody = world.getWorld().createBody(spearBodyDef);
+        Body spearBody = world.getWorld().createBody(spearBodyDef);
 
         PolygonShape spearShape = new PolygonShape();
-        spearShape.setAsBox(2f, 2f);
+        spearShape.setAsBox(2f, 2f, new Vector2(0, 0), angle);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = spearShape;
         fixtureDef.density = 1f;
         fixtureDef.isSensor = false;
-        
         fixtureDef.filter.categoryBits = CollisionFilter.SPEAR;
         fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE;
 
@@ -183,19 +186,22 @@ public class Player {
 
         spearBody.setLinearVelocity(velocity);
         spearBody.setUserData(this);
-        distanceTraveled = 0f;
+
+        spearBodies.add(spearBody);
+        spearVelocities.add(velocity);
+        spearStartPositions.add(new Vector2(spearBody.getPosition()));
     }
+
 
     public void markForRemoval() {
     	markedForRemoval = true;
     }
     
-    public void removeSpear() {
-    	if(spearBody != null) {
-    		world.getWorld().destroyBody(spearBody);
-    		spearBody = null;
-    		markedForRemoval = false;
-    	}
+    public void removeSpear(Body spearBody, int i) {
+    	world.getWorld().destroyBody(spearBody);
+        spearBodies.removeIndex(i);
+        spearVelocities.removeIndex(i);
+        spearStartPositions.removeIndex(i); 
     }
 
     public void render(SpriteBatch batch, int TILE_SIZE) {
@@ -206,45 +212,25 @@ public class Player {
                    position.x - TILE_SIZE / 2f, 
                    position.y - TILE_SIZE / 2f, 
                    TILE_SIZE, TILE_SIZE);
-        
-        if(spearBody != null) {
-            Texture spearTexture = Storage.assetManager.get("character/Spear.png");
-            TextureRegion spearRegion = new TextureRegion(spearTexture);
-            int rotationAngle = 45;
-            int spearWidth = spearTexture.getWidth();
-            int spearHeight = spearTexture.getHeight();
-            float posX = 0;
-            float posY = 0;           
-            
-            switch(direction) {
-            case 1:
-            	rotationAngle = 45;
-            	posX = spearBody.getPosition().x - spearWidth / 2;
-            	posY = spearBody.getPosition().y + spearHeight / 50f;
-            	break;
-            case 0:
-            	rotationAngle = 225;
-            	posX = spearBody.getPosition().x - spearWidth / 2;
-            	posY = spearBody.getPosition().y - spearHeight * 1.05f;
-            	break;
-            case 2:
-            	rotationAngle = 135;
-            	posX = spearBody.getPosition().x - spearWidth * 1.05f;
-            	posY = spearBody.getPosition().y - spearHeight / 2f;
-            	break;
-            case 3:
-            	rotationAngle = 315;
-            	posX = spearBody.getPosition().x + spearWidth / 50f;
-            	posY = spearBody.getPosition().y - spearHeight / 2f;
-            	break;
+
+        for (int i = 0; i < spearBodies.size; i++) {
+            Body spearBody = spearBodies.get(i);
+
+            if (spearBody != null) {
+                Texture spearTexture = Storage.assetManager.get("character/Spear.png");
+                TextureRegion spearRegion = new TextureRegion(spearTexture);
+
+                float rotationAngle = (float) Math.toDegrees(spearBody.getAngle());
+                float posX = spearBody.getPosition().x - spearTexture.getWidth() / 8f;
+                float posY = spearBody.getPosition().y - spearTexture.getHeight() / 8f;
+
+                batch.draw(spearRegion,
+                        posX, posY,
+                        spearTexture.getWidth() / 8f, spearTexture.getHeight() / 8f,
+                        spearTexture.getWidth() / 4f, spearTexture.getHeight() / 4f,
+                        1, 1,
+                        rotationAngle - 45);
             }
-            
-            batch.draw(spearRegion, 
-                    posX, posY, 
-                    spearWidth / 2, spearHeight / 2, 
-                    spearWidth / 4, spearHeight / 4, 
-                    1, 1, 
-                    rotationAngle);
         }
     }
 
