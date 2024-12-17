@@ -283,5 +283,4 @@ public class Chunk {
     public List<Enemy> getEnemies() {
         return enemies;
     }
-
 }

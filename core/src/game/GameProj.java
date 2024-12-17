@@ -103,7 +103,7 @@ public class GameProj implements Screen, ContactListener {
         hudLabel.setPosition(10, hudViewport.getWorldHeight() - 30);
         hudStage.addActor(hudLabel);
         
-        generateChunk(0, 0);
+//        generateChunk(0, 0);
     }
 
     @Override
@@ -115,7 +115,7 @@ public class GameProj implements Screen, ContactListener {
     public void render(float delta) {
     	world.getWorld().step(1 / 60f, 6, 2);
     	
-    	cullDistantChunks();
+//    	cullDistantChunks();
     	
     	while (!pendingChunks.isEmpty()) {
             Chunk chunk = pendingChunks.poll();
