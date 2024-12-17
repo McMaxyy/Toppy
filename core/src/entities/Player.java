@@ -3,6 +3,7 @@ package entities;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
@@ -13,6 +14,7 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.utils.Array;
 
+import config.GameScreen;
 import config.Storage;
 import game.GameProj;
 import managers.AnimationManager;
@@ -25,19 +27,24 @@ public class Player {
     private Array<Vector2> spearVelocities = new Array<>();
     private Array<Vector2> spearStartPositions = new Array<>();
     private float speed, maxDistance = 80f;
-    private Vector2 velocity;
     private AnimationManager animationManager;
     private static int direction = 0;
     private GameProj gameP;
     private Box2DWorld world;
-    private boolean markedForRemoval = false;
+    private Array<Boolean> spearMarkedForRemoval = new Array<>();
     private float spearCooldown = 0f;
+    private Texture whitePixel;
+    private boolean playerDeath;
+    private GameScreen gameScreen;
+    public static boolean gameStarted = false;
 
-    public Player(Box2DWorld world, AnimationManager animationManager, int size, GameProj gameP) {
+    public Player(Box2DWorld world, AnimationManager animationManager, int size, GameProj gameP, GameScreen gameScreen) {
         this.animationManager = animationManager;
         this.speed = 5000f;
         this.gameP = gameP;
         this.world = world;
+    	this.gameScreen = gameScreen;
+        whitePixel = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
 
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
@@ -55,7 +62,7 @@ public class Player {
         fixtureDef.friction = 0.3f;
 
         fixtureDef.filter.categoryBits = CollisionFilter.PLAYER;
-        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE;
+        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
 
         body.createFixture(fixtureDef);
         shape.dispose();
@@ -73,18 +80,22 @@ public class Player {
         for (int i = spearBodies.size - 1; i >= 0; i--) {
             Body spearBody = spearBodies.get(i);
             Vector2 startPosition = spearStartPositions.get(i);
-
-            Vector2 currentPosition = spearBody.getPosition();
-            float distanceTraveled = currentPosition.dst(startPosition);
-
-            if (distanceTraveled >= maxDistance || !world.getWorld().isLocked() && (spearBody == null || spearBody.getUserData() == null)) {
-                removeSpear(spearBody, i); 
+            
+            if (spearMarkedForRemoval.get(i) || spearBody == null || 
+        		spearBody.getPosition().dst(startPosition) >= maxDistance) {
+                	removeSpear(spearBody, i);
             }
         }
+        
+        if(playerDeath && !world.getWorld().isLocked())
+        	die();
     }
 
     public Vector2 getPosition() {
-        return body.getPosition();
+    	if(body != null)
+    		return body.getPosition();
+    	else
+    		return null;
     }
     
     public void updateBounds() {}
@@ -100,7 +111,7 @@ public class Player {
         
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0) {
         	createSpear();
-        	spearCooldown = 0.2f;
+        	spearCooldown = 0.5f;
         }  
         
     	move(moveX, moveY, delta);
@@ -143,6 +154,9 @@ public class Player {
             }
 
             getAnimationManager().setState(AnimationManager.State.RUNNING);
+            
+            if(!gameStarted)
+            	gameStarted = true;
         } else {
         	getAnimationManager().setState(AnimationManager.State.IDLE);
         }
@@ -170,6 +184,7 @@ public class Player {
         spearBodyDef.bullet = true;
 
         Body spearBody = world.getWorld().createBody(spearBodyDef);
+        spearBody.setFixedRotation(true);
 
         PolygonShape spearShape = new PolygonShape();
         spearShape.setAsBox(2f, 2f, new Vector2(0, 0), angle);
@@ -179,7 +194,7 @@ public class Player {
         fixtureDef.density = 1f;
         fixtureDef.isSensor = false;
         fixtureDef.filter.categoryBits = CollisionFilter.SPEAR;
-        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE;
+        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
 
         spearBody.createFixture(fixtureDef);
         spearShape.dispose();
@@ -190,18 +205,38 @@ public class Player {
         spearBodies.add(spearBody);
         spearVelocities.add(velocity);
         spearStartPositions.add(new Vector2(spearBody.getPosition()));
+        
+        spearMarkedForRemoval.add(false);
     }
 
-
-    public void markForRemoval() {
-    	markedForRemoval = true;
+    public void markSpearForRemoval(Body spearBody) {
+        for (int i = 0; i < spearBodies.size; i++) {
+            if (spearBodies.get(i) == spearBody) {
+                spearMarkedForRemoval.set(i, true);
+                break;
+            }
+        }
+    }
+    
+    public void die() {
+    	gameStarted = false;
+    	playerDeath = false;
+    	gameScreen.switchToNewState(GameScreen.HOME);
+    }
+    
+    public void playerDie() {
+    	playerDeath = true;
     }
     
     public void removeSpear(Body spearBody, int i) {
-    	world.getWorld().destroyBody(spearBody);
+    	if (spearBody != null) {
+            world.getWorld().destroyBody(spearBody);
+        }
+    	
         spearBodies.removeIndex(i);
         spearVelocities.removeIndex(i);
         spearStartPositions.removeIndex(i); 
+        spearMarkedForRemoval.removeIndex(i);
     }
 
     public void render(SpriteBatch batch, int TILE_SIZE) {
@@ -232,6 +267,29 @@ public class Player {
                         rotationAngle - 45);
             }
         }
+        
+        renderCooldownBar(batch, TILE_SIZE);
+    }
+    
+    private void renderCooldownBar(SpriteBatch batch, float TILE_SIZE) {
+        if (spearCooldown > 0) {
+            float barWidth = TILE_SIZE / 2f;
+            float barHeight = 2f;
+            float cooldownPercentage = spearCooldown / 0.5f;
+            float filledWidth = barWidth * (1 - cooldownPercentage);
+
+            Vector2 position = body.getPosition();
+            float barX = position.x - TILE_SIZE / 4f;
+            float barY = position.y + TILE_SIZE / 4f;
+
+            batch.setColor(1f, 0.4f, 0.7f, 1f);
+            batch.draw(whitePixel, barX, barY, barWidth, barHeight);
+
+            batch.setColor(0.1f, 0.1f, 0.1f, 1f);
+            batch.draw(whitePixel, barX, barY, filledWidth, barHeight);
+
+            batch.setColor(1, 1, 1, 1);
+        }
     }
 
     public void setSpeed(float speed) {
@@ -244,5 +302,9 @@ public class Player {
     
     public AnimationManager getAnimationManager() {
         return animationManager;
+    }
+    
+    public Body getBody() {
+    	return body;
     }
 }

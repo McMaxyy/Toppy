@@ -10,7 +10,6 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -23,11 +22,14 @@ import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import config.GameScreen;
 import config.Storage;
+import entities.Enemy;
 import entities.Player;
 import managers.AnimationManager;
 import managers.Box2DWorld;
@@ -36,15 +38,15 @@ import managers.CollisionFilter;
 
 public class GameProj implements Screen, ContactListener {
     private Skin skin;
-    private Viewport viewport;
-    public Stage stage;
+    private Viewport viewport, hudViewport;
+    public Stage stage, hudStage;
     private Game game;
     private GameScreen gameScreen;
     private Storage storage;
     private SpriteBatch batch;
     private AnimationManager animationManager;
     
-    private OrthographicCamera camera;
+    private OrthographicCamera camera, hudCamera;
     private Box2DWorld world;
 
     private Texture groundTexture;
@@ -53,6 +55,8 @@ public class GameProj implements Screen, ContactListener {
     private ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
     private Random random;
     private ExecutorService chunkGenerator;
+    private Label hudLabel;
+    private int enemiesKilled = 0;
 
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 18;
@@ -62,7 +66,7 @@ public class GameProj implements Screen, ContactListener {
         this.gameScreen = gameScreen;
         this.game = game;
         this.viewport = viewport;
-
+        
         stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
 
@@ -71,6 +75,10 @@ public class GameProj implements Screen, ContactListener {
         skin = storage.skin;
         animationManager = new AnimationManager();
 
+        hudCamera = new OrthographicCamera();
+        hudViewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), hudCamera);
+        hudCamera.setToOrtho(false, hudViewport.getWorldWidth(), hudViewport.getWorldHeight());
+        hudCamera.update();
         camera = new OrthographicCamera();
         camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4), viewport.getWorldHeight() / (TILE_SIZE / 4));
         camera.update();
@@ -86,9 +94,15 @@ public class GameProj implements Screen, ContactListener {
     private void createComponents() {
         groundTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
 
-        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this);
+        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen);
         batch = new SpriteBatch();
 
+        hudStage = new Stage(hudViewport, batch);
+        
+        hudLabel = new Label("0/20", skin);
+        hudLabel.setPosition(10, hudViewport.getWorldHeight() - 30);
+        hudStage.addActor(hudLabel);
+        
         generateChunk(0, 0);
     }
 
@@ -116,17 +130,21 @@ public class GameProj implements Screen, ContactListener {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         
-        for (Chunk chunk : chunks.values()) {
-            chunk.renderGround(batch, groundTexture);
+        for (Chunk chunk : chunks.values()){
+        	chunk.renderGround(batch, groundTexture);
         }
-
+        
         for (Chunk chunk : chunks.values()) {
             chunk.renderObstacles(batch, player.getPosition().y, false);
+        }
+        
+        for (Chunk chunk : chunks.values()) {
+            chunk.renderEnemies(batch);
         }
 
         player.render(batch, PLAYER_TILE_SIZE);
         player.update(delta);
-
+        
         for (Chunk chunk : chunks.values()) {
             chunk.renderObstacles(batch, player.getPosition().y, true);
         }
@@ -137,6 +155,10 @@ public class GameProj implements Screen, ContactListener {
         debugRenderer.render(world.getWorld(), camera.combined);
         
         if (Gdx.input.isKeyPressed(Input.Keys.F5)) gameScreen.switchToNewState(GameScreen.HOME);;
+        if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) Player.gameStarted = false;;
+   
+        hudStage.act(delta);
+        hudStage.draw();
     }
     
     private void cullDistantChunks() {
@@ -162,7 +184,7 @@ public class GameProj implements Screen, ContactListener {
     private void scheduleChunkGeneration(int chunkX, int chunkY) {
         chunkGenerator.submit(() -> {
             Vector2 chunkCoord = new Vector2(chunkX, chunkY);
-            Chunk newChunk = new Chunk(chunkX, chunkY, CHUNK_SIZE, TILE_SIZE, random, world.getWorld());
+            Chunk newChunk = new Chunk(chunkX, chunkY, CHUNK_SIZE, TILE_SIZE, random, world.getWorld(), player);
             pendingChunks.add(newChunk); 
             chunks.put(chunkCoord, newChunk);
         });
@@ -184,7 +206,7 @@ public class GameProj implements Screen, ContactListener {
 
     private void generateChunk(int chunkX, int chunkY) {
         Vector2 chunkCoord = new Vector2(chunkX, chunkY);
-        chunks.put(chunkCoord, new Chunk(chunkX, chunkY, CHUNK_SIZE, TILE_SIZE, random, world.getWorld()));
+        chunks.put(chunkCoord, new Chunk(chunkX, chunkY, CHUNK_SIZE, TILE_SIZE, random, world.getWorld(), player));
     }
 
     @Override
@@ -218,9 +240,49 @@ public class GameProj implements Screen, ContactListener {
         short categoryA = fixtureA.getFilterData().categoryBits;
         short categoryB = fixtureB.getFilterData().categoryBits;
         
+        if ((categoryA == CollisionFilter.SPEAR && categoryB == CollisionFilter.ENEMY) ||
+    		(categoryB == CollisionFilter.SPEAR && categoryA == CollisionFilter.ENEMY)) {
+            
+            Body spearBody = (categoryA == CollisionFilter.SPEAR) ? fixtureA.getBody() : fixtureB.getBody();
+        	Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
+
+            for (Chunk chunk : chunks.values()) {
+                for (Enemy enemy : chunk.getEnemies()) { 
+                    if (enemy.getBody() == enemyBody) {
+                        enemy.markForRemoval();
+                        enemiesKilled++;
+                        hudLabel.setText("Enemies: " + enemiesKilled + "/" + 20);
+                        break;
+                    }
+                }
+            }
+            
+            player.markSpearForRemoval(spearBody);
+        }
+        
         if ((categoryA == CollisionFilter.SPEAR && categoryB == CollisionFilter.OBSTACLE) ||
     		(categoryB == CollisionFilter.SPEAR && categoryA == CollisionFilter.OBSTACLE)) {
-            player.markForRemoval();
+        	
+            
+        	Body spearBody = (categoryA == CollisionFilter.SPEAR) ? fixtureA.getBody() : fixtureB.getBody();
+        	
+        	player.markSpearForRemoval(spearBody);
+        }
+        
+        if ((categoryA == CollisionFilter.PLAYER && categoryB == CollisionFilter.ENEMY) ||
+    		(categoryB == CollisionFilter.PLAYER && categoryA == CollisionFilter.ENEMY)) {
+        	
+        	Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
+        	
+        	for (Chunk chunk : chunks.values()) {
+                for (Enemy enemy : chunk.getEnemies()) { 
+                    if (enemy.getBody() == enemyBody) {
+                        if (enemy.emptyBody(enemyBody)) {
+                        	player.playerDie();
+                        }
+                    }
+                }
+            }      	
         }
     }
 

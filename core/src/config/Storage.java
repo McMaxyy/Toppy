@@ -55,6 +55,9 @@ public class Storage {
         assetManager.load("character/Attacking.png", Texture.class);
         assetManager.load("character/Spear.png", Texture.class);
         
+        assetManager.load("enemy.png", Texture.class);
+        assetManager.load("white_pixel.png", Texture.class);
+        
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
         
         assetManager.finishLoading();
