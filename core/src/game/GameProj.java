@@ -138,9 +138,9 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderObstacles(batch, player.getPosition().y, false);
         }
         
-        for (Chunk chunk : chunks.values()) {
-            chunk.renderEnemies(batch);
-        }
+//        for (Chunk chunk : chunks.values()) {
+//            chunk.renderEnemies(batch);
+//        }
 
         player.render(batch, PLAYER_TILE_SIZE);
         player.update(delta);

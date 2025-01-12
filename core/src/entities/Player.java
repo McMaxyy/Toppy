@@ -28,7 +28,7 @@ public class Player {
     private Array<Vector2> spearStartPositions = new Array<>();
     private float speed, maxDistance = 80f;
     private AnimationManager animationManager;
-    private static int direction = 0;
+    private int direction;
     private GameProj gameP;
     private Box2DWorld world;
     private Array<Boolean> spearMarkedForRemoval = new Array<>();
@@ -75,7 +75,7 @@ public class Player {
     	
     	input(delta);
         updateAnimationState();
-        getAnimationManager().update(Gdx.graphics.getDeltaTime());
+        getAnimationManager().update(delta);
         
         for (int i = spearBodies.size - 1; i >= 0; i--) {
             Body spearBody = spearBodies.get(i);
@@ -243,10 +243,10 @@ public class Player {
         Vector2 position = body.getPosition();
 
         getAnimationManager().update(Gdx.graphics.getDeltaTime());
-        batch.draw(getAnimationManager().getCurrentFrame(direction),
-                   position.x - TILE_SIZE / 2f, 
-                   position.y - TILE_SIZE / 2f, 
-                   TILE_SIZE, TILE_SIZE);
+        batch.draw(getAnimationManager().getCurrentFrame(),
+                   position.x - TILE_SIZE / 4f, 
+                   position.y - TILE_SIZE / 4f, 
+                   TILE_SIZE / 2f, TILE_SIZE / 2f);
 
         for (int i = 0; i < spearBodies.size; i++) {
             Body spearBody = spearBodies.get(i);
