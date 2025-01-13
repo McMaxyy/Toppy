@@ -21,7 +21,8 @@ public class Storage {
     public TextFieldStyle textStyle;
     public BitmapFont font;
     public static AssetManager assetManager = new AssetManager();
-    private static boolean newLoad = true;    
+    private static boolean newLoad = true; 
+    private static boolean stageClear;
     
     public static synchronized Storage getInstance()  {
         if (instance == null) {
@@ -86,4 +87,12 @@ public class Storage {
         textStyle = new TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle.class));
         textStyle.font = font;  
     }
+
+	public static boolean isStageClear() {
+		return stageClear;
+	}
+
+	public static void setStageClear(boolean stageClear) {
+		Storage.stageClear = stageClear;
+	}
 }

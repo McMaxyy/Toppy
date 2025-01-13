@@ -10,6 +10,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.Filter;
+import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.utils.Array;
@@ -37,6 +39,30 @@ public class Player {
     private boolean playerDeath;
     private GameScreen gameScreen;
     public static boolean gameStarted = false;
+    private float dashSpeed = 3000f;
+    private float dashDuration = 0.5f; 
+    private float dashCooldown = 1f; 
+    private float dashTimer = 0f; 
+    private float dashCooldownTimer = 0f;
+    private boolean isDashing = false; 
+    private Vector2 dashDirection = new Vector2();
+    private boolean invulnerable;
+    private short originalMaskBits;
+    
+    private class Trail {
+        Vector2 position;
+        float lifetime;
+
+        public Trail(Vector2 position, float lifetime) {
+            this.position = new Vector2(position);
+            this.lifetime = lifetime;
+        }
+    }
+
+    private Array<Trail> trails = new Array<>();
+    private float trailSpawnInterval = 0.05f;
+    private float trailTimer = 0f;
+    private float trailLifetime = 0.5f;
 
     public Player(Box2DWorld world, AnimationManager animationManager, int size, GameProj gameP, GameScreen gameScreen) {
         this.animationManager = animationManager;
@@ -63,6 +89,7 @@ public class Player {
 
         fixtureDef.filter.categoryBits = CollisionFilter.PLAYER;
         fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
+        originalMaskBits = fixtureDef.filter.maskBits;
 
         body.createFixture(fixtureDef);
         shape.dispose();
@@ -89,6 +116,26 @@ public class Player {
         
         if(playerDeath && !world.getWorld().isLocked())
         	die();
+        
+        for (int i = trails.size - 1; i >= 0; i--) {
+            Trail trail = trails.get(i);
+            trail.lifetime -= delta;
+            if (trail.lifetime <= 0) {
+                trails.removeIndex(i);
+            }
+        }
+    }
+    
+    private void updateMaskBits() {
+        if (body != null && body.getFixtureList().size > 0) {
+            Fixture fixture = body.getFixtureList().first();
+
+            Filter filter = fixture.getFilterData();
+
+            filter.maskBits = invulnerable ? (short) 0 : originalMaskBits;
+
+            fixture.setFilterData(filter);
+        }
     }
 
     public Vector2 getPosition() {
@@ -101,23 +148,53 @@ public class Player {
     public void updateBounds() {}
     
     public void input(float delta) {
-    	float moveX = 0;
+        float moveX = 0;
         float moveY = 0;
-        
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) moveY += 1;
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) moveY -= 1;
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) moveX -= 1;
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) moveX += 1;
+
+        if (!isDashing) {
+            if (Gdx.input.isKeyPressed(Input.Keys.W)) moveY += 1;
+            if (Gdx.input.isKeyPressed(Input.Keys.S)) moveY -= 1;
+            if (Gdx.input.isKeyPressed(Input.Keys.A)) moveX -= 1;
+            if (Gdx.input.isKeyPressed(Input.Keys.D)) moveX += 1;
+
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && dashCooldownTimer <= 0) {
+            	setInvulnerable(true);
+            	isDashing = true;
+                dashTimer = dashDuration;
+                dashDirection.set(moveX, moveY).nor();
+                dashCooldownTimer = dashCooldown;
+            }
+
+            move(moveX, moveY, delta);
+        } else {
+        	if (isDashing) {
+        	    body.setLinearVelocity(dashDirection.x * dashSpeed * 25, dashDirection.y * dashSpeed * 25);
+        	    dashTimer -= delta;
+
+        	    trailTimer += delta;
+        	    if (trailTimer >= trailSpawnInterval) {
+        	        trails.add(new Trail(body.getPosition(), trailLifetime));
+        	        trailTimer = 0f;
+        	    }
+
+        	    if (dashTimer <= 0) {
+        	        isDashing = false;
+        	        body.setLinearVelocity(0, 0);
+        	        setInvulnerable(false);
+    	        }
+        	}
+        }
         
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0) {
         	createSpear();
         	spearCooldown = 0.5f;
         }  
-        
-    	move(moveX, moveY, delta);
+
+        if (dashCooldownTimer > 0) {
+            dashCooldownTimer -= delta;
+        }
 
         updateBounds();
-        
         gameP.generateChunksAroundPlayer();
     }
     
@@ -269,6 +346,16 @@ public class Player {
         }
         
         renderCooldownBar(batch, TILE_SIZE);
+        
+        for (Trail trail : trails) {
+            float alpha = trail.lifetime / trailLifetime;
+            batch.setColor(1, 1, 1, alpha);
+            batch.draw(getAnimationManager().getCurrentFrame(),
+                       trail.position.x - TILE_SIZE / 4f,
+                       trail.position.y - TILE_SIZE / 4f,
+                       TILE_SIZE / 2f, TILE_SIZE / 2f);
+        }
+        batch.setColor(1, 1, 1, 1);
     }
     
     private void renderCooldownBar(SpriteBatch batch, float TILE_SIZE) {
@@ -307,4 +394,14 @@ public class Player {
     public Body getBody() {
     	return body;
     }
+
+	public boolean isInvulnerable() {
+		return invulnerable;
+	}
+	
+	public void setInvulnerable(boolean invulnerable) {
+	    this.invulnerable = invulnerable;
+	    updateMaskBits();
+	}
+
 }

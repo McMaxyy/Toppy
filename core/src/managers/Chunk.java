@@ -147,11 +147,17 @@ public class Chunk {
         }
         pendingObstacles.clear();
 
-        for (EnemyInfo enemyInfo : pendingEnemies) {
-            Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
-            enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), enemyInfo.texture, body, player));
-        }
-        pendingEnemies.clear();
+        if(!Storage.isStageClear()) {
+        	for (EnemyInfo enemyInfo : pendingEnemies) {
+                Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
+                enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), enemyInfo.texture, body, player));
+            }
+            pendingEnemies.clear();
+        }       
+    }
+    
+    public void removeEnemies() {
+    	enemies.clear();
     }
     
     private Body createObstacleBody(World world, float x, float y, float width, float height) {

@@ -6,6 +6,8 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 
+import managers.Chunk;
+
 public class Enemy {
 	public Rectangle bounds;
     private Texture texture;
@@ -52,6 +54,13 @@ public class Enemy {
             body.getWorld().destroyBody(body);
             body = null;
         }
+    }
+    
+    public void removeEnemies() {
+    	if (body != null) {
+    		body.getWorld().destroyBody(body);
+    		body = null;
+    	}
     }
     
     public boolean emptyBody(Body body) {

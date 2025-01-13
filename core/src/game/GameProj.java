@@ -56,7 +56,7 @@ public class GameProj implements Screen, ContactListener {
     private Random random;
     private ExecutorService chunkGenerator;
     private Label hudLabel;
-    private int enemiesKilled = 0;
+    private int enemiesKilled = 0, enemyGoal = 20;
 
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 18;
@@ -99,7 +99,7 @@ public class GameProj implements Screen, ContactListener {
 
         hudStage = new Stage(hudViewport, batch);
         
-        hudLabel = new Label("0/20", skin);
+        hudLabel = new Label("0/" + enemyGoal, skin);
         hudLabel.setPosition(10, hudViewport.getWorldHeight() - 30);
         hudStage.addActor(hudLabel);
         
@@ -124,6 +124,20 @@ public class GameProj implements Screen, ContactListener {
             }
         }
     	
+    	if(enemiesKilled >= enemyGoal && !Storage.isStageClear()) {
+    		Storage.setStageClear(true);
+    		
+    		for (Chunk chunk : chunks.values()) {
+                for (Enemy enemy : chunk.getEnemies()) {
+                	enemy.removeEnemies();
+                }
+            }
+    		
+    		for (Chunk chunk : chunks.values()){
+            	chunk.removeEnemies();
+            }    		
+		}
+    	
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
         camera.update();
 
@@ -138,9 +152,9 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderObstacles(batch, player.getPosition().y, false);
         }
         
-//        for (Chunk chunk : chunks.values()) {
-//            chunk.renderEnemies(batch);
-//        }
+        for (Chunk chunk : chunks.values()) {
+            chunk.renderEnemies(batch);
+        }
 
         player.render(batch, PLAYER_TILE_SIZE);
         player.update(delta);
@@ -251,7 +265,7 @@ public class GameProj implements Screen, ContactListener {
                     if (enemy.getBody() == enemyBody) {
                         enemy.markForRemoval();
                         enemiesKilled++;
-                        hudLabel.setText("Enemies: " + enemiesKilled + "/" + 20);
+                        hudLabel.setText("Goal: " + enemiesKilled + "/" + enemyGoal);
                         break;
                     }
                 }
