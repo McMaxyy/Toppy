@@ -91,37 +91,37 @@ public class Chunk {
         switch (random.nextInt(7)) {
             case 1:
                 return new ObstacleInfo(
-                    Storage.assetManager.get("tiles/tree.png", Texture.class),
+                    Storage.assetManager.get("tiles/newtree.png", Texture.class),
                     x, y, 26, 32
                 );
             case 2:
                 return new ObstacleInfo(
-                    Storage.assetManager.get("tiles/tree2.png", Texture.class),
+                    Storage.assetManager.get("tiles/newtree2.png", Texture.class),
                     x, y, 32, 36
                 );
             case 3:
                 return new ObstacleInfo(
-                    Storage.assetManager.get("tiles/tree3.png", Texture.class),
+                    Storage.assetManager.get("tiles/newtree3.png", Texture.class),
                     x, y, 32, 36
                 );
             case 4:
                 return new ObstacleInfo(
-                    Storage.assetManager.get("tiles/rock.png", Texture.class),
+                    Storage.assetManager.get("tiles/newrock.png", Texture.class),
                     x, y, 16, 16
                 );
             case 5:
                 return new ObstacleInfo(
-                    Storage.assetManager.get("tiles/rock2.png", Texture.class),
+                    Storage.assetManager.get("tiles/newrock2.png", Texture.class),
                     x, y, 18, 10
                 );
             case 6:
                 return new ObstacleInfo(
-                    Storage.assetManager.get("tiles/rock3.png", Texture.class),
+                    Storage.assetManager.get("tiles/newrock3.png", Texture.class),
                     x, y, 20, 22
                 );
             default:
                 return new ObstacleInfo(
-                    Storage.assetManager.get("tiles/rock4.png", Texture.class),
+                    Storage.assetManager.get("tiles/newrock4.png", Texture.class),
                     x, y, 10, 10
                 );
         }

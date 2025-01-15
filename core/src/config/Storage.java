@@ -41,13 +41,13 @@ public class Storage {
     
     public static void loadAssets() {
         // Load the assets required for the game
-        assetManager.load("tiles/tree.png", Texture.class);
-        assetManager.load("tiles/rock.png", Texture.class);
-        assetManager.load("tiles/tree2.png", Texture.class);
-        assetManager.load("tiles/rock2.png", Texture.class);
-        assetManager.load("tiles/tree3.png", Texture.class);
-        assetManager.load("tiles/rock3.png", Texture.class);
-        assetManager.load("tiles/rock4.png", Texture.class);
+        assetManager.load("tiles/newtree.png", Texture.class);
+        assetManager.load("tiles/newrock.png", Texture.class);
+        assetManager.load("tiles/newtree2.png", Texture.class);
+        assetManager.load("tiles/newrock2.png", Texture.class);
+        assetManager.load("tiles/newtree3.png", Texture.class);
+        assetManager.load("tiles/newrock3.png", Texture.class);
+        assetManager.load("tiles/newrock4.png", Texture.class);
         assetManager.load("tiles/green_tile.png", Texture.class);
         
         assetManager.load("character/Running.png", Texture.class);
