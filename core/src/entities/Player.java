@@ -3,7 +3,6 @@ package entities;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
@@ -230,12 +229,12 @@ public class Player {
                 direction = dy > 0 ? 1 : 0;
             }
 
-            getAnimationManager().setState(AnimationManager.State.RUNNING);
+            getAnimationManager().setState(AnimationManager.State.RUNNING, "Player");
             
             if(!gameStarted)
             	gameStarted = true;
         } else {
-        	getAnimationManager().setState(AnimationManager.State.IDLE);
+        	getAnimationManager().setState(AnimationManager.State.IDLE, "Player");
         }
 
         float velocityX = dx * speed * delta;

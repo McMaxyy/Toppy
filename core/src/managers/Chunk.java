@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
@@ -14,6 +16,7 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 
 import config.Storage;
+import entities.BossKitty;
 import entities.Enemy;
 import entities.Player;
 
@@ -25,12 +28,15 @@ public class Chunk {
     private final List<ObstacleInfo> pendingObstacles;
     private final List<Enemy> enemies;
     private final List<EnemyInfo> pendingEnemies;
+    private final List<BossKitty> bossKitty;
     
     private final World world;
     private Player player;
+    private AnimationManager animationManager;
 
-    public Chunk(int chunkX, int chunkY, int chunkSize, int tileSize, Random random, World world, Player player) {
-        this.chunkX = chunkX;
+    public Chunk(int chunkX, int chunkY, int chunkSize, int tileSize, Random random, World world, Player player, AnimationManager animationManager) {
+    	this.animationManager = animationManager;
+    	this.chunkX = chunkX;
         this.chunkY = chunkY;
         this.chunkSize = chunkSize;
         this.tileSize = tileSize;
@@ -39,6 +45,7 @@ public class Chunk {
         this.pendingObstacles = new ArrayList<>();
         this.enemies = new ArrayList<>();
         this.pendingEnemies = new ArrayList<>();
+        this.bossKitty = new ArrayList<>();
         this.player = player;
 
         generateObstacles(random);
@@ -65,7 +72,7 @@ public class Chunk {
     }
     
     private void generateEnemies(Random random) {
-        int enemyCount = random.nextInt(15) + 20;
+		int enemyCount = random.nextInt(15) + 20;
         for (int i = 0; i < enemyCount; i++) {
             float x = random.nextInt(chunkSize * tileSize) + chunkX * chunkSize * tileSize;
             float y = random.nextInt(chunkSize * tileSize) + chunkY * chunkSize * tileSize;
@@ -79,6 +86,40 @@ public class Chunk {
             pendingEnemies.add(new EnemyInfo(Storage.assetManager.get("enemy.png", Texture.class), x, y));
         }
     }
+    
+    public void spawnBossKitty(float playerRadius) {
+        Vector2 playerPosition = player.getPosition();
+        Vector2 spawnPosition = getRandomPositionWithinRadius(playerPosition, playerRadius);
+
+        Rectangle bossBounds = new Rectangle(spawnPosition.x, spawnPosition.y, 32, 32);
+
+        if (!isOverlapping(bossBounds) && !isOutOfBounds(bossBounds)) {
+            Body bossBody = createEnemyBody(world, spawnPosition.x, spawnPosition.y, 32, 32);
+            bossKitty.add(new BossKitty(bossBounds, bossBody, player, getAnimationManager()));
+        } else {
+            Vector2 fallbackPosition = getFallbackPosition(playerPosition);
+            Body bossBody = createEnemyBody(world, fallbackPosition.x, fallbackPosition.y, 32, 32);
+            bossKitty.add(new BossKitty(new Rectangle(fallbackPosition.x, fallbackPosition.y, 32, 32),
+            		bossBody, player, getAnimationManager()));
+        }
+    }
+
+    private Vector2 getFallbackPosition(Vector2 playerPosition) {
+        float fallbackOffset = 50f;
+        return new Vector2(playerPosition.x + fallbackOffset, playerPosition.y + fallbackOffset);
+    }
+
+    private Vector2 getRandomPositionWithinRadius(Vector2 center, float radius) {
+        Random random = new Random();
+        float angle = random.nextFloat() * 360f;
+        float distance = random.nextFloat() * radius;
+
+        float offsetX = (float) Math.cos(Math.toRadians(angle)) * distance;
+        float offsetY = (float) Math.sin(Math.toRadians(angle)) * distance;
+
+        return new Vector2(center.x + offsetX, center.y + offsetY);
+    }
+
     
     private boolean isOutOfBounds(Rectangle bounds) {
         return bounds.x < chunkX * chunkSize * tileSize || 
@@ -150,10 +191,19 @@ public class Chunk {
         if(!Storage.isStageClear()) {
         	for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
-                enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), enemyInfo.texture, body, player));
+                enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), 
+                		null, body, player, getAnimationManager()));
             }
             pendingEnemies.clear();
-        }       
+        }   
+        else {
+        	for (EnemyInfo enemyInfo : pendingEnemies) {
+                Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
+                bossKitty.add(new BossKitty(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), 
+                		body, player, getAnimationManager()));
+            }
+            pendingEnemies.clear();
+        }
     }
     
     public void removeEnemies() {
@@ -228,7 +278,14 @@ public class Chunk {
     
     public void renderEnemies(SpriteBatch batch) {
         for (Enemy enemy : enemies) {
-            enemy.update();
+            enemy.update(Gdx.graphics.getDeltaTime());
+            enemy.render(batch);
+        }
+    }
+    
+    public void renderBossKitty(SpriteBatch batch) {
+        for (BossKitty enemy : bossKitty) {
+            enemy.update(Gdx.graphics.getDeltaTime());
             enemy.render(batch);
         }
     }
@@ -245,8 +302,15 @@ public class Chunk {
     
     public void updateEnemies() {
         enemies.removeIf(enemy -> {
-            enemy.update();
+            enemy.update(Gdx.graphics.getDeltaTime());
             return enemy.isMarkedForRemoval();
+        });
+    }
+    
+    public void updateBossKitty() {
+        bossKitty.removeIf(bossKitty -> {
+        	bossKitty.update(Gdx.graphics.getDeltaTime());
+            return bossKitty.isMarkedForRemoval();
         });
     }
 
@@ -288,5 +352,13 @@ public class Chunk {
     
     public List<Enemy> getEnemies() {
         return enemies;
+    }
+    
+    public List<BossKitty> getBossKitty(){
+    	return bossKitty;
+    }
+    
+    public AnimationManager getAnimationManager() {
+    	return animationManager;
     }
 }

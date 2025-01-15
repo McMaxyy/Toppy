@@ -52,12 +52,21 @@ public class Storage {
         
         assetManager.load("character/Running.png", Texture.class);
         assetManager.load("character/Idle.png", Texture.class);
-        assetManager.load("character/Dying.png", Texture.class);
         assetManager.load("character/Attacking.png", Texture.class);
         assetManager.load("character/Spear.png", Texture.class);
         
         assetManager.load("character/Walking.png", Texture.class);
         assetManager.load("character/Idle2.png", Texture.class);
+        assetManager.load("character/Dying.png", Texture.class);
+        
+        assetManager.load("enemies/Mushie/Walking.png", Texture.class);
+        assetManager.load("enemies/Mushie/Idle.png", Texture.class);
+        assetManager.load("enemies/Mushie/Dying.png", Texture.class);
+        
+        assetManager.load("enemies/BossKitty/Walking.png", Texture.class);
+        assetManager.load("enemies/BossKitty/Dying.png", Texture.class);
+        assetManager.load("enemies/BossKitty/Charg.png", Texture.class);
+        assetManager.load("enemies/BossKitty/Kitty.png", Texture.class);
         
         assetManager.load("enemy.png", Texture.class);
         assetManager.load("white_pixel.png", Texture.class);

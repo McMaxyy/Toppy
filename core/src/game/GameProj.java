@@ -29,6 +29,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import config.GameScreen;
 import config.Storage;
+import entities.BossKitty;
 import entities.Enemy;
 import entities.Player;
 import managers.AnimationManager;
@@ -56,7 +57,8 @@ public class GameProj implements Screen, ContactListener {
     private Random random;
     private ExecutorService chunkGenerator;
     private Label hudLabel;
-    private int enemiesKilled = 0, enemyGoal = 20;
+    private int enemiesKilled = 0, enemyGoal = 5;
+    private boolean bossSpawned = false;
 
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 18;
@@ -155,6 +157,28 @@ public class GameProj implements Screen, ContactListener {
         for (Chunk chunk : chunks.values()) {
             chunk.renderEnemies(batch);
         }
+        
+        if (Storage.isStageClear() && !bossSpawned) {
+            Vector2 playerChunkCoord = new Vector2(
+                (int) Math.floor(player.getPosition().x / (CHUNK_SIZE * TILE_SIZE)),
+                (int) Math.floor(player.getPosition().y / (CHUNK_SIZE * TILE_SIZE))
+            );
+
+            Chunk playerChunk = chunks.get(playerChunkCoord);
+
+            if (playerChunk != null) {
+                playerChunk.spawnBossKitty(150f);
+                bossSpawned = true;
+            }
+        }
+
+        if (bossSpawned) {
+            for (Chunk chunk : chunks.values()) {
+                chunk.addBodiesToWorld(world.getWorld());
+                chunk.renderBossKitty(batch);
+            }
+        }
+
 
         player.render(batch, PLAYER_TILE_SIZE);
         player.update(delta);
@@ -174,31 +198,11 @@ public class GameProj implements Screen, ContactListener {
         hudStage.act(delta);
         hudStage.draw();
     }
-    
-    private void cullDistantChunks() {
-        Vector2 playerChunkCoord = new Vector2(
-            (int) Math.floor(player.getPosition().x / (CHUNK_SIZE * TILE_SIZE)),
-            (int) Math.floor(player.getPosition().y / (CHUNK_SIZE * TILE_SIZE))
-        );
-
-        chunks.entrySet().removeIf(entry -> {
-            Vector2 chunkCoord = entry.getKey();
-            double distance = Math.sqrt(Math.pow(playerChunkCoord.x - chunkCoord.x, 2) + Math.pow(playerChunkCoord.y - chunkCoord.y, 2));
-
-            if (distance > 2) { 
-                Chunk chunk = entry.getValue();
-                chunk.dispose(); 
-                return true; 
-            }
-            return false; 
-        });
-    }
-
 
     private void scheduleChunkGeneration(int chunkX, int chunkY) {
         chunkGenerator.submit(() -> {
             Vector2 chunkCoord = new Vector2(chunkX, chunkY);
-            Chunk newChunk = new Chunk(chunkX, chunkY, CHUNK_SIZE, TILE_SIZE, random, world.getWorld(), player);
+            Chunk newChunk = new Chunk(chunkX, chunkY, CHUNK_SIZE, TILE_SIZE, random, world.getWorld(), player, animationManager);
             pendingChunks.add(newChunk); 
             chunks.put(chunkCoord, newChunk);
         });
@@ -216,11 +220,6 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
         }				    		  	
-    }
-
-    private void generateChunk(int chunkX, int chunkY) {
-        Vector2 chunkCoord = new Vector2(chunkX, chunkY);
-        chunks.put(chunkCoord, new Chunk(chunkX, chunkY, CHUNK_SIZE, TILE_SIZE, random, world.getWorld(), player));
     }
 
     @Override
@@ -261,14 +260,27 @@ public class GameProj implements Screen, ContactListener {
         	Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
 
             for (Chunk chunk : chunks.values()) {
-                for (Enemy enemy : chunk.getEnemies()) { 
-                    if (enemy.getBody() == enemyBody) {
-                        enemy.markForRemoval();
-                        enemiesKilled++;
-                        hudLabel.setText("Goal: " + enemiesKilled + "/" + enemyGoal);
-                        break;
+            	if (!bossSpawned) {
+            		for (Enemy enemy : chunk.getEnemies()) { 
+                        if (enemy.getBody() == enemyBody) {
+                            enemy.markForRemoval();
+                            enemiesKilled++;
+                            hudLabel.setText("Goal: " + enemiesKilled + "/" + enemyGoal);
+                            break;
+                        }
                     }
-                }
+            	} else {
+            		for (BossKitty enemy : chunk.getBossKitty()) { 
+                        if (enemy.getBody() == enemyBody) {
+                            enemy.markForRemoval();                          
+                            bossSpawned = false;
+                            Storage.setStageClear(false); 
+                            enemiesKilled = 0;
+                            gameScreen.switchToNewState(GameScreen.HOME);
+                            break;
+                        }
+                    }
+            	}              
             }
             
             player.markSpearForRemoval(spearBody);
@@ -291,9 +303,7 @@ public class GameProj implements Screen, ContactListener {
         	for (Chunk chunk : chunks.values()) {
                 for (Enemy enemy : chunk.getEnemies()) { 
                     if (enemy.getBody() == enemyBody) {
-                        if (enemy.emptyBody(enemyBody)) {
-                        	player.playerDie();
-                        }
+                    	player.playerDie();
                     }
                 }
             }      	
