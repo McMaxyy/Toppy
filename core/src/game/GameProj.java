@@ -57,7 +57,7 @@ public class GameProj implements Screen, ContactListener {
     private Random random;
     private ExecutorService chunkGenerator;
     private Label hudLabel;
-    private int enemiesKilled = 0, enemyGoal = 5;
+    private int enemiesKilled = 0, enemyGoal = 10;
     private boolean bossSpawned = false;
 
     private final int CHUNK_SIZE = 32;
