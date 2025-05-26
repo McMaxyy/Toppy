@@ -38,24 +38,25 @@ import managers.Chunk;
 import managers.CollisionFilter;
 
 public class GameProj implements Screen, ContactListener {
-    private Skin skin;
-    private Viewport viewport, hudViewport;
+    private final Skin skin;
+    private final Viewport viewport;
+    private final Viewport hudViewport;
     public Stage stage, hudStage;
-    private Game game;
-    private GameScreen gameScreen;
+    private final GameScreen gameScreen;
     private Storage storage;
     private SpriteBatch batch;
-    private AnimationManager animationManager;
+    private final AnimationManager animationManager;
     
-    private OrthographicCamera camera, hudCamera;
-    private Box2DWorld world;
+    private final OrthographicCamera camera;
+    private OrthographicCamera hudCamera;
+    private final Box2DWorld world;
 
     private Texture groundTexture;
     private Player player;
-    private ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
-    private ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
-    private Random random;
-    private ExecutorService chunkGenerator;
+    private final ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
+    private final ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
+    private final Random random;
+    private final ExecutorService chunkGenerator;
     private Label hudLabel;
     private int enemiesKilled = 0, enemyGoal = 10;
     private boolean bossSpawned = false;
@@ -66,7 +67,6 @@ public class GameProj implements Screen, ContactListener {
 
     public GameProj(Viewport viewport, Game game, GameScreen gameScreen) {
         this.gameScreen = gameScreen;
-        this.game = game;
         this.viewport = viewport;
         
         stage = new Stage(viewport);
@@ -118,7 +118,7 @@ public class GameProj implements Screen, ContactListener {
     	world.getWorld().step(1 / 60f, 6, 2);
     	
 //    	cullDistantChunks();
-    	
+
     	while (!pendingChunks.isEmpty()) {
             Chunk chunk = pendingChunks.poll();
             if (chunk != null) {
@@ -167,8 +167,9 @@ public class GameProj implements Screen, ContactListener {
             Chunk playerChunk = chunks.get(playerChunkCoord);
 
             if (playerChunk != null) {
-                playerChunk.spawnBossKitty(150f);
+                playerChunk.spawnBossKitty(300f);
                 bossSpawned = true;
+                Storage.setBossAlive(true);
             }
         }
 
@@ -275,6 +276,7 @@ public class GameProj implements Screen, ContactListener {
                             enemy.markForRemoval();                          
                             bossSpawned = false;
                             Storage.setStageClear(false); 
+                            Storage.setBossAlive(false);
                             enemiesKilled = 0;
                             gameScreen.switchToNewState(GameScreen.HOME);
                             break;
@@ -301,9 +303,25 @@ public class GameProj implements Screen, ContactListener {
         	Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
         	
         	for (Chunk chunk : chunks.values()) {
-                for (Enemy enemy : chunk.getEnemies()) { 
-                    if (enemy.getBody() == enemyBody) {
-                    	player.playerDie();
+                if(bossSpawned){
+                    for (BossKitty bossKitty : chunk.getBossKitty()) {
+                        if (bossKitty.getBody() == enemyBody) {
+                            player.playerDie();
+                            bossKitty.markForRemoval();
+                            bossSpawned = false;
+                            Storage.setStageClear(false);
+                            Storage.setBossAlive(false);
+                            enemiesKilled = 0;
+                            gameScreen.switchToNewState(GameScreen.HOME);
+                            break;
+                        }
+                    }
+                }
+                else {
+                    for (Enemy enemy : chunk.getEnemies()) {
+                        if (enemy.getBody() == enemyBody) {
+                            player.playerDie();
+                        }
                     }
                 }
             }      	

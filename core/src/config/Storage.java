@@ -22,7 +22,7 @@ public class Storage {
     public BitmapFont font;
     public static AssetManager assetManager = new AssetManager();
     private static boolean newLoad = true; 
-    private static boolean stageClear;
+    private static boolean stageClear, bossAlive;
     
     public static synchronized Storage getInstance()  {
         if (instance == null) {
@@ -103,5 +103,13 @@ public class Storage {
 
 	public static void setStageClear(boolean stageClear) {
 		Storage.stageClear = stageClear;
+	}
+
+	public static boolean isBossAlive() {
+		return bossAlive;
+	}
+
+	public static void setBossAlive(boolean bossAlive) {
+		Storage.bossAlive = bossAlive;
 	}
 }

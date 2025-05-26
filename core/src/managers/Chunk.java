@@ -31,8 +31,8 @@ public class Chunk {
     private final List<BossKitty> bossKitty;
     
     private final World world;
-    private Player player;
-    private AnimationManager animationManager;
+    private final Player player;
+    private final AnimationManager animationManager;
 
     public Chunk(int chunkX, int chunkY, int chunkSize, int tileSize, Random random, World world, Player player, AnimationManager animationManager) {
     	this.animationManager = animationManager;
@@ -196,7 +196,7 @@ public class Chunk {
             }
             pendingEnemies.clear();
         }   
-        else {
+        else if (!Storage.isBossAlive()){
         	for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
                 bossKitty.add(new BossKitty(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), 

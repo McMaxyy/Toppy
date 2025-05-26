@@ -21,32 +21,33 @@ import game.GameProj;
 import managers.AnimationManager;
 import managers.Box2DWorld;
 import managers.CollisionFilter;
+import managers.ProjectileManager;
 
 public class Player {
-    private Body body;
+    private final Body body;
     private Array<Body> spearBodies = new Array<>();
     private Array<Vector2> spearVelocities = new Array<>();
     private Array<Vector2> spearStartPositions = new Array<>();
     private float speed, maxDistance = 80f;
-    private AnimationManager animationManager;
+    private final AnimationManager animationManager;
     private int direction;
-    private GameProj gameP;
-    private Box2DWorld world;
+    private final GameProj gameP;
+    private final Box2DWorld world;
     private Array<Boolean> spearMarkedForRemoval = new Array<>();
     private float spearCooldown = 0f;
-    private Texture whitePixel;
+    private final Texture whitePixel;
     private boolean playerDeath;
-    private GameScreen gameScreen;
+    private final GameScreen gameScreen;
     public static boolean gameStarted = false;
-    private float dashSpeed = 3000f;
-    private float dashDuration = 0.5f; 
-    private float dashCooldown = 1f; 
-    private float dashTimer = 0f; 
+    private float dashCooldown = 1f;
+    private float dashTimer = 0f;
+    private float dashDuration = 0.5f;
     private float dashCooldownTimer = 0f;
     private boolean isDashing = false; 
     private Vector2 dashDirection = new Vector2();
     private boolean invulnerable;
-    private short originalMaskBits;
+    private final short originalMaskBits;
+    private final ProjectileManager projectileManager;
     
     private class Trail {
         Vector2 position;
@@ -92,6 +93,8 @@ public class Player {
 
         body.createFixture(fixtureDef);
         shape.dispose();
+
+        projectileManager = new ProjectileManager(this.gameP, this.body, this.world, this);
     }
     
     public void update(float delta) {
@@ -159,6 +162,7 @@ public class Player {
             if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && dashCooldownTimer <= 0) {
             	setInvulnerable(true);
             	isDashing = true;
+                dashDuration = 0.5f;
                 dashTimer = dashDuration;
                 dashDirection.set(moveX, moveY).nor();
                 dashCooldownTimer = dashCooldown;
@@ -167,7 +171,8 @@ public class Player {
             move(moveX, moveY, delta);
         } else {
         	if (isDashing) {
-        	    body.setLinearVelocity(dashDirection.x * dashSpeed * 25, dashDirection.y * dashSpeed * 25);
+                float dashSpeed = 3000f;
+                body.setLinearVelocity(dashDirection.x * dashSpeed * 25, dashDirection.y * dashSpeed * 25);
         	    dashTimer -= delta;
 
         	    trailTimer += delta;
@@ -185,7 +190,7 @@ public class Player {
         }
         
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0) {
-        	createSpear();
+            projectileManager.createSpear();
         	spearCooldown = 0.5f;
         }  
 
@@ -242,46 +247,11 @@ public class Player {
 
         body.setLinearVelocity(velocityX, velocityY);
     }
-    
-    private void createSpear() {
-        Vector3 mousePosition3D = gameP.getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
-        Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
-        Vector2 playerPosition = body.getPosition();
 
-        float angle = (float) Math.atan2(mousePosition.y - playerPosition.y, mousePosition.x - playerPosition.x);
-        float spearSpeed = 150f;
-
-        Vector2 velocity = new Vector2((float) Math.cos(angle) * spearSpeed, (float) Math.sin(angle) * spearSpeed);
-
-        BodyDef spearBodyDef = new BodyDef();
-        spearBodyDef.type = BodyDef.BodyType.DynamicBody;
-        spearBodyDef.position.set(playerPosition.x + velocity.x / spearSpeed, playerPosition.y + velocity.y / spearSpeed);
-        spearBodyDef.angle = angle;
-        spearBodyDef.bullet = true;
-
-        Body spearBody = world.getWorld().createBody(spearBodyDef);
-        spearBody.setFixedRotation(true);
-
-        PolygonShape spearShape = new PolygonShape();
-        spearShape.setAsBox(2f, 2f, new Vector2(0, 0), angle);
-
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = spearShape;
-        fixtureDef.density = 1f;
-        fixtureDef.isSensor = false;
-        fixtureDef.filter.categoryBits = CollisionFilter.SPEAR;
-        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
-
-        spearBody.createFixture(fixtureDef);
-        spearShape.dispose();
-
-        spearBody.setLinearVelocity(velocity);
-        spearBody.setUserData(this);
-
+    public void addSpearBodies(Body spearBody, Vector2 velocity) {
         spearBodies.add(spearBody);
         spearVelocities.add(velocity);
         spearStartPositions.add(new Vector2(spearBody.getPosition()));
-        
         spearMarkedForRemoval.add(false);
     }
 
