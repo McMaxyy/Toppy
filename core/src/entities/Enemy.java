@@ -12,13 +12,13 @@ import managers.AnimationManager.State;
 
 public class Enemy {
 	public Rectangle bounds;
-    private Texture texture;
+    private final Texture texture;
     private Body body;
-    private Player player;
+    private final Player player;
     private final float detectionRadius = 150f;
     private final float speed = 60f; 
     private boolean markForRemoval = false, isMoving = false;
-    private AnimationManager animationManager;
+    private final AnimationManager animationManager;
     private boolean isFlipped = false;
     
     public Enemy(Rectangle bounds, Texture texture, Body body, Player player, AnimationManager animationManager) {

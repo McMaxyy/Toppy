@@ -12,11 +12,11 @@ import managers.AnimationManager.State;
 public class BossKitty {
 	public Rectangle bounds;
     private Body body;
-    private Player player;
+    private final Player player;
     private final float detectionRadius = 300f;
-    private final float speed = 100f; 
+    private final float speed = 80f;
     private boolean markForRemoval = false, isMoving = false;
-    private AnimationManager animationManager;
+    private final AnimationManager animationManager;
     private boolean isFlipped = false;
 
 	public BossKitty(Rectangle bounds, Body body, Player player, AnimationManager animationManager) {
