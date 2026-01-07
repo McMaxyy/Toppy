@@ -150,7 +150,7 @@ public class AnimationManager {
 	    for (int i = 0; i < 4; i++) {
 	        playerDyingFrame.add(playerDyingFrames[0][i]);
 	    }
-	    playerDyingAnimation = new Animation<>(1f, playerDyingFrame, Animation.PlayMode.NORMAL); 
+	    playerDyingAnimation = new Animation<>(0.6f, playerDyingFrame, Animation.PlayMode.NORMAL);
 	    
 	    Texture mushieWalkingTexture = Storage.assetManager.get("enemies/Mushie/Walking.png", Texture.class);
 	    mushieWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);           

@@ -301,9 +301,23 @@ public class GameProj implements Screen, ContactListener {
         	Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
         	
         	for (Chunk chunk : chunks.values()) {
-                for (Enemy enemy : chunk.getEnemies()) { 
-                    if (enemy.getBody() == enemyBody) {
-                    	player.playerDie();
+                if(!bossSpawned) {
+                    for (Enemy enemy : chunk.getEnemies()) {
+                        if (enemy.getBody() == enemyBody) {
+                            player.playerDie();
+                        }
+                    }
+                }
+                else {
+                    for (BossKitty enemy : chunk.getBossKitty()) {
+                        if (enemy.getBody() == enemyBody) {
+                            enemy.markForRemoval();
+                            bossSpawned = false;
+                            Storage.setStageClear(false);
+                            enemiesKilled = 0;
+                            player.playerDie();
+                            break;
+                        }
                     }
                 }
             }      	

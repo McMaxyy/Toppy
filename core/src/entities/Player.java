@@ -47,6 +47,7 @@ public class Player {
     private Vector2 dashDirection = new Vector2();
     private boolean invulnerable;
     private short originalMaskBits;
+    private boolean dyingAnimationStarted = false;
     
     private class Trail {
         Vector2 position;
@@ -150,7 +151,7 @@ public class Player {
         float moveX = 0;
         float moveY = 0;
 
-        if (!isDashing) {
+        if (!isDashing && !playerDeath) {
             if (Gdx.input.isKeyPressed(Input.Keys.W)) moveY += 1;
             if (Gdx.input.isKeyPressed(Input.Keys.S)) moveY -= 1;
             if (Gdx.input.isKeyPressed(Input.Keys.A)) moveX -= 1;
@@ -219,22 +220,24 @@ public class Player {
     public void move(float dx, float dy, float delta) {    	
         float magnitude = (float) Math.sqrt(dx * dx + dy * dy);
 
-        if (magnitude > 0) {
-            dx /= magnitude;
-            dy /= magnitude;
+        if (!playerDeath) {
+            if (magnitude > 0) {
+                dx /= magnitude;
+                dy /= magnitude;
 
-            if (Math.abs(dx) > Math.abs(dy)) {
-                direction = dx > 0 ? 3 : 2;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    direction = dx > 0 ? 3 : 2;
+                } else {
+                    direction = dy > 0 ? 1 : 0;
+                }
+
+                getAnimationManager().setState(AnimationManager.State.RUNNING, "Player");
+
+                if(!gameStarted)
+                    gameStarted = true;
             } else {
-                direction = dy > 0 ? 1 : 0;
+                getAnimationManager().setState(AnimationManager.State.IDLE, "Player");
             }
-
-            getAnimationManager().setState(AnimationManager.State.RUNNING, "Player");
-            
-            if(!gameStarted)
-            	gameStarted = true;
-        } else {
-        	getAnimationManager().setState(AnimationManager.State.IDLE, "Player");
         }
 
         float velocityX = dx * speed * delta;
@@ -296,12 +299,24 @@ public class Player {
     
     public void die() {
     	gameStarted = false;
-    	playerDeath = false;
-    	gameScreen.switchToNewState(GameScreen.HOME);
+
+        if (!dyingAnimationStarted) {
+            getAnimationManager().setState(AnimationManager.State.DYING, "Player");
+            dyingAnimationStarted = true;
+            return;
+        }
+
+        if (getAnimationManager().isAnimationFinished()) {
+            System.out.println("Done");
+            playerDeath = false;
+            dyingAnimationStarted = false;
+            gameScreen.switchToNewState(GameScreen.HOME);
+        }
     }
     
     public void playerDie() {
     	playerDeath = true;
+        dyingAnimationStarted = false;
     }
     
     public void removeSpear(Body spearBody, int i) {

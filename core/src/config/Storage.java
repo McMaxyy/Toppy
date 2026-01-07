@@ -49,10 +49,7 @@ public class Storage {
         assetManager.load("tiles/newrock3.png", Texture.class);
         assetManager.load("tiles/newrock4.png", Texture.class);
         assetManager.load("tiles/green_tile.png", Texture.class);
-        
-        assetManager.load("character/Running.png", Texture.class);
-        assetManager.load("character/Idle.png", Texture.class);
-        assetManager.load("character/Attacking.png", Texture.class);
+
         assetManager.load("character/Spear.png", Texture.class);
         
         assetManager.load("character/Walking.png", Texture.class);
