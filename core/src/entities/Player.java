@@ -418,4 +418,10 @@ public class Player {
 	    updateMaskBits();
 	}
 
+    public void addSpearBodies(Body spearBody, Vector2 velocity) {
+        spearBodies.add(spearBody);
+        spearVelocities.add(velocity);
+        spearStartPositions.add(new Vector2(spearBody.getPosition()));
+        spearMarkedForRemoval.add(false);
+    }
 }

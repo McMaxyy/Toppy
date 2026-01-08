@@ -33,6 +33,7 @@ public class Chunk {
     private final World world;
     private final Player player;
     private final AnimationManager animationManager;
+    private boolean bodiesAdded = false;
 
     public Chunk(int chunkX, int chunkY, int chunkSize, int tileSize, Random random, World world, Player player, AnimationManager animationManager) {
     	this.animationManager = animationManager;
@@ -49,7 +50,7 @@ public class Chunk {
         this.player = player;
 
         generateObstacles(random);
-        generateEnemies(random);
+//        generateEnemies(random);
     }
 
     private void generateObstacles(Random random) {
@@ -182,6 +183,8 @@ public class Chunk {
     }
 
     public void addBodiesToWorld(World world) {
+        if (bodiesAdded) return; // Skip if bodies already added
+
         for (ObstacleInfo obstacleInfo : pendingObstacles) {
             Body body = createObstacleBody(world, obstacleInfo.x, obstacleInfo.y, obstacleInfo.width, obstacleInfo.height);
             obstacles.add(new Obstacle(new Rectangle(obstacleInfo.x, obstacleInfo.y, obstacleInfo.width, obstacleInfo.height), obstacleInfo.texture, body));
@@ -189,20 +192,55 @@ public class Chunk {
         pendingObstacles.clear();
 
         if(!Storage.isStageClear()) {
-        	for (EnemyInfo enemyInfo : pendingEnemies) {
+            for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
-                enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), 
-                		null, body, player, getAnimationManager()));
+                enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
+                        null, body, player, getAnimationManager()));
             }
             pendingEnemies.clear();
-        }   
+        }
         else if (!Storage.isBossAlive()){
-        	for (EnemyInfo enemyInfo : pendingEnemies) {
+            for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
-                bossKitty.add(new BossKitty(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16), 
-                		body, player, getAnimationManager()));
+                bossKitty.add(new BossKitty(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
+                        body, player, getAnimationManager()));
             }
             pendingEnemies.clear();
+        }
+
+        bodiesAdded = true; // Mark that bodies have been added
+    }
+
+    // Add these methods to your Chunk class:
+    public void disableObstacles() {
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.body != null) {
+                obstacle.body.setActive(false);
+            }
+        }
+    }
+
+    public void enableObstacles() {
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.body != null) {
+                obstacle.body.setActive(true);
+            }
+        }
+    }
+
+    public void disableEnemies() {
+        for (Enemy enemy : enemies) {
+            if (enemy.getBody() != null) {
+                enemy.getBody().setActive(false);
+            }
+        }
+    }
+
+    public void enableEnemies() {
+        for (Enemy enemy : enemies) {
+            if (enemy.getBody() != null) {
+                enemy.getBody().setActive(true);
+            }
         }
     }
     
