@@ -35,14 +35,7 @@ import entities.BossKitty;
 import entities.Enemy;
 import entities.Player;
 import entities.Portal;
-import managers.AnimationManager;
-import managers.Box2DWorld;
-import managers.Chunk;
-import managers.CollisionFilter;
-import managers.Dungeon;
-import managers.DungeonMinimap;
-import managers.MapBoundary;
-import managers.Minimap;
+import managers.*;
 
 public class GameProj implements Screen, ContactListener {
     private Skin skin;
@@ -81,6 +74,9 @@ public class GameProj implements Screen, ContactListener {
     private MapBoundary mapBoundary;
     private Minimap minimap;
     private DungeonMinimap dungeonMinimap;
+    private ItemSpawner itemSpawner;
+    private ItemRegistry itemRegistry;
+    private LootTableRegistry lootTableRegistry;
 
     public GameProj(Viewport viewport, Game game, GameScreen gameScreen) {
         this.gameScreen = gameScreen;
@@ -109,6 +105,10 @@ public class GameProj implements Screen, ContactListener {
         chunkGenerator = Executors.newFixedThreadPool(2);
 
         createComponents();
+        itemSpawner.spawnItem("iron_helmet", player.getPosition());
+        itemSpawner.spawnItem("leather_armor", player.getPosition());
+        itemSpawner.spawnItem("iron_shield", player.getPosition());
+        itemSpawner.spawnItem("iron_sword", player.getPosition());
     }
 
     private void createComponents() {
@@ -125,6 +125,13 @@ public class GameProj implements Screen, ContactListener {
 
         mapBoundary = new MapBoundary(world.getWorld(), MAP_SIZE_CHUNKS, CHUNK_SIZE, TILE_SIZE);
         minimap = new Minimap(MAP_SIZE_CHUNKS, CHUNK_SIZE, TILE_SIZE, player);
+
+        itemRegistry = ItemRegistry.getInstance();
+        lootTableRegistry = LootTableRegistry.getInstance();
+        itemSpawner = new ItemSpawner(world.getWorld());
+
+        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen);
+        player.setItemSpawner(itemSpawner);
 
         setRandomPlayerSpawn();
         spawnAllDungeonPortals();
@@ -220,6 +227,7 @@ public class GameProj implements Screen, ContactListener {
 
     private void enterDungeon() {
         inDungeon = true;
+        itemSpawner.clear();
         overworldPlayerPosition = new Vector2(player.getPosition());
 
         for (Chunk chunk : chunks.values()) {
@@ -243,6 +251,7 @@ public class GameProj implements Screen, ContactListener {
 
     private void exitDungeon() {
         inDungeon = false;
+        itemSpawner.clear();
 
         if (currentDungeon != null) {
             currentDungeon.dispose();
@@ -282,7 +291,7 @@ public class GameProj implements Screen, ContactListener {
                 minimap.update();
             }
 
-            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
                 minimap.toggleMap();
             }
 
@@ -294,7 +303,7 @@ public class GameProj implements Screen, ContactListener {
                 dungeonMinimap.update();
             }
 
-            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
                 dungeonMinimap.toggleMap();
             }
         }
@@ -375,6 +384,8 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderObstacles(batch, player.getPosition().y, false);
         }
 
+        itemSpawner.render(batch);
+
         for (Chunk chunk : chunks.values()) {
             chunk.renderEnemies(batch);
         }
@@ -420,6 +431,12 @@ public class GameProj implements Screen, ContactListener {
 
         batch.end();
 
+        itemSpawner.update(delta);
+        itemSpawner.checkPickups(player, player.getInventory());
+
+        batch.setProjectionMatrix(hudCamera.combined);
+        player.getInventory().render(batch, false);
+
         // Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
         // debugRenderer.render(world.getWorld(), camera.combined);
     }
@@ -433,6 +450,7 @@ public class GameProj implements Screen, ContactListener {
 
         if (currentDungeon != null) {
             currentDungeon.render(batch);
+            itemSpawner.render(batch);
             currentDungeon.renderEnemies(batch, delta);
             currentDungeon.updateEnemies();
 
@@ -447,8 +465,14 @@ public class GameProj implements Screen, ContactListener {
 
         batch.end();
 
+        itemSpawner.update(delta);
+        itemSpawner.checkPickups(player, player.getInventory());
+
+        batch.setProjectionMatrix(hudCamera.combined);
+        player.getInventory().render(batch, false);
+
          Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-         debugRenderer.render(world.getWorld(), camera.combined);
+//         debugRenderer.render(world.getWorld(), camera.combined);
     }
 
     private void scheduleChunkGeneration(int chunkX, int chunkY) {
@@ -487,6 +511,14 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
         }
+    }
+
+    public int getTileSize(){
+        return TILE_SIZE;
+    }
+
+    public Dungeon getCurrentDungeon(){
+        return currentDungeon;
     }
 
     @Override
@@ -532,37 +564,76 @@ public class GameProj implements Screen, ContactListener {
         short categoryA = fixtureA.getFilterData().categoryBits;
         short categoryB = fixtureB.getFilterData().categoryBits;
 
+        // ==== SPEAR HIT ENEMY ====
         if ((categoryA == CollisionFilter.SPEAR && categoryB == CollisionFilter.ENEMY) ||
                 (categoryB == CollisionFilter.SPEAR && categoryA == CollisionFilter.ENEMY)) {
 
             Body spearBody = (categoryA == CollisionFilter.SPEAR) ? fixtureA.getBody() : fixtureB.getBody();
             Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
 
+            // Get player damage
+            int playerDamage = player.getStats().getTotalDamage();
+
             if (!inDungeon) {
                 for (Chunk chunk : chunks.values()) {
                     if (!bossSpawned) {
+                        // Normal enemies
                         for (Enemy enemy : chunk.getEnemies()) {
                             if (enemy.getBody() == enemyBody) {
-                                enemy.markForRemoval();
-                                enemiesKilled++;
-                                hudLabel.setText("Enemied killed: " + enemiesKilled);
+                                // Deal damage instead of instant kill
+                                enemy.takeDamage(playerDamage);
+
+                                // If enemy died from this hit, give XP and spawn loot
+                                if (enemy.isMarkedForRemoval()) {
+                                    Vector2 enemyPos = enemyBody.getPosition();
+                                    String lootTable = enemy.getStats().getLootTableType();
+                                    lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPos);
+
+                                    // Give experience to player
+                                    player.getStats().addExperience(enemy.getStats().getExpReward());
+
+                                    enemiesKilled++;
+                                    hudLabel.setText("Enemies killed: " + enemiesKilled);
+                                }
                                 break;
                             }
                         }
                     } else {
-                        for (BossKitty enemy : chunk.getBossKitty()) {
-                            if (enemy.getBody() == enemyBody) {
-                                enemy.markForRemoval();
-                                bossSpawned = false;
+                        // Boss enemies
+                        for (BossKitty boss : chunk.getBossKitty()) {
+                            if (boss.getBody() == enemyBody) {
+                                // Deal damage to boss
+                                boss.takeDamage(playerDamage);
+
+                                // If boss died, spawn loot and give XP
+                                if (boss.isMarkedForRemoval()) {
+                                    Vector2 bossPos = enemyBody.getPosition();
+                                    itemSpawner.spawnBossLoot(bossPos);
+
+                                    // Give lots of experience
+                                    player.getStats().addExperience(boss.getStats().getExpReward());
+
+                                    bossSpawned = false;
+                                }
                                 break;
                             }
                         }
                     }
                 }
             } else if (currentDungeon != null) {
+                // Dungeon enemies
                 for (entities.DungeonEnemy enemy : currentDungeon.getEnemies()) {
                     if (enemy.getBody() == enemyBody) {
-                        enemy.markForRemoval();
+                        // Deal damage
+                        enemy.takeDamage(playerDamage);
+
+                        // If enemy died, spawn loot and give XP
+                        if (enemy.isMarkedForRemoval()) {
+                            Vector2 enemyPos = enemyBody.getPosition();
+                            String lootTable = enemy.getStats().getLootTableType();
+                            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPos);
+                            player.getStats().addExperience(enemy.getStats().getExpReward());
+                        }
                         break;
                     }
                 }
@@ -571,12 +642,21 @@ public class GameProj implements Screen, ContactListener {
             player.markSpearForRemoval(spearBody);
         }
 
+        // ==== SPEAR HIT OBSTACLE ====
         if ((categoryA == CollisionFilter.SPEAR && categoryB == CollisionFilter.OBSTACLE) ||
                 (categoryB == CollisionFilter.SPEAR && categoryA == CollisionFilter.OBSTACLE)) {
             Body spearBody = (categoryA == CollisionFilter.SPEAR) ? fixtureA.getBody() : fixtureB.getBody();
             player.markSpearForRemoval(spearBody);
         }
 
+        // ==== SPEAR HIT WALL ====
+        if ((categoryA == CollisionFilter.SPEAR && categoryB == CollisionFilter.WALL) ||
+                (categoryB == CollisionFilter.SPEAR && categoryA == CollisionFilter.WALL)) {
+            Body spearBody = (categoryA == CollisionFilter.SPEAR) ? fixtureA.getBody() : fixtureB.getBody();
+            player.markSpearForRemoval(spearBody);
+        }
+
+        // ==== PLAYER HIT ENEMY ====
         if ((categoryA == CollisionFilter.PLAYER && categoryB == CollisionFilter.ENEMY) ||
                 (categoryB == CollisionFilter.PLAYER && categoryA == CollisionFilter.ENEMY)) {
             Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
@@ -584,26 +664,41 @@ public class GameProj implements Screen, ContactListener {
             if (!inDungeon) {
                 for (Chunk chunk : chunks.values()) {
                     if(!bossSpawned) {
+                        // Normal enemies damage player
                         for (Enemy enemy : chunk.getEnemies()) {
                             if (enemy.getBody() == enemyBody) {
-                                player.playerDie();
+                                enemy.damagePlayer(); // Damage with cooldown
+
+                                // Check if player died
+                                if (player.getStats().isDead()) {
+                                    player.playerDie();
+                                }
+                                break;
                             }
                         }
                     } else {
-                        for (BossKitty enemy : chunk.getBossKitty()) {
-                            if (enemy.getBody() == enemyBody) {
-                                enemy.markForRemoval();
-                                bossSpawned = false;
-                                player.playerDie();
+                        // Boss damages player
+                        for (BossKitty boss : chunk.getBossKitty()) {
+                            if (boss.getBody() == enemyBody) {
+                                boss.damagePlayer();
+
+                                if (player.getStats().isDead()) {
+                                    player.playerDie();
+                                }
                                 break;
                             }
                         }
                     }
                 }
             } else if (currentDungeon != null) {
+                // Dungeon enemies damage player
                 for (entities.DungeonEnemy enemy : currentDungeon.getEnemies()) {
                     if (enemy.getBody() == enemyBody) {
-                        player.playerDie();
+                        enemy.damagePlayer();
+
+                        if (player.getStats().isDead()) {
+                            player.playerDie();
+                        }
                         break;
                     }
                 }

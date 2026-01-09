@@ -50,7 +50,7 @@ public class Chunk {
         this.player = player;
 
         generateObstacles(random);
-//        generateEnemies(random);
+        generateEnemies(random);
     }
 
     private void generateObstacles(Random random) {
@@ -96,12 +96,12 @@ public class Chunk {
 
         if (!isOverlapping(bossBounds) && !isOutOfBounds(bossBounds)) {
             Body bossBody = createEnemyBody(world, spawnPosition.x, spawnPosition.y, 32, 32);
-            bossKitty.add(new BossKitty(bossBounds, bossBody, player, getAnimationManager()));
+            bossKitty.add(new BossKitty(bossBounds, bossBody, player, getAnimationManager(), 3));
         } else {
             Vector2 fallbackPosition = getFallbackPosition(playerPosition);
             Body bossBody = createEnemyBody(world, fallbackPosition.x, fallbackPosition.y, 32, 32);
             bossKitty.add(new BossKitty(new Rectangle(fallbackPosition.x, fallbackPosition.y, 32, 32),
-            		bossBody, player, getAnimationManager()));
+            		bossBody, player, getAnimationManager(), 3));
         }
     }
 
@@ -195,7 +195,7 @@ public class Chunk {
             for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
                 enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
-                        null, body, player, getAnimationManager()));
+                        null, body, player, getAnimationManager(), 1));
             }
             pendingEnemies.clear();
         }
@@ -203,7 +203,7 @@ public class Chunk {
             for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
                 bossKitty.add(new BossKitty(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
-                        body, player, getAnimationManager()));
+                        body, player, getAnimationManager(), 3));
             }
             pendingEnemies.clear();
         }

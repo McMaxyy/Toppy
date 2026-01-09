@@ -77,7 +77,7 @@ public class MapBoundary {
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
-        fixtureDef.filter.categoryBits = CollisionFilter.OBSTACLE;
+        fixtureDef.filter.categoryBits = CollisionFilter.WALL;
         fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY;
 
         Body body = world.createBody(bodyDef);

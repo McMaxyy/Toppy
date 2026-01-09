@@ -52,6 +52,9 @@ public class Storage {
         assetManager.load("tiles/wall.png", Texture.class);
         assetManager.load("tiles/wallSprite2.png", Texture.class);
         assetManager.load("tiles/stoneFloor.png", Texture.class);
+        assetManager.load("tiles/stoneFloor3.png", Texture.class);
+        assetManager.load("tiles/stoneFloor4.png", Texture.class);
+        assetManager.load("tiles/coin.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         
@@ -59,6 +62,7 @@ public class Storage {
         assetManager.load("character/Idle2.png", Texture.class);
         assetManager.load("character/knight.png", Texture.class);
         assetManager.load("character/Dying.png", Texture.class);
+        assetManager.load("character/Sprite-0002.png", Texture.class);
         
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);

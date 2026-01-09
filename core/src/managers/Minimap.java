@@ -72,10 +72,7 @@ public class Minimap {
     }
 
     public void update() {
-        if (!mapOpen) {
-            // Update fog of war based on player position
-            updateExploration();
-        }
+        updateExploration();
     }
 
     private void updateExploration() {
@@ -221,41 +218,24 @@ public class Minimap {
         // Draw UI text
         batch.begin();
 
-        // Title
-        font.setColor(Color.WHITE);
-        font.draw(batch, "MAP (TAB to close)", mapStartX, mapStartY + mapHeight + 30);
-
-        // Portal toggle instruction
-        String portalText = "[P] Portal: " + (showPortal ? "ON" : "OFF");
-        font.setColor(showPortal ? PORTAL_COLOR : Color.GRAY);
-        font.draw(batch, portalText, mapStartX, mapStartY - 10);
-
         // Legend
         font.setColor(Color.WHITE);
         float legendX = mapStartX + mapWidth - 150;
         float legendY = mapStartY + mapHeight + 30;
 
-        font.draw(batch, "Legend:", legendX, legendY);
-
         // Player indicator
         batch.setColor(PLAYER_COLOR);
         batch.draw(pixelTexture, legendX, legendY - 30, 15, 15);
-        batch.setColor(Color.WHITE);
-        font.draw(batch, "You", legendX + 20, legendY - 20);
 
         // Portal indicator
         if (showPortal) {
             batch.setColor(PORTAL_COLOR);
             batch.draw(pixelTexture, legendX, legendY - 55, 15, 15);
-            batch.setColor(Color.WHITE);
-            font.draw(batch, "Portal", legendX + 20, legendY - 45);
         }
 
         // Fog indicator
         batch.setColor(FOG_COLOR);
         batch.draw(pixelTexture, legendX, legendY - 80, 15, 15);
-        batch.setColor(Color.WHITE);
-        font.draw(batch, "Unexplored", legendX + 20, legendY - 70);
 
         batch.setColor(Color.WHITE);
         batch.end(); // End the batch we started for UI text

@@ -2,12 +2,14 @@ package entities;
 
 import java.util.List;
 
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 
+import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.Dungeon;
@@ -27,23 +29,36 @@ public class DungeonEnemy {
     private List<Vector2> currentPath;
     private int currentPathIndex = 0;
     private float pathUpdateTimer = 0f;
-    private final float PATH_UPDATE_INTERVAL = 0.5f; // Recalculate path every 0.5 seconds
+    private final float PATH_UPDATE_INTERVAL = 0.5f;
 
     // Stuck detection
     private Vector2 lastPosition = new Vector2();
     private float stuckTimer = 0f;
-    private final float STUCK_THRESHOLD = 1.0f; // If stuck for 1 second
-    private final float STUCK_DISTANCE = 1f; // Movement less than 1 unit = stuck
+    private final float STUCK_THRESHOLD = 1.0f;
+    private final float STUCK_DISTANCE = 1f;
     private int pathfindingAttempts = 0;
     private final int MAX_PATHFINDING_ATTEMPTS = 3;
 
-    public DungeonEnemy(Rectangle bounds, Body body, Player player, AnimationManager animationManager, Dungeon dungeon) {
+    // Stats system
+    private EnemyStats stats;
+    private Texture healthBarTexture;
+
+    // Damage cooldown
+    private float damageCooldown = 0f;
+    private final float DAMAGE_COOLDOWN_TIME = 0.5f;
+
+    public DungeonEnemy(Rectangle bounds, Body body, Player player,
+                        AnimationManager animationManager, Dungeon dungeon, int level) {
         this.animationManager = animationManager;
         this.bounds = bounds;
         this.body = body;
         this.player = player;
         this.dungeon = dungeon;
         this.lastPosition = new Vector2(body.getPosition());
+
+        // Initialize dungeon enemy stats (stronger than normal enemies)
+        this.stats = EnemyStats.Factory.createDungeonEnemy(level);
+        this.healthBarTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
 
         animationManager.setState(AnimationManager.State.IDLE, "Mushie");
     }
@@ -57,6 +72,11 @@ public class DungeonEnemy {
         if (!Player.gameStarted) {
             body.setLinearVelocity(0, 0);
             return;
+        }
+
+        // Update damage cooldown
+        if (damageCooldown > 0) {
+            damageCooldown -= delta;
         }
 
         bounds.setPosition(body.getPosition().x - bounds.width / 2f,
@@ -76,13 +96,12 @@ public class DungeonEnemy {
                 if (stuckTimer >= STUCK_THRESHOLD) {
                     pathfindingAttempts++;
 
-                    // If tried pathfinding multiple times and still stuck, give up temporarily
                     if (pathfindingAttempts >= MAX_PATHFINDING_ATTEMPTS) {
                         body.setLinearVelocity(0, 0);
                         currentPath = null;
                         pathfindingAttempts = 0;
                         stuckTimer = 0f;
-                        pathUpdateTimer = -2f; // Wait 2 extra seconds before trying again
+                        pathUpdateTimer = -2f;
                         return;
                     }
                 }
@@ -124,17 +143,14 @@ public class DungeonEnemy {
         Vector2 currentPos = body.getPosition();
         float distanceMoved = currentPos.dst(lastPosition);
 
-        // Check if trying to move but not actually moving
         Vector2 velocity = body.getLinearVelocity();
-        boolean tryingToMove = velocity.len() > 5f; // Has velocity applied
+        boolean tryingToMove = velocity.len() > 5f;
 
         if (tryingToMove && distanceMoved < STUCK_DISTANCE * delta) {
-            // Not moving enough despite having velocity - definitely stuck
             stuckTimer += delta;
         } else {
-            // Moving normally or not trying to move
             stuckTimer = 0f;
-            pathfindingAttempts = 0; // Reset attempts when moving successfully
+            pathfindingAttempts = 0;
         }
 
         lastPosition.set(currentPos);
@@ -147,7 +163,6 @@ public class DungeonEnemy {
         currentPath = dungeon.findPath(enemyPos, playerPos);
         currentPathIndex = 0;
 
-        // Skip first node (current position)
         if (currentPath != null && currentPath.size() > 1) {
             currentPathIndex = 1;
         }
@@ -162,9 +177,8 @@ public class DungeonEnemy {
         Vector2 targetNode = currentPath.get(currentPathIndex);
         Vector2 currentPos = body.getPosition();
 
-        // Check if reached current node
         float distanceToNode = currentPos.dst(targetNode);
-        if (distanceToNode < 10f) { // Larger threshold to move to next waypoint faster
+        if (distanceToNode < 10f) {
             currentPathIndex++;
             if (currentPathIndex >= currentPath.size()) {
                 body.setLinearVelocity(0, 0);
@@ -173,18 +187,16 @@ public class DungeonEnemy {
             targetNode = currentPath.get(currentPathIndex);
         }
 
-        // Move towards target node with damping to prevent overshooting
         Vector2 direction = new Vector2(targetNode.x - currentPos.x,
                 targetNode.y - currentPos.y);
 
         float distance = direction.len();
         direction.nor();
 
-        // Slow down when close to waypoint
         float actualSpeed = speed;
         if (distance < 20f) {
             actualSpeed = speed * (distance / 20f);
-            actualSpeed = Math.max(actualSpeed, speed * 0.3f); // Minimum 30% speed
+            actualSpeed = Math.max(actualSpeed, speed * 0.3f);
         }
 
         isFlipped = body.getPosition().x > player.getBody().getPosition().x;
@@ -193,9 +205,60 @@ public class DungeonEnemy {
 
     public void render(SpriteBatch batch) {
         if (!markForRemoval) {
+            // Render enemy sprite
             TextureRegion currentFrame = new TextureRegion(animationManager.getMushieCurrentFrame());
             currentFrame.flip(isFlipped, false);
             batch.draw(currentFrame, bounds.x, bounds.y, bounds.width, bounds.height);
+
+            // Render health bar
+            renderHealthBar(batch);
+        }
+    }
+
+    /**
+     * Render health bar above enemy
+     */
+    private void renderHealthBar(SpriteBatch batch) {
+        if (stats.getHealthPercentage() >= 1.0f) {
+            return;
+        }
+
+        float barWidth = bounds.width;
+        float barHeight = 3f;
+        float barX = bounds.x;
+        float barY = bounds.y + bounds.height + 2f;
+
+        // Background (red)
+        batch.setColor(0.8f, 0.1f, 0.1f, 1f);
+        batch.draw(healthBarTexture, barX, barY, barWidth, barHeight);
+
+        // Foreground (green)
+        float healthWidth = barWidth * stats.getHealthPercentage();
+        batch.setColor(0.2f, 0.8f, 0.2f, 1f);
+        batch.draw(healthBarTexture, barX, barY, healthWidth, barHeight);
+
+        // Reset color
+        batch.setColor(1f, 1f, 1f, 1f);
+    }
+
+    /**
+     * Take damage from player
+     */
+    public void takeDamage(int damage) {
+        stats.takeDamage(damage);
+
+        if (stats.isDead()) {
+            markForRemoval();
+        }
+    }
+
+    /**
+     * Deal damage to player
+     */
+    public void damagePlayer() {
+        if (damageCooldown <= 0) {
+            player.getStats().takeDamage(stats.getDamage());
+            damageCooldown = DAMAGE_COOLDOWN_TIME;
         }
     }
 
@@ -216,6 +279,10 @@ public class DungeonEnemy {
 
     public Body getBody() {
         return body;
+    }
+
+    public EnemyStats getStats() {
+        return stats;
     }
 
     private boolean isPlayerInRadius() {

@@ -21,7 +21,7 @@ public class Portal {
 
     public Portal(float x, float y, float size, World world) {
         this.bounds = new Rectangle(x, y, size, size);
-        this.texture = Storage.assetManager.get("enemy.png", Texture.class); // Placeholder texture
+        this.texture = Storage.assetManager.get("tiles/coin.png", Texture.class); // Placeholder texture
 
         createBody(world, x, y, size);
     }

@@ -107,7 +107,7 @@ public class Dungeon {
         wallTJunctionBTexture = wallFrames[0][13];     // Position 13 - walls: left, right, top
         wallTJunctionLTexture = wallFrames[0][14];     // Position 14 - walls: top, bottom, right
 
-        floorTexture = Storage.assetManager.get("tiles/stoneFloor.png", Texture.class);
+        floorTexture = Storage.assetManager.get("tiles/stoneFloor4.png", Texture.class);
         exitTexture = Storage.assetManager.get("enemy.png", Texture.class);
     }
 
@@ -377,7 +377,7 @@ public class Dungeon {
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
-        fixtureDef.filter.categoryBits = CollisionFilter.OBSTACLE;
+        fixtureDef.filter.categoryBits = CollisionFilter.WALL;
         fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY;
 
         Body body = world.createBody(bodyDef);
@@ -402,7 +402,7 @@ public class Dungeon {
                 Rectangle enemyBounds = new Rectangle(worldX, worldY, 16, 16);
                 if (!isNearSpawn(worldX, worldY, 50f)) {
                     Body body = createEnemyBody(worldX, worldY);
-                    enemies.add(new DungeonEnemy(enemyBounds, body, player, animationManager, this));
+                    enemies.add(new DungeonEnemy(enemyBounds, body, player, animationManager, this, 2));
                     spawned++;
                 }
             }
