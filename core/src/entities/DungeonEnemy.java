@@ -18,7 +18,7 @@ public class DungeonEnemy {
     private final Player player;
     private final Dungeon dungeon;
     private final float detectionRadius = 150f;
-    private final float speed = 60f;
+    private final float speed = 40f;
     private boolean markForRemoval = false;
     private boolean isMoving = false;
     private final AnimationManager animationManager;
@@ -29,12 +29,21 @@ public class DungeonEnemy {
     private float pathUpdateTimer = 0f;
     private final float PATH_UPDATE_INTERVAL = 0.5f; // Recalculate path every 0.5 seconds
 
+    // Stuck detection
+    private Vector2 lastPosition = new Vector2();
+    private float stuckTimer = 0f;
+    private final float STUCK_THRESHOLD = 1.0f; // If stuck for 1 second
+    private final float STUCK_DISTANCE = 1f; // Movement less than 1 unit = stuck
+    private int pathfindingAttempts = 0;
+    private final int MAX_PATHFINDING_ATTEMPTS = 3;
+
     public DungeonEnemy(Rectangle bounds, Body body, Player player, AnimationManager animationManager, Dungeon dungeon) {
         this.animationManager = animationManager;
         this.bounds = bounds;
         this.body = body;
         this.player = player;
         this.dungeon = dungeon;
+        this.lastPosition = new Vector2(body.getPosition());
 
         animationManager.setState(AnimationManager.State.IDLE, "Mushie");
     }
@@ -53,14 +62,37 @@ public class DungeonEnemy {
         bounds.setPosition(body.getPosition().x - bounds.width / 2f,
                 body.getPosition().y - bounds.height / 2f);
 
+        // Detect if stuck
+        checkIfStuck(delta);
+
         // Update pathfinding timer
         pathUpdateTimer += delta;
 
         if (isPlayerInRadius()) {
-            // Recalculate path periodically
-            if (pathUpdateTimer >= PATH_UPDATE_INTERVAL || currentPath == null || currentPath.isEmpty()) {
+            // Recalculate path periodically or if stuck
+            if (pathUpdateTimer >= PATH_UPDATE_INTERVAL || currentPath == null ||
+                    currentPath.isEmpty() || stuckTimer >= STUCK_THRESHOLD) {
+
+                if (stuckTimer >= STUCK_THRESHOLD) {
+                    pathfindingAttempts++;
+
+                    // If tried pathfinding multiple times and still stuck, give up temporarily
+                    if (pathfindingAttempts >= MAX_PATHFINDING_ATTEMPTS) {
+                        body.setLinearVelocity(0, 0);
+                        currentPath = null;
+                        pathfindingAttempts = 0;
+                        stuckTimer = 0f;
+                        pathUpdateTimer = -2f; // Wait 2 extra seconds before trying again
+                        return;
+                    }
+                }
+
                 calculatePathToPlayer();
                 pathUpdateTimer = 0f;
+
+                if (stuckTimer >= STUCK_THRESHOLD) {
+                    stuckTimer = 0f;
+                }
             }
 
             // Follow path
@@ -75,6 +107,8 @@ public class DungeonEnemy {
             body.setLinearVelocity(0, 0);
             currentPath = null;
             currentPathIndex = 0;
+            stuckTimer = 0f;
+            pathfindingAttempts = 0;
             if (animationManager.getState("Mushie") != State.IDLE) {
                 animationManager.setState(State.IDLE, "Mushie");
                 isMoving = false;
@@ -84,6 +118,26 @@ public class DungeonEnemy {
         if (isMoving && animationManager.getState("Mushie") != State.RUNNING) {
             animationManager.setState(State.RUNNING, "Mushie");
         }
+    }
+
+    private void checkIfStuck(float delta) {
+        Vector2 currentPos = body.getPosition();
+        float distanceMoved = currentPos.dst(lastPosition);
+
+        // Check if trying to move but not actually moving
+        Vector2 velocity = body.getLinearVelocity();
+        boolean tryingToMove = velocity.len() > 5f; // Has velocity applied
+
+        if (tryingToMove && distanceMoved < STUCK_DISTANCE * delta) {
+            // Not moving enough despite having velocity - definitely stuck
+            stuckTimer += delta;
+        } else {
+            // Moving normally or not trying to move
+            stuckTimer = 0f;
+            pathfindingAttempts = 0; // Reset attempts when moving successfully
+        }
+
+        lastPosition.set(currentPos);
     }
 
     private void calculatePathToPlayer() {
@@ -110,7 +164,7 @@ public class DungeonEnemy {
 
         // Check if reached current node
         float distanceToNode = currentPos.dst(targetNode);
-        if (distanceToNode < 5f) {
+        if (distanceToNode < 10f) { // Larger threshold to move to next waypoint faster
             currentPathIndex++;
             if (currentPathIndex >= currentPath.size()) {
                 body.setLinearVelocity(0, 0);
@@ -119,12 +173,22 @@ public class DungeonEnemy {
             targetNode = currentPath.get(currentPathIndex);
         }
 
-        // Move towards target node
+        // Move towards target node with damping to prevent overshooting
         Vector2 direction = new Vector2(targetNode.x - currentPos.x,
-                targetNode.y - currentPos.y).nor();
+                targetNode.y - currentPos.y);
+
+        float distance = direction.len();
+        direction.nor();
+
+        // Slow down when close to waypoint
+        float actualSpeed = speed;
+        if (distance < 20f) {
+            actualSpeed = speed * (distance / 20f);
+            actualSpeed = Math.max(actualSpeed, speed * 0.3f); // Minimum 30% speed
+        }
 
         isFlipped = body.getPosition().x > player.getBody().getPosition().x;
-        body.setLinearVelocity(direction.scl(speed));
+        body.setLinearVelocity(direction.scl(actualSpeed));
     }
 
     public void render(SpriteBatch batch) {

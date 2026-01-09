@@ -16,6 +16,7 @@ import config.Storage;
 
 public class MapBoundary {
     private final List<BoundaryWall> walls;
+    private final List<Body> boundaryBodies;
     private final Texture wallTexture;
     private final int mapSizeChunks;
     private final int chunkSize;
@@ -26,6 +27,7 @@ public class MapBoundary {
         this.chunkSize = chunkSize;
         this.tileSize = tileSize;
         this.walls = new ArrayList<>();
+        this.boundaryBodies = new ArrayList<>();
         this.wallTexture = Storage.assetManager.get("tiles/newrock.png", Texture.class);
 
         createBoundaryWalls(world);
@@ -40,13 +42,13 @@ public class MapBoundary {
         int wallThickness = tileSize * 2;
 
         // North wall
-        createWallSegment(world, minBound, maxBound, worldSize, wallThickness);
+        createWallSegment(world, minBound, maxBound - wallThickness, worldSize, wallThickness);
 
         // South wall
         createWallSegment(world, minBound, minBound - wallThickness, worldSize, wallThickness);
 
         // East wall
-        createWallSegment(world, maxBound, minBound, wallThickness, worldSize);
+        createWallSegment(world, maxBound - wallThickness, minBound, wallThickness, worldSize);
 
         // West wall
         createWallSegment(world, minBound - wallThickness, minBound, wallThickness, worldSize);
@@ -81,6 +83,24 @@ public class MapBoundary {
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);
         shape.dispose();
+
+        boundaryBodies.add(body); // Store body reference for enable/disable
+    }
+
+    public void disable() {
+        for (Body body : boundaryBodies) {
+            if (body != null) {
+                body.setActive(false);
+            }
+        }
+    }
+
+    public void enable() {
+        for (Body body : boundaryBodies) {
+            if (body != null) {
+                body.setActive(true);
+            }
+        }
     }
 
     public void render(SpriteBatch batch) {

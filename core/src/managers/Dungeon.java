@@ -9,6 +9,7 @@ import java.util.HashSet;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -42,6 +43,23 @@ public class Dungeon {
     private Texture floorTexture;
     private Texture exitTexture;
 
+    // Wall segment textures
+    private TextureRegion wallSingleTexture;
+    private TextureRegion wallHorizontalTexture;
+    private TextureRegion wallVerticalTexture;
+    private TextureRegion wallCornerTLTexture;
+    private TextureRegion wallCornerTRTexture;
+    private TextureRegion wallCornerBLTexture;
+    private TextureRegion wallCornerBRTexture;
+    private TextureRegion wallTJunctionTTexture;
+    private TextureRegion wallTJunctionBTexture;
+    private TextureRegion wallTJunctionLTexture;
+    private TextureRegion wallTJunctionRTexture;
+    private TextureRegion wallEndTTexture;
+    private TextureRegion wallEndBTexture;
+    private TextureRegion wallEndLTexture;
+    private TextureRegion wallEndRTexture;
+
     public Dungeon(int width, int height, int tileSize, Random random, World world, Player player, AnimationManager animationManager) {
         this.width = width;
         this.height = height;
@@ -60,8 +78,36 @@ public class Dungeon {
     }
 
     private void loadTextures() {
-        wallTexture = Storage.assetManager.get("tiles/newrock.png", Texture.class);
-        floorTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
+        // Load wall sprite sheet
+        wallTexture = Storage.assetManager.get("tiles/wallSprite2.png", Texture.class);
+        wallTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+        // Split the sprite sheet - now 15 tiles horizontally (0-14)
+        int tileWidth = wallTexture.getWidth() / 15; // Changed from 12 to 15
+        int tileHeight = wallTexture.getHeight();
+
+        TextureRegion[][] wallFrames = TextureRegion.split(wallTexture, tileWidth, tileHeight);
+
+        // Extract each wall type from the sprite sheet
+        wallSingleTexture = wallFrames[0][0];           // Position 0
+        wallHorizontalTexture = wallFrames[0][1];       // Position 1
+        wallVerticalTexture = wallFrames[0][2];         // Position 2
+        wallCornerTLTexture = wallFrames[0][3];         // Position 3
+        wallCornerTRTexture = wallFrames[0][4];         // Position 4
+        wallCornerBLTexture = wallFrames[0][5];         // Position 5
+        wallCornerBRTexture = wallFrames[0][6];         // Position 6
+        wallEndTTexture = wallFrames[0][7];            // Position 7 - renamed
+        wallEndBTexture = wallFrames[0][8];            // Position 8 - renamed
+        wallEndLTexture = wallFrames[0][9];            // Position 9 - renamed
+        wallEndRTexture = wallFrames[0][10];           // Position 10 - renamed
+
+        // New T-junction textures
+        wallTJunctionTTexture = wallFrames[0][11];     // Position 11 - walls: left, right, bottom
+        wallTJunctionRTexture = wallFrames[0][12];     // Position 12 - walls: top, bottom, left
+        wallTJunctionBTexture = wallFrames[0][13];     // Position 13 - walls: left, right, top
+        wallTJunctionLTexture = wallFrames[0][14];     // Position 14 - walls: top, bottom, right
+
+        floorTexture = Storage.assetManager.get("tiles/stoneFloor.png", Texture.class);
         exitTexture = Storage.assetManager.get("enemy.png", Texture.class);
     }
 
@@ -73,82 +119,252 @@ public class Dungeon {
             }
         }
 
-        // Drunkard's Walk algorithm
-        int centerX = width / 2;
-        int centerY = height / 2;
-        int currentX = centerX;
-        int currentY = centerY;
+        // Generate rooms
+        List<Room> rooms = new ArrayList<>();
+        int numRooms = 15 + random.nextInt(6); // 12-17 rooms (increased from 8-12)
+        int attempts = 0;
+        int maxAttempts = 100;
 
-        spawnPoint = new Vector2(centerX * tileSize, centerY * tileSize);
+        while (rooms.size() < numRooms && attempts < maxAttempts) {
+            attempts++;
 
-        int floorTiles = 0;
-        int targetFloorTiles = (int) ((width * height) * 0.4f); // 40% floor coverage
+            // Random room size
+            int roomWidth = 7 + random.nextInt(10);  // 5-10 tiles wide (reduced from 5-12)
+            int roomHeight = 7 + random.nextInt(10); // 5-10 tiles tall (reduced from 5-12)
 
-        while (floorTiles < targetFloorTiles) {
-            // Carve floor tile
-            if (tiles[currentX][currentY] == WALL) {
-                tiles[currentX][currentY] = FLOOR;
-                floorTiles++;
+            // Random position
+            int roomX = 2 + random.nextInt(width - roomWidth - 4);
+            int roomY = 2 + random.nextInt(height - roomHeight - 4);
+
+            Room newRoom = new Room(roomX, roomY, roomWidth, roomHeight);
+
+            // Check if room overlaps with existing rooms (reduced spacing for shorter corridors)
+            boolean overlaps = false;
+            for (Room existingRoom : rooms) {
+                if (newRoom.intersects(existingRoom)) {
+                    overlaps = true;
+                    break;
+                }
             }
 
-            // Random walk direction
-            int direction = random.nextInt(4);
-            switch (direction) {
-                case 0: // Up
-                    if (currentY < height - 2) currentY++;
-                    break;
-                case 1: // Down
-                    if (currentY > 1) currentY--;
-                    break;
-                case 2: // Right
-                    if (currentX < width - 2) currentX++;
-                    break;
-                case 3: // Left
-                    if (currentX > 1) currentX--;
-                    break;
+            if (!overlaps) {
+                // Carve out the room
+                carveRoom(newRoom);
+
+                // Connect to previous room with corridor
+                if (!rooms.isEmpty()) {
+                    Room prevRoom = rooms.get(rooms.size() - 1);
+                    createCorridor(prevRoom.centerX(), prevRoom.centerY(),
+                            newRoom.centerX(), newRoom.centerY(), random);
+                }
+
+                rooms.add(newRoom);
             }
         }
 
-        // Place exit portal at a far floor tile
-        exitPoint = findFarthestFloorTile(centerX, centerY);
-        if (exitPoint != null) {
-            int exitX = (int) (exitPoint.x / tileSize);
-            int exitY = (int) (exitPoint.y / tileSize);
-            tiles[exitX][exitY] = EXIT;
+        // Set spawn point in first room
+        if (!rooms.isEmpty()) {
+            Room firstRoom = rooms.get(0);
+            spawnPoint = new Vector2(firstRoom.centerX() * tileSize, firstRoom.centerY() * tileSize);
+        }
+
+        // Place exit portal in furthest room from spawn
+        if (rooms.size() > 1) {
+            Room furthestRoom = findFurthestRoom(rooms);
+            exitPoint = new Vector2(furthestRoom.centerX() * tileSize, furthestRoom.centerY() * tileSize);
+            tiles[furthestRoom.centerX()][furthestRoom.centerY()] = EXIT;
         }
     }
 
-    private Vector2 findFarthestFloorTile(int startX, int startY) {
-        float maxDistance = 0;
-        Vector2 farthest = null;
+    private Room findFurthestRoom(List<Room> rooms) {
+        if (rooms.isEmpty()) return null;
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                if (tiles[x][y] == FLOOR) {
-                    float distance = (float) Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
-                    if (distance > maxDistance) {
-                        maxDistance = distance;
-                        farthest = new Vector2(x * tileSize, y * tileSize);
-                    }
-                }
+        Room firstRoom = rooms.get(0);
+        Room furthestRoom = rooms.get(rooms.size() - 1); // Default to last room
+        float maxDistance = 0;
+
+        for (Room room : rooms) {
+            float dx = room.centerX() - firstRoom.centerX();
+            float dy = room.centerY() - firstRoom.centerY();
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                furthestRoom = room;
             }
         }
 
-        return farthest;
+        return furthestRoom;
+    }
+
+    private void carveRoom(Room room) {
+        for (int x = room.x; x < room.x + room.width; x++) {
+            for (int y = room.y; y < room.y + room.height; y++) {
+                if (x >= 0 && x < width && y >= 0 && y < height) {
+                    tiles[x][y] = FLOOR;
+                }
+            }
+        }
+    }
+
+    private void createCorridor(int x1, int y1, int x2, int y2, Random random) {
+        int corridorWidth = 2 + random.nextInt(2); // 2-3 tiles wide
+
+        // Randomly choose horizontal-then-vertical or vertical-then-horizontal
+        if (random.nextBoolean()) {
+            // Horizontal then vertical
+            carveTunnel(x1, x2, y1, true, corridorWidth);
+            carveTunnel(y1, y2, x2, false, corridorWidth);
+        } else {
+            // Vertical then horizontal
+            carveTunnel(y1, y2, x1, false, corridorWidth);
+            carveTunnel(x1, x2, y2, true, corridorWidth);
+        }
+    }
+
+    private void carveTunnel(int start, int end, int fixed, boolean horizontal, int tunnelWidth) {
+        int min = Math.min(start, end);
+        int max = Math.max(start, end);
+
+        for (int i = min; i <= max; i++) {
+            for (int w = 0; w < tunnelWidth; w++) {
+                int x, y;
+                if (horizontal) {
+                    x = i;
+                    y = fixed + w - tunnelWidth / 2;
+                } else {
+                    x = fixed + w - tunnelWidth / 2;
+                    y = i;
+                }
+
+                if (x >= 0 && x < width && y >= 0 && y < height) {
+                    tiles[x][y] = FLOOR;
+                }
+            }
+        }
+    }
+
+    // Helper class for rooms
+    private static class Room {
+        int x, y, width, height;
+
+        Room(int x, int y, int width, int height) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+        }
+
+        int centerX() {
+            return x + width / 2;
+        }
+
+        int centerY() {
+            return y + height / 2;
+        }
+
+        boolean intersects(Room other) {
+            return x < other.x + other.width + 1 &&  // Reduced spacing from 2 to 1
+                    x + width + 1 > other.x &&
+                    y < other.y + other.height + 1 &&
+                    y + height + 1 > other.y;
+        }
     }
 
     private void createWalls() {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                if (tiles[x][y] == WALL) {
+                if (tiles[x][y] == WALL && isEdgeWall(x, y)) {  // ONLY create edge walls
                     float worldX = x * tileSize;
                     float worldY = y * tileSize;
 
+                    TextureRegion wallTile = getWallTextureForTile(x, y, true);
+
                     Body body = createWallBody(worldX, worldY);
-                    walls.add(new Wall(new Rectangle(worldX, worldY, tileSize, tileSize), wallTexture, body));
+                    walls.add(new Wall(new Rectangle(worldX, worldY, tileSize, tileSize),
+                            wallTile, body));
                 }
             }
         }
+    }
+
+    private TextureRegion getWallTextureForTile(int x, int y, boolean isEdge) {
+        if (!isEdge) return null;
+
+        boolean hasWallUp = isEdgeWallNeighbor(x, y + 1);
+        boolean hasWallDown = isEdgeWallNeighbor(x, y - 1);
+        boolean hasWallLeft = isEdgeWallNeighbor(x - 1, y);
+        boolean hasWallRight = isEdgeWallNeighbor(x + 1, y);
+
+        int edgeWallCount = (hasWallUp ? 1 : 0) + (hasWallDown ? 1 : 0) +
+                (hasWallLeft ? 1 : 0) + (hasWallRight ? 1 : 0);
+
+        // === T-JUNCTIONS ===
+        if (edgeWallCount == 3) {
+            if (hasWallLeft && hasWallRight && hasWallDown) return wallTJunctionTTexture;
+            if (hasWallUp && hasWallDown && hasWallLeft) return wallTJunctionRTexture;
+            if (hasWallLeft && hasWallRight && hasWallUp) return wallTJunctionBTexture;
+            if (hasWallUp && hasWallDown && hasWallRight) return wallTJunctionLTexture;
+        }
+
+        // === CORNERS ===
+        if (hasWallDown && hasWallRight) return wallCornerTLTexture;
+        if (hasWallDown && hasWallLeft) return wallCornerTRTexture;
+        if (hasWallUp && hasWallRight) return wallCornerBLTexture;
+        if (hasWallUp && hasWallLeft) return wallCornerBRTexture;
+
+        // === STRAIGHT WALLS ===
+        if (hasWallLeft && hasWallRight) return wallHorizontalTexture;
+        if (hasWallUp && hasWallDown) return wallVerticalTexture;
+
+        // === DEAD ENDS ===
+        if (hasWallRight) return wallEndLTexture;
+        if (hasWallLeft) return wallEndRTexture;
+        if (hasWallDown) return wallEndTTexture;
+        if (hasWallUp) return wallEndBTexture;
+
+        // === SINGLE WALL ===
+        return wallSingleTexture;
+    }
+
+    private boolean isWall(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return true;
+        return tiles[x][y] == WALL;
+    }
+
+    private boolean isEdgeWall(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        if (tiles[x][y] != WALL) return false;
+
+        // Check 8 directions (including diagonals)
+        int[][] allDirections = {
+                {-1, 1}, {0, 1}, {1, 1},
+                {-1, 0},         {1, 0},
+                {-1, -1}, {0, -1}, {1, -1}
+        };
+
+        for (int[] dir : allDirections) {
+            int nx = x + dir[0];
+            int ny = y + dir[1];
+
+            // If out of bounds, this is an edge (outside corner touching void)
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+                return true;
+            }
+
+            // If adjacent to floor/exit
+            if (tiles[nx][ny] == FLOOR || tiles[nx][ny] == EXIT) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isEdgeWallNeighbor(int x, int y) {
+        // Only check for edge walls, not interior walls
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        return isEdgeWall(x, y);
     }
 
     private Body createWallBody(float x, float y) {
@@ -172,7 +388,7 @@ public class Dungeon {
     }
 
     private void spawnEnemies(Random random) {
-        int enemyCount = 15 + random.nextInt(10);
+        int enemyCount = 35 + random.nextInt(20); // 35-54 enemies (increased from 15-24)
         int spawned = 0;
 
         while (spawned < enemyCount) {
@@ -339,7 +555,10 @@ public class Dungeon {
 
         // Render walls
         for (Wall wall : walls) {
-            batch.draw(wall.texture, wall.bounds.x, wall.bounds.y, wall.bounds.width, wall.bounds.height);
+            if (wall.textureRegion != null) {
+                // Edge wall - draw texture region
+                batch.draw(wall.textureRegion, wall.bounds.x, wall.bounds.y, wall.bounds.width, wall.bounds.height);
+            }
         }
     }
 
@@ -370,6 +589,13 @@ public class Dungeon {
         return enemies;
     }
 
+    public int getTileType(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            return WALL;
+        }
+        return tiles[x][y];
+    }
+
     public void dispose() {
         for (Wall wall : walls) {
             world.destroyBody(wall.body);
@@ -381,12 +607,12 @@ public class Dungeon {
 
     private static class Wall {
         final Rectangle bounds;
-        final Texture texture;
+        final TextureRegion textureRegion;
         final Body body;
 
-        public Wall(Rectangle bounds, Texture texture, Body body) {
+        public Wall(Rectangle bounds, TextureRegion textureRegion, Body body) {
             this.bounds = bounds;
-            this.texture = texture;
+            this.textureRegion = textureRegion;
             this.body = body;
         }
     }

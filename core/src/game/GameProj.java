@@ -1,5 +1,7 @@
 package game;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -38,6 +40,7 @@ import managers.Box2DWorld;
 import managers.Chunk;
 import managers.CollisionFilter;
 import managers.Dungeon;
+import managers.DungeonMinimap;
 import managers.MapBoundary;
 import managers.Minimap;
 
@@ -61,26 +64,23 @@ public class GameProj implements Screen, ContactListener {
     private Random random;
     private ExecutorService chunkGenerator;
     private Label hudLabel;
-    private int enemiesKilled = 0, enemyGoal = 5;
+    private int enemiesKilled = 0;
     private boolean bossSpawned = false;
 
-    // Map boundaries
-    private final int MAP_SIZE_CHUNKS = 5; // 5x5 chunks map
+    private final int MAP_SIZE_CHUNKS = 5;
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 18;
     private final int PLAYER_TILE_SIZE = 32;
 
-    // Dungeon system
     private boolean inDungeon = false;
     private Dungeon currentDungeon;
-    private Portal dungeonPortal;
+    private List<Portal> dungeonPortals = new ArrayList<>();
     private Vector2 overworldPlayerPosition;
+    private final int NUM_DUNGEONS = 5;
 
-    // Map boundaries
     private MapBoundary mapBoundary;
-
-    // Minimap system
     private Minimap minimap;
+    private DungeonMinimap dungeonMinimap;
 
     public GameProj(Viewport viewport, Game game, GameScreen gameScreen) {
         this.gameScreen = gameScreen;
@@ -119,32 +119,102 @@ public class GameProj implements Screen, ContactListener {
 
         hudStage = new Stage(hudViewport, batch);
 
-        hudLabel = new Label("0/" + enemyGoal, skin);
+        hudLabel = new Label("", skin);
         hudLabel.setPosition(10, hudViewport.getWorldHeight() - 30);
         hudStage.addActor(hudLabel);
 
-        // Create map boundaries
         mapBoundary = new MapBoundary(world.getWorld(), MAP_SIZE_CHUNKS, CHUNK_SIZE, TILE_SIZE);
-
-        // Create minimap
         minimap = new Minimap(MAP_SIZE_CHUNKS, CHUNK_SIZE, TILE_SIZE, player);
 
-        // Spawn initial portal
-        spawnDungeonPortal();
+        setRandomPlayerSpawn();
+        spawnAllDungeonPortals();
     }
 
-    private void spawnDungeonPortal() {
-        if (dungeonPortal != null) return;
+    private void setRandomPlayerSpawn() {
+        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
+        int minChunk = -halfMapChunks + 1;
+        int maxChunk = halfMapChunks - 1;
 
-        // Spawn portal away from spawn point
-        float portalX = (random.nextInt(MAP_SIZE_CHUNKS - 2) + 1) * CHUNK_SIZE * TILE_SIZE;
-        float portalY = (random.nextInt(MAP_SIZE_CHUNKS - 2) + 1) * CHUNK_SIZE * TILE_SIZE;
+        int spawnChunkX = minChunk + random.nextInt((maxChunk - minChunk) + 1);
+        int spawnChunkY = minChunk + random.nextInt((maxChunk - minChunk) + 1);
 
-        dungeonPortal = new Portal(portalX, portalY, 32, world.getWorld());
+        float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
+        float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
 
-        // Update minimap with new portal location
+        float spawnX = spawnChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+        float spawnY = spawnChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+        player.getBody().setTransform(spawnX, spawnY, 0);
+    }
+
+    private void spawnAllDungeonPortals() {
+        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
+        int minChunk = -halfMapChunks;
+
+        Vector2 playerSpawn = player.getPosition();
+
+        // Calculate 1/4 of the map's diagonal distance as minimum spawn distance
+        float mapWidth = MAP_SIZE_CHUNKS * CHUNK_SIZE * TILE_SIZE;
+        float mapHeight = MAP_SIZE_CHUNKS * CHUNK_SIZE * TILE_SIZE;
+        float mapDiagonal = (float) Math.sqrt(mapWidth * mapWidth + mapHeight * mapHeight);
+        float minDistanceFromSpawn = mapDiagonal * 0.25f; // 25% of map diagonal
+
+        int attempts = 0;
+        int maxAttempts = 100;
+
+        for (int i = 0; i < NUM_DUNGEONS; i++) {
+            boolean validPosition = false;
+            float portalX = 0, portalY = 0;
+
+            while (!validPosition && attempts < maxAttempts) {
+                attempts++;
+
+                int portalChunkX = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+                int portalChunkY = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+
+                float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+                float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+
+                portalX = portalChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+                portalY = portalChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+                float distanceFromSpawn = (float) Math.sqrt(
+                        Math.pow(portalX - playerSpawn.x, 2) +
+                                Math.pow(portalY - playerSpawn.y, 2)
+                );
+
+                boolean tooCloseToOtherPortals = false;
+                for (Portal existingPortal : dungeonPortals) {
+                    Vector2 existingPos = new Vector2(
+                            existingPortal.getBounds().x + existingPortal.getBounds().width / 2f,
+                            existingPortal.getBounds().y + existingPortal.getBounds().height / 2f
+                    );
+                    float distanceToExisting = (float) Math.sqrt(
+                            Math.pow(portalX - existingPos.x, 2) +
+                                    Math.pow(portalY - existingPos.y, 2)
+                    );
+
+                    if (distanceToExisting < CHUNK_SIZE * TILE_SIZE) {
+                        tooCloseToOtherPortals = true;
+                        break;
+                    }
+                }
+
+                if (distanceFromSpawn >= minDistanceFromSpawn && !tooCloseToOtherPortals) {
+                    validPosition = true;
+                }
+            }
+
+//            Portal portal = new Portal(portalX, portalY, 32, world.getWorld());
+            Portal portal = new Portal(player.getPosition().x, player.getPosition().y, 32, world.getWorld());
+            dungeonPortals.add(portal);
+            attempts = 0;
+        }
+
         if (minimap != null) {
-            minimap.setPortal(dungeonPortal);
+            for (Portal portal : dungeonPortals) {
+                minimap.setPortal(portal);
+            }
         }
     }
 
@@ -152,16 +222,19 @@ public class GameProj implements Screen, ContactListener {
         inDungeon = true;
         overworldPlayerPosition = new Vector2(player.getPosition());
 
-        // Disable overworld physics bodies
         for (Chunk chunk : chunks.values()) {
             chunk.disableObstacles();
             chunk.disableEnemies();
         }
 
-        // Generate dungeon
-        currentDungeon = new Dungeon(50, 50, TILE_SIZE, random, world.getWorld(), player, animationManager);
+        if (mapBoundary != null) {
+            mapBoundary.disable();
+        }
 
-        // Teleport player to dungeon spawn
+        int dungeonTileSize = (int) (TILE_SIZE / 1.2f);
+        currentDungeon = new Dungeon(100, 100, dungeonTileSize, random, world.getWorld(), player, animationManager);
+        dungeonMinimap = new DungeonMinimap(100, 100, dungeonTileSize, player, currentDungeon);
+
         Vector2 spawnPoint = currentDungeon.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
@@ -171,30 +244,30 @@ public class GameProj implements Screen, ContactListener {
     private void exitDungeon() {
         inDungeon = false;
 
-        // Clear dungeon enemies
         if (currentDungeon != null) {
             currentDungeon.dispose();
             currentDungeon = null;
         }
 
-        // Re-enable overworld physics bodies
+        if (dungeonMinimap != null) {
+            dungeonMinimap.dispose();
+            dungeonMinimap = null;
+        }
+
         for (Chunk chunk : chunks.values()) {
             chunk.enableObstacles();
             chunk.enableEnemies();
         }
 
-        // Teleport player back to overworld
+        if (mapBoundary != null) {
+            mapBoundary.enable();
+        }
+
         if (overworldPlayerPosition != null) {
             player.getBody().setTransform(overworldPlayerPosition.x, overworldPlayerPosition.y, 0);
         }
 
-        // Respawn portal at new location
-        if (dungeonPortal != null) {
-            dungeonPortal.dispose(world.getWorld());
-        }
-        spawnDungeonPortal();
-
-        hudLabel.setText("Goal: " + enemiesKilled + "/" + enemyGoal);
+        hudLabel.setText("Enemied killed: " + enemiesKilled);
     }
 
     @Override
@@ -204,19 +277,26 @@ public class GameProj implements Screen, ContactListener {
     public void render(float delta) {
         world.getWorld().step(1 / 60f, 6, 2);
 
-        // Update minimap
-        if (minimap != null && !inDungeon) {
-            minimap.update();
-        }
+        if (!inDungeon) {
+            if (minimap != null) {
+                minimap.update();
+            }
 
-        // Handle map toggle
-        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB) && !inDungeon) {
-            minimap.toggleMap();
-        }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+                minimap.toggleMap();
+            }
 
-        // Handle portal display toggle
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && !inDungeon && minimap.isMapOpen()) {
-            minimap.togglePortalDisplay();
+            if (Gdx.input.isKeyJustPressed(Input.Keys.P) && minimap.isMapOpen()) {
+                minimap.togglePortalDisplay();
+            }
+        } else {
+            if (dungeonMinimap != null) {
+                dungeonMinimap.update();
+            }
+
+            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+                dungeonMinimap.toggleMap();
+            }
         }
 
         if (!inDungeon) {
@@ -225,9 +305,10 @@ public class GameProj implements Screen, ContactListener {
             renderDungeon(delta);
         }
 
-        // Render minimap on top of everything (batch should be ended by now)
-        if (minimap != null && minimap.isMapOpen() && !inDungeon) {
+        if (!inDungeon && minimap != null && minimap.isMapOpen()) {
             minimap.render(batch, false);
+        } else if (inDungeon && dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
+            dungeonMinimap.render(batch, false);
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.F5)) gameScreen.switchToNewState(GameScreen.HOME);
@@ -238,7 +319,6 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void renderOverworld(float delta) {
-        // Only process pending chunks when in overworld
         if (!inDungeon) {
             while (!pendingChunks.isEmpty()) {
                 Chunk chunk = pendingChunks.poll();
@@ -248,32 +328,29 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        if(enemiesKilled >= enemyGoal && !Storage.isStageClear()) {
-            Storage.setStageClear(true);
+//        if(enemiesKilled >= enemyGoal && !Storage.isStageClear()) {
+//            Storage.setStageClear(true);
+//
+//            for (Chunk chunk : chunks.values()) {
+//                for (Enemy enemy : chunk.getEnemies()) {
+//                    enemy.removeEnemies();
+//                }
+//            }
+//
+//            for (Chunk chunk : chunks.values()){
+//                chunk.removeEnemies();
+//            }
+//        }
 
-            for (Chunk chunk : chunks.values()) {
-                for (Enemy enemy : chunk.getEnemies()) {
-                    enemy.removeEnemies();
-                }
-            }
-
-            for (Chunk chunk : chunks.values()){
-                chunk.removeEnemies();
-            }
-        }
-
-        // Calculate camera bounds based on map size
         int halfMapChunks = MAP_SIZE_CHUNKS / 2;
         float mapMinX = -halfMapChunks * CHUNK_SIZE * TILE_SIZE;
         float mapMaxX = (halfMapChunks + 1) * CHUNK_SIZE * TILE_SIZE;
         float mapMinY = -halfMapChunks * CHUNK_SIZE * TILE_SIZE;
         float mapMaxY = (halfMapChunks + 1) * CHUNK_SIZE * TILE_SIZE;
 
-        // Get camera viewport size in world units
         float cameraHalfWidth = camera.viewportWidth / 2f;
         float cameraHalfHeight = camera.viewportHeight / 2f;
 
-        // Clamp camera position to map boundaries
         float targetX = player.getPosition().x;
         float targetY = player.getPosition().y;
 
@@ -286,7 +363,6 @@ public class GameProj implements Screen, ContactListener {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
-        // Render map boundaries
         if (mapBoundary != null) {
             mapBoundary.render(batch);
         }
@@ -303,15 +379,14 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderEnemies(batch);
         }
 
-        // Render portal
-        if (dungeonPortal != null) {
-            dungeonPortal.update(delta);
-            dungeonPortal.render(batch);
+        for (Portal portal : dungeonPortals) {
+            portal.update(delta);
+            portal.render(batch);
 
-            // Check if player is near portal
-            if (dungeonPortal.isPlayerNear(player.getPosition(), 20f) &&
+            if (portal.isPlayerNear(player.getPosition(), 20f) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.E)) {
                 enterDungeon();
+                break;
             }
         }
 
@@ -345,8 +420,8 @@ public class GameProj implements Screen, ContactListener {
 
         batch.end();
 
-        Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-        debugRenderer.render(world.getWorld(), camera.combined);
+        // Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
+        // debugRenderer.render(world.getWorld(), camera.combined);
     }
 
     private void renderDungeon(float delta) {
@@ -361,7 +436,6 @@ public class GameProj implements Screen, ContactListener {
             currentDungeon.renderEnemies(batch, delta);
             currentDungeon.updateEnemies();
 
-            // Check if player reached exit
             if (currentDungeon.isPlayerAtExit(player.getPosition()) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.E)) {
                 exitDungeon();
@@ -373,12 +447,12 @@ public class GameProj implements Screen, ContactListener {
 
         batch.end();
 
-        Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-        debugRenderer.render(world.getWorld(), camera.combined);
+         Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
+         debugRenderer.render(world.getWorld(), camera.combined);
     }
 
     private void scheduleChunkGeneration(int chunkX, int chunkY) {
-        if (inDungeon) return; // Don't generate chunks while in dungeon
+        if (inDungeon) return;
 
         chunkGenerator.submit(() -> {
             Vector2 chunkCoord = new Vector2(chunkX, chunkY);
@@ -389,12 +463,11 @@ public class GameProj implements Screen, ContactListener {
     }
 
     public void generateChunksAroundPlayer() {
-        if (inDungeon) return; // Don't generate chunks in dungeon
+        if (inDungeon) return;
 
         int playerChunkX = (int) Math.floor(player.getPosition().x / (CHUNK_SIZE * TILE_SIZE));
         int playerChunkY = (int) Math.floor(player.getPosition().y / (CHUNK_SIZE * TILE_SIZE));
 
-        // Limit to map boundaries
         int minChunk = -MAP_SIZE_CHUNKS / 2;
         int maxChunk = MAP_SIZE_CHUNKS / 2;
 
@@ -403,7 +476,6 @@ public class GameProj implements Screen, ContactListener {
                 int chunkX = playerChunkX + x;
                 int chunkY = playerChunkY + y;
 
-                // Check boundaries
                 if (chunkX < minChunk || chunkX > maxChunk ||
                         chunkY < minChunk || chunkY > maxChunk) {
                     continue;
@@ -441,11 +513,14 @@ public class GameProj implements Screen, ContactListener {
         if (currentDungeon != null) {
             currentDungeon.dispose();
         }
-        if (dungeonPortal != null) {
-            dungeonPortal.dispose(world.getWorld());
+        for (Portal portal : dungeonPortals) {
+            portal.dispose(world.getWorld());
         }
         if (minimap != null) {
             minimap.dispose();
+        }
+        if (dungeonMinimap != null) {
+            dungeonMinimap.dispose();
         }
     }
 
@@ -470,7 +545,7 @@ public class GameProj implements Screen, ContactListener {
                             if (enemy.getBody() == enemyBody) {
                                 enemy.markForRemoval();
                                 enemiesKilled++;
-                                hudLabel.setText("Goal: " + enemiesKilled + "/" + enemyGoal);
+                                hudLabel.setText("Enemied killed: " + enemiesKilled);
                                 break;
                             }
                         }
@@ -479,9 +554,6 @@ public class GameProj implements Screen, ContactListener {
                             if (enemy.getBody() == enemyBody) {
                                 enemy.markForRemoval();
                                 bossSpawned = false;
-                                Storage.setStageClear(false);
-                                enemiesKilled = 0;
-                                gameScreen.switchToNewState(GameScreen.HOME);
                                 break;
                             }
                         }
@@ -522,8 +594,6 @@ public class GameProj implements Screen, ContactListener {
                             if (enemy.getBody() == enemyBody) {
                                 enemy.markForRemoval();
                                 bossSpawned = false;
-                                Storage.setStageClear(false);
-                                enemiesKilled = 0;
                                 player.playerDie();
                                 break;
                             }
