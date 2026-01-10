@@ -14,10 +14,8 @@ public class Equipment {
 
     public enum EquipmentSlot {
         HELMET,
-        SHOULDERS,
         CHEST,
         GLOVES,
-        LEGS,
         BOOTS,
         WEAPON,
         OFFHAND
@@ -111,15 +109,11 @@ public class Equipment {
             // Check by name for armor pieces
             if (name.contains("helmet") || name.contains("hat") || name.contains("hood")) {
                 return EquipmentSlot.HELMET;
-            } else if (name.contains("shoulder") || name.contains("pauldron")) {
-                return EquipmentSlot.SHOULDERS;
             } else if (name.contains("chest") || name.contains("plate") || name.contains("tunic") ||
                     name.contains("robe") || name.contains("armor")) {
                 return EquipmentSlot.CHEST;
             } else if (name.contains("glove") || name.contains("gauntlet") || name.contains("hand")) {
                 return EquipmentSlot.GLOVES;
-            } else if (name.contains("leg") || name.contains("pant") || name.contains("greave")) {
-                return EquipmentSlot.LEGS;
             } else if (name.contains("boot") || name.contains("shoe") || name.contains("feet")) {
                 return EquipmentSlot.BOOTS;
             }

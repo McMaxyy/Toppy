@@ -24,11 +24,9 @@ public class Minimap {
     private final Player player;
     private List<Portal> portals;
 
-    // Fog of war - tracks which tiles have been explored
     private final Set<String> exploredTiles;
-    private final int EXPLORATION_RADIUS = 3; // Tiles around player that get revealed
+    private final int EXPLORATION_RADIUS = 3;
 
-    // Map display settings
     private boolean mapOpen = false;
     private boolean showPortal = true;
     private final int MAP_PADDING = 50;
@@ -36,12 +34,12 @@ public class Minimap {
     private final BitmapFont font;
     private final Texture pixelTexture;
 
-    // Colors
-    private final Color FOG_COLOR = new Color(0.1f, 0.1f, 0.1f, 0.9f);
+    private final Color FOG_COLOR = new Color(0.05f, 0.05f, 0.05f, 0.95f);
     private final Color EXPLORED_COLOR = new Color(0.3f, 0.4f, 0.3f, 1f);
     private final Color PLAYER_COLOR = new Color(0.2f, 0.8f, 1f, 1f);
     private final Color PORTAL_COLOR = new Color(0.8f, 0.2f, 1f, 1f);
     private final Color WALL_COLOR = new Color(0.5f, 0.5f, 0.5f, 1f);
+    private final Color BACKGROUND_COLOR = new Color(0.02f, 0.02f, 0.02f, 0.98f);
 
     public Minimap(int mapSizeChunks, int chunkSize, int tileSize, Player player) {
         this.mapSizeChunks = mapSizeChunks;
@@ -80,10 +78,8 @@ public class Minimap {
         int playerTileX = (int) (playerPos.x / tileSize);
         int playerTileY = (int) (playerPos.y / tileSize);
 
-        // Reveal tiles around player
         for (int dx = -EXPLORATION_RADIUS; dx <= EXPLORATION_RADIUS; dx++) {
             for (int dy = -EXPLORATION_RADIUS; dy <= EXPLORATION_RADIUS; dy++) {
-                // Circular exploration radius
                 if (dx * dx + dy * dy <= EXPLORATION_RADIUS * EXPLORATION_RADIUS) {
                     int tileX = playerTileX + dx;
                     int tileY = playerTileY + dy;
@@ -99,44 +95,38 @@ public class Minimap {
         int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
 
-        // Calculate map dimensions to fit screen with padding
         int availableWidth = screenWidth - MAP_PADDING * 2;
         int availableHeight = screenHeight - MAP_PADDING * 2;
 
         int totalTilesX = mapSizeChunks * chunkSize;
         int totalTilesY = mapSizeChunks * chunkSize;
 
-        // Calculate tile size on minimap (scale to fit screen)
         float tileDisplaySize = Math.min(
                 (float) availableWidth / totalTilesX,
                 (float) availableHeight / totalTilesY
         );
 
-        // Calculate map dimensions
         float mapWidth = totalTilesX * tileDisplaySize;
         float mapHeight = totalTilesY * tileDisplaySize;
 
-        // Center the map on screen
         float mapStartX = (screenWidth - mapWidth) / 2f;
         float mapStartY = (screenHeight - mapHeight) / 2f;
 
-        // Calculate world bounds
         int halfMapChunks = mapSizeChunks / 2;
         int worldMinTileX = -halfMapChunks * chunkSize;
         int worldMinTileY = -halfMapChunks * chunkSize;
 
-        // End batch if it's active
         if (batchIsActive) {
             batch.end();
         }
 
         // Draw map background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0.05f, 0.05f, 0.05f, 0.95f);
+        shapeRenderer.setColor(BACKGROUND_COLOR);
         shapeRenderer.rect(mapStartX - 5, mapStartY - 5, mapWidth + 10, mapHeight + 10);
         shapeRenderer.end();
 
-        // Draw map border (walls)
+        // Draw map border
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         Gdx.gl.glLineWidth(3);
         shapeRenderer.setColor(WALL_COLOR);
@@ -157,18 +147,16 @@ public class Minimap {
                 float displayY = mapStartY + tileY * tileDisplaySize;
 
                 if (exploredTiles.contains(tileKey)) {
-                    // Explored tile
                     shapeRenderer.setColor(EXPLORED_COLOR);
                     shapeRenderer.rect(displayX, displayY, tileDisplaySize, tileDisplaySize);
                 } else {
-                    // Fog of war
                     shapeRenderer.setColor(FOG_COLOR);
                     shapeRenderer.rect(displayX, displayY, tileDisplaySize, tileDisplaySize);
                 }
             }
         }
 
-        // Draw portal if enabled
+        // Draw portals
         if (showPortal && !portals.isEmpty()) {
             for (Portal portal : portals) {
                 Vector2 portalPos = new Vector2(
@@ -178,20 +166,25 @@ public class Minimap {
                 int portalTileX = (int) (portalPos.x / tileSize) - worldMinTileX;
                 int portalTileY = (int) (portalPos.y / tileSize) - worldMinTileY;
 
-                float portalDisplayX = mapStartX + portalTileX * tileDisplaySize;
-                float portalDisplayY = mapStartY + portalTileY * tileDisplaySize;
+                int worldPortalTileX = (int) (portalPos.x / tileSize);
+                int worldPortalTileY = (int) (portalPos.y / tileSize);
+                String portalTileKey = worldPortalTileX + "," + worldPortalTileY;
 
-                // Draw pulsing portal marker
-                float pulseSize = tileDisplaySize * (1.5f + (float) Math.sin(System.currentTimeMillis() / 200.0) * 0.3f);
-                float pulseOffset = (pulseSize - tileDisplaySize) / 2f;
+                if (exploredTiles.contains(portalTileKey)) {
+                    float portalDisplayX = mapStartX + portalTileX * tileDisplaySize;
+                    float portalDisplayY = mapStartY + portalTileY * tileDisplaySize;
 
-                shapeRenderer.setColor(PORTAL_COLOR.r, PORTAL_COLOR.g, PORTAL_COLOR.b, 0.6f);
-                shapeRenderer.rect(
-                        portalDisplayX - pulseOffset,
-                        portalDisplayY - pulseOffset,
-                        pulseSize,
-                        pulseSize
-                );
+                    float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 200.0) * 0.2f;
+                    shapeRenderer.setColor(PORTAL_COLOR.r, PORTAL_COLOR.g, PORTAL_COLOR.b, 0.8f);
+                    float pulseSize = tileDisplaySize * pulse;
+                    float pulseOffset = (pulseSize - tileDisplaySize) / 2f;
+                    shapeRenderer.rect(
+                            portalDisplayX - pulseOffset,
+                            portalDisplayY - pulseOffset,
+                            pulseSize,
+                            pulseSize
+                    );
+                }
             }
         }
 
@@ -204,7 +197,7 @@ public class Minimap {
         float playerDisplayY = mapStartY + playerTileY * tileDisplaySize;
 
         shapeRenderer.setColor(PLAYER_COLOR);
-        float playerMarkerSize = tileDisplaySize * 2;
+        float playerMarkerSize = tileDisplaySize * 2.5f;
         float playerOffset = (playerMarkerSize - tileDisplaySize) / 2f;
         shapeRenderer.rect(
                 playerDisplayX - playerOffset,
@@ -215,30 +208,8 @@ public class Minimap {
 
         shapeRenderer.end();
 
-        // Draw UI text
         batch.begin();
-
-        // Legend
-        font.setColor(Color.WHITE);
-        float legendX = mapStartX + mapWidth - 150;
-        float legendY = mapStartY + mapHeight + 30;
-
-        // Player indicator
-        batch.setColor(PLAYER_COLOR);
-        batch.draw(pixelTexture, legendX, legendY - 30, 15, 15);
-
-        // Portal indicator
-        if (showPortal) {
-            batch.setColor(PORTAL_COLOR);
-            batch.draw(pixelTexture, legendX, legendY - 55, 15, 15);
-        }
-
-        // Fog indicator
-        batch.setColor(FOG_COLOR);
-        batch.draw(pixelTexture, legendX, legendY - 80, 15, 15);
-
-        batch.setColor(Color.WHITE);
-        batch.end(); // End the batch we started for UI text
+        batch.end();
     }
 
     public void dispose() {

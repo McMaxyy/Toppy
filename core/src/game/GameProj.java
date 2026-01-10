@@ -129,8 +129,6 @@ public class GameProj implements Screen, ContactListener {
         itemRegistry = ItemRegistry.getInstance();
         lootTableRegistry = LootTableRegistry.getInstance();
         itemSpawner = new ItemSpawner(world.getWorld());
-
-        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen);
         player.setItemSpawner(itemSpawner);
 
         setRandomPlayerSpawn();
@@ -291,7 +289,7 @@ public class GameProj implements Screen, ContactListener {
                 minimap.update();
             }
 
-            if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
                 minimap.toggleMap();
             }
 
@@ -303,7 +301,7 @@ public class GameProj implements Screen, ContactListener {
                 dungeonMinimap.update();
             }
 
-            if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
                 dungeonMinimap.toggleMap();
             }
         }
@@ -312,12 +310,6 @@ public class GameProj implements Screen, ContactListener {
             renderOverworld(delta);
         } else {
             renderDungeon(delta);
-        }
-
-        if (!inDungeon && minimap != null && minimap.isMapOpen()) {
-            minimap.render(batch, false);
-        } else if (inDungeon && dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
-            dungeonMinimap.render(batch, false);
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.F5)) gameScreen.switchToNewState(GameScreen.HOME);
@@ -336,20 +328,6 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
         }
-
-//        if(enemiesKilled >= enemyGoal && !Storage.isStageClear()) {
-//            Storage.setStageClear(true);
-//
-//            for (Chunk chunk : chunks.values()) {
-//                for (Enemy enemy : chunk.getEnemies()) {
-//                    enemy.removeEnemies();
-//                }
-//            }
-//
-//            for (Chunk chunk : chunks.values()){
-//                chunk.removeEnemies();
-//            }
-//        }
 
         int halfMapChunks = MAP_SIZE_CHUNKS / 2;
         float mapMinX = -halfMapChunks * CHUNK_SIZE * TILE_SIZE;
@@ -434,11 +412,23 @@ public class GameProj implements Screen, ContactListener {
         itemSpawner.update(delta);
         itemSpawner.checkPickups(player, player.getInventory());
 
+        if (minimap != null) {
+            minimap.update(); // This updates exploration and portal positions
+        }
+
+        // Render UI elements with HUD camera
         batch.setProjectionMatrix(hudCamera.combined);
+
+        // Render inventory
         player.getInventory().render(batch, false);
 
-        // Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-        // debugRenderer.render(world.getWorld(), camera.combined);
+        // ADD THIS: Render minimap if open
+        if (minimap != null && minimap.isMapOpen()) {
+            minimap.render(batch, false);
+        }
+
+        // Reset projection matrix back
+        batch.setProjectionMatrix(camera.combined);
     }
 
     private void renderDungeon(float delta) {
@@ -471,8 +461,7 @@ public class GameProj implements Screen, ContactListener {
         batch.setProjectionMatrix(hudCamera.combined);
         player.getInventory().render(batch, false);
 
-         Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-//         debugRenderer.render(world.getWorld(), camera.combined);
+
     }
 
     private void scheduleChunkGeneration(int chunkX, int chunkY) {

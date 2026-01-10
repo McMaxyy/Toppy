@@ -236,7 +236,7 @@ public class Inventory {
         }
 
         // Switch between inventory and equipment with TAB
-        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
             selectingEquipmentSlot = !selectingEquipmentSlot;
             if (selectingEquipmentSlot) {
                 selectedEquipmentSlot = EquipmentSlot.HELMET; // Start at first equipment slot
@@ -282,10 +282,8 @@ public class Inventory {
     private EquipmentSlot getNextEquipmentSlot(EquipmentSlot current, boolean forward) {
         EquipmentSlot[] allSlots = {
                 EquipmentSlot.HELMET,
-                EquipmentSlot.SHOULDERS,
                 EquipmentSlot.CHEST,
                 EquipmentSlot.GLOVES,
-                EquipmentSlot.LEGS,
                 EquipmentSlot.BOOTS,
                 EquipmentSlot.WEAPON,
                 EquipmentSlot.OFFHAND
@@ -371,8 +369,8 @@ public class Inventory {
         font.getData().setScale(0.6f);
         float instructY = panelY + UI_PADDING;
         String instructions = selectingEquipmentSlot ?
-                "Up/Down: Navigate Equipment | E: Unequip | TAB: Switch to Inventory" :
-                "Arrows: Navigate | E: Use/Equip | Q: Drop | TAB: Switch to Equipment | B/ESC: Close";
+                "Up/Down: Navigate Equipment | E: Unequip | C: Switch to Inventory" :
+                "Arrows: Navigate | E: Use/Equip | Q: Drop | C: Switch to Equipment | B/ESC: Close";
         font.draw(batch, instructions, panelX + UI_PADDING, instructY);
 
         font.setColor(Color.WHITE);
@@ -407,10 +405,8 @@ public class Inventory {
 
         EquipmentSlot[] leftSlots = {
                 EquipmentSlot.HELMET,
-                EquipmentSlot.SHOULDERS,
                 EquipmentSlot.CHEST,
                 EquipmentSlot.GLOVES,
-                EquipmentSlot.LEGS,
                 EquipmentSlot.BOOTS
         };
 
@@ -512,10 +508,8 @@ public class Inventory {
 
         EquipmentSlot[] leftSlots = {
                 EquipmentSlot.HELMET,
-                EquipmentSlot.SHOULDERS,
                 EquipmentSlot.CHEST,
                 EquipmentSlot.GLOVES,
-                EquipmentSlot.LEGS,
                 EquipmentSlot.BOOTS
         };
 
@@ -639,10 +633,8 @@ public class Inventory {
     private String getShortSlotName(EquipmentSlot slot) {
         switch (slot) {
             case HELMET: return "Head";
-            case SHOULDERS: return "Shoulders";
             case CHEST: return "Chest";
             case GLOVES: return "Hands";
-            case LEGS: return "Legs";
             case BOOTS: return "Feet";
             case WEAPON: return "Main-hand";
             case OFFHAND: return "Off-hand";
