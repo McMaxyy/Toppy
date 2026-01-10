@@ -83,7 +83,7 @@ public class ItemRegistry {
      * Register all default items
      */
     private void registerDefaultItems() {
-        // Weapons
+        // ===== WEAPONS =====
         registerItem(new ItemDefinition(
                 "wooden_sword",
                 "Wooden Sword",
@@ -111,11 +111,11 @@ public class ItemRegistry {
                 "character/Spear.png"
         ).setDamage(8).setValue(30));
 
-        // Armor
+        // ===== CHEST ARMOR =====
         registerItem(new ItemDefinition(
                 "leather_armor",
                 "Leather Armor",
-                "Basic leather protection",
+                "Basic leather chest protection",
                 Item.ItemType.ARMOR,
                 "tiles/green_tile.png",  // Placeholder
                 "tiles/green_tile.png"   // Placeholder
@@ -124,78 +124,13 @@ public class ItemRegistry {
         registerItem(new ItemDefinition(
                 "iron_armor",
                 "Iron Armor",
-                "Strong iron protection",
+                "Strong iron chest protection",
                 Item.ItemType.ARMOR,
                 "tiles/green_tile.png",  // Placeholder
                 "tiles/green_tile.png"   // Placeholder
         ).setDefense(8).setValue(100));
 
-        // Consumables
-        registerItem(new ItemDefinition(
-                "health_potion",
-                "Health Potion",
-                "Restores 50 health",
-                Item.ItemType.CONSUMABLE,
-                "tiles/coin.png",  // Placeholder
-                "tiles/coin.png"   // Placeholder
-        ).setHealthRestore(50).setValue(15));
-
-        registerItem(new ItemDefinition(
-                "small_health_potion",
-                "Small Health Potion",
-                "Restores 25 health",
-                Item.ItemType.CONSUMABLE,
-                "tiles/coin.png",  // Placeholder
-                "tiles/coin.png"   // Placeholder
-        ).setHealthRestore(25).setValue(8));
-
-        registerItem(new ItemDefinition(
-                "large_health_potion",
-                "Large Health Potion",
-                "Restores 100 health",
-                Item.ItemType.CONSUMABLE,
-                "tiles/coin.png",  // Placeholder
-                "tiles/coin.png"   // Placeholder
-        ).setHealthRestore(100).setValue(30));
-
-        // Coins
-        registerItem(new ItemDefinition(
-                "coin",
-                "Coin",
-                "Currency",
-                Item.ItemType.COIN,
-                "tiles/coin.png",
-                "tiles/coin.png"
-        ).setValue(1));
-
-        registerItem(new ItemDefinition(
-                "coin_pile",
-                "Coin Pile",
-                "A pile of coins",
-                Item.ItemType.COIN,
-                "tiles/coin.png",
-                "tiles/coin.png"
-        ).setValue(5));
-
-        // Materials
-        registerItem(new ItemDefinition(
-                "wood",
-                "Wood",
-                "Basic crafting material",
-                Item.ItemType.MATERIAL,
-                "tiles/newtree.png",  // Placeholder
-                "tiles/newtree.png"   // Placeholder
-        ).setValue(2));
-
-        registerItem(new ItemDefinition(
-                "iron_ore",
-                "Iron Ore",
-                "Raw iron for crafting",
-                Item.ItemType.MATERIAL,
-                "tiles/newrock.png",  // Placeholder
-                "tiles/newrock.png"   // Placeholder
-        ).setValue(5));
-
+        // ===== HELMETS =====
         registerItem(new ItemDefinition(
                 "leather_helmet",
                 "Leather Helmet",
@@ -213,29 +148,6 @@ public class ItemRegistry {
                 "tiles/green_tile.png",
                 "tiles/green_tile.png"
         ).setDefense(5).setValue(75));
-
-        // ===== SHOULDERS =====
-        registerItem(new ItemDefinition(
-                "leather_shoulders",
-                "Leather Shoulders",
-                "Basic leather shoulder guards",
-                Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
-        ).setDefense(1).setValue(10));
-
-        registerItem(new ItemDefinition(
-                "iron_shoulders",
-                "Iron Shoulders",
-                "Heavy iron pauldrons",
-                Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
-        ).setDefense(4).setValue(60));
-
-        // ===== CHEST (Update existing) =====
-        // Keep the existing leather_armor and iron_armor
-        // Just make sure they're named "chest" in the description
 
         // ===== GLOVES =====
         registerItem(new ItemDefinition(
@@ -255,25 +167,6 @@ public class ItemRegistry {
                 "tiles/green_tile.png",  // Placeholder
                 "tiles/green_tile.png"   // Placeholder
         ).setDefense(3).setValue(50));
-
-// ===== LEGS =====
-        registerItem(new ItemDefinition(
-                "leather_legs",
-                "Leather Legs",
-                "Basic leather leg armor",
-                Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
-        ).setDefense(2).setValue(15));
-
-        registerItem(new ItemDefinition(
-                "iron_legs",
-                "Iron Legs",
-                "Strong iron leg armor",
-                Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
-        ).setDefense(5).setValue(75));
 
         // ===== BOOTS =====
         registerItem(new ItemDefinition(
@@ -321,6 +214,53 @@ public class ItemRegistry {
                 "tiles/green_tile.png",  // Placeholder
                 "tiles/green_tile.png"   // Placeholder
         ).setDefense(2).setValue(15));
+
+        // ===== CONSUMABLES =====
+        registerItem(new ItemDefinition(
+                "health_potion",
+                "Health Potion",
+                "Restores 50 health",
+                Item.ItemType.CONSUMABLE,
+                "tiles/coin.png",  // Placeholder
+                "tiles/coin.png"   // Placeholder
+        ).setHealthRestore(50).setValue(15));
+
+        registerItem(new ItemDefinition(
+                "small_health_potion",
+                "Small Health Potion",
+                "Restores 25 health",
+                Item.ItemType.CONSUMABLE,
+                "tiles/coin.png",  // Placeholder
+                "tiles/coin.png"   // Placeholder
+        ).setHealthRestore(25).setValue(8));
+
+        registerItem(new ItemDefinition(
+                "large_health_potion",
+                "Large Health Potion",
+                "Restores 100 health",
+                Item.ItemType.CONSUMABLE,
+                "tiles/coin.png",  // Placeholder
+                "tiles/coin.png"   // Placeholder
+        ).setHealthRestore(100).setValue(30));
+
+        // ===== COINS =====
+        registerItem(new ItemDefinition(
+                "coin",
+                "Coin",
+                "Currency",
+                Item.ItemType.COIN,
+                "tiles/coin.png",
+                "tiles/coin.png"
+        ).setValue(1));
+
+        registerItem(new ItemDefinition(
+                "coin_pile",
+                "Coin Pile",
+                "A pile of coins",
+                Item.ItemType.COIN,
+                "tiles/coin.png",
+                "tiles/coin.png"
+        ).setValue(5));
     }
 
     /**
@@ -345,23 +285,19 @@ public class ItemRegistry {
 
         switch (def.type) {
             case WEAPON:
-                return new WeaponItem(def.name, def.description, texture, iconTexture,
+                return new ItemTypes.WeaponItem(def.name, def.description, texture, iconTexture,
                         position, def.damage, def.value);
 
             case ARMOR:
-                return new ArmorItem(def.name, def.description, texture, iconTexture,
+                return new ItemTypes.ArmorItem(def.name, def.description, texture, iconTexture,
                         position, def.defense, def.value);
 
             case CONSUMABLE:
-                return new ConsumableItem(def.name, def.description, texture, iconTexture,
+                return new ItemTypes.ConsumableItem(def.name, def.description, texture, iconTexture,
                         position, def.healthRestore, def.value);
 
             case COIN:
-                return new CoinItem(texture, iconTexture, position, def.value);
-
-            case MATERIAL:
-                return new MaterialItem(def.name, def.description, texture, iconTexture,
-                        position, def.value);
+                return new ItemTypes.CoinItem(texture, iconTexture, position, def.value);
 
             default:
                 return null;

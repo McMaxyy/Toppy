@@ -55,6 +55,7 @@ public class Storage {
         assetManager.load("tiles/stoneFloor3.png", Texture.class);
         assetManager.load("tiles/stoneFloor4.png", Texture.class);
         assetManager.load("tiles/coin.png", Texture.class);
+        assetManager.load("tiles/rip.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         

@@ -36,6 +36,11 @@ import entities.Enemy;
 import entities.Player;
 import entities.Portal;
 import managers.*;
+import abilities.StatusEffect;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
 
 public class GameProj implements Screen, ContactListener {
     private Skin skin;
@@ -77,6 +82,9 @@ public class GameProj implements Screen, ContactListener {
     private ItemSpawner itemSpawner;
     private ItemRegistry itemRegistry;
     private LootTableRegistry lootTableRegistry;
+
+    // Status effects tracking
+    private Map<Object, List<StatusEffect>> statusEffects;
 
     public GameProj(Viewport viewport, Game game, GameScreen gameScreen) {
         this.gameScreen = gameScreen;
@@ -130,6 +138,12 @@ public class GameProj implements Screen, ContactListener {
         lootTableRegistry = LootTableRegistry.getInstance();
         itemSpawner = new ItemSpawner(world.getWorld());
         player.setItemSpawner(itemSpawner);
+
+        // Initialize status effects tracking
+        statusEffects = new HashMap<>();
+
+        // Initialize ability manager for player
+        player.initializeAbilityManager(this);
 
         setRandomPlayerSpawn();
         spawnAllDungeonPortals();
@@ -403,6 +417,9 @@ public class GameProj implements Screen, ContactListener {
         player.render(batch, PLAYER_TILE_SIZE);
         player.update(delta);
 
+        // Update all status effects
+        updateStatusEffects(delta);
+
         for (Chunk chunk : chunks.values()) {
             chunk.renderObstacles(batch, player.getPosition().y, true);
         }
@@ -421,6 +438,11 @@ public class GameProj implements Screen, ContactListener {
 
         // Render inventory
         player.getInventory().render(batch, false);
+
+        // Render skill bar
+        batch.begin();
+        player.renderSkillBar(batch);
+        batch.end();
 
         // ADD THIS: Render minimap if open
         if (minimap != null && minimap.isMapOpen()) {
@@ -453,6 +475,9 @@ public class GameProj implements Screen, ContactListener {
         player.render(batch, PLAYER_TILE_SIZE);
         player.update(delta);
 
+        // Update all status effects
+        updateStatusEffects(delta);
+
         batch.end();
 
         itemSpawner.update(delta);
@@ -460,6 +485,16 @@ public class GameProj implements Screen, ContactListener {
 
         batch.setProjectionMatrix(hudCamera.combined);
         player.getInventory().render(batch, false);
+
+        // Render skill bar
+        batch.begin();
+        player.renderSkillBar(batch);
+        batch.end();
+
+        // Render dungeon minimap if open
+        if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
+            dungeonMinimap.render(batch, false);
+        }
 
 
     }
@@ -706,5 +741,47 @@ public class GameProj implements Screen, ContactListener {
 
     public OrthographicCamera getCamera() {
         return camera;
+    }
+
+    // Getters for ability system
+    public ConcurrentHashMap<Vector2, Chunk> getChunks() {
+        return chunks;
+    }
+    /**
+     * Add status effect to target (called by abilities)
+     */
+    public void addStatusEffect(Object target, StatusEffect effect) {
+        if (!statusEffects.containsKey(target)) {
+            statusEffects.put(target, new java.util.ArrayList<>());
+        }
+        statusEffects.get(target).add(effect);
+    }
+
+    /**
+     * Update all status effects and remove expired ones
+     */
+    public void updateStatusEffects(float delta) {
+        java.util.Iterator<java.util.Map.Entry<Object, List<StatusEffect>>> it = statusEffects.entrySet().iterator();
+        while (it.hasNext()) {
+            java.util.Map.Entry<Object, List<StatusEffect>> entry = it.next();
+            List<StatusEffect> effects = entry.getValue();
+
+            // Update each effect and remove expired ones
+            java.util.Iterator<StatusEffect> effectIt = effects.iterator();
+            while (effectIt.hasNext()) {
+                StatusEffect effect = effectIt.next();
+                effect.update(delta);
+
+                if (effect.isExpired()) {
+                    effect.onExpire();
+                    effectIt.remove();
+                }
+            }
+
+            // Remove empty effect lists
+            if (effects.isEmpty()) {
+                it.remove();
+            }
+        }
     }
 }

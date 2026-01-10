@@ -31,11 +31,26 @@ public class LootTableRegistry {
         LootTable basicEnemy = new LootTable()
                 .setGuaranteedCoins(1) // Always drops 1 coin
                 .addDrop("coin", 0.3f, 1, 2) // 30% chance for 1-2 extra coins
-                .addDrop("small_health_potion", 0.15f) // 15% chance for small health potion
-                .addDrop("wood", 0.25f) // 25% chance for wood
+                .addDrop("small_health_potion", 0.15f) // 15% chance for small health potion// 25% chance for wood
                 .addDrop("health_potion", 0.05f); // 5% chance for regular health potion
 
         registerLootTable("basic_enemy", basicEnemy);
+
+        LootTable rangedEnemy = new LootTable()
+                .setGuaranteedCoins(1) // Always drops 1 coin
+                .addDrop("coin", 0.3f, 1, 2) // 30% chance for 1-2 extra coins
+                .addDrop("small_health_potion", 0.15f) // 15% chance for small health potion) // 25% chance for wood
+                .addDrop("health_potion", 0.05f); // 5% chance for regular health potion
+
+        registerLootTable("ranged_enemy", rangedEnemy);
+
+        LootTable fastEnemy = new LootTable()
+                .setGuaranteedCoins(1) // Always drops 1 coin
+                .addDrop("coin", 0.3f, 1, 2) // 30% chance for 1-2 extra coins
+                .addDrop("small_health_potion", 0.15f) // 15% chance for small health potion) // 25% chance for wood
+                .addDrop("health_potion", 0.05f); // 5% chance for regular health potion
+
+        registerLootTable("fast_enemy", fastEnemy);
 
         // ===== DUNGEON ENEMY (Dungeon Mushie) - Level 2 =====
         LootTable dungeonEnemy = new LootTable()

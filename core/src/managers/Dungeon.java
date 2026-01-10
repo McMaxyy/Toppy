@@ -388,25 +388,74 @@ public class Dungeon {
     }
 
     private void spawnEnemies(Random random) {
-        int enemyCount = 35 + random.nextInt(20); // 35-54 enemies (increased from 15-24)
-        int spawned = 0;
+        // Create enemy clumps instead of individual enemies
+        int clumpCount = 8 + random.nextInt(6); // 8-13 clumps (replacing 35-54 individual enemies)
+        int totalEnemiesSpawned = 0;
 
-        while (spawned < enemyCount) {
-            int x = random.nextInt(width);
-            int y = random.nextInt(height);
+        for (int clump = 0; clump < clumpCount; clump++) {
+            // Try to find a valid location for this clump
+            int attempts = 0;
+            boolean clumpPlaced = false;
 
-            if (tiles[x][y] == FLOOR) {
-                float worldX = x * tileSize;
-                float worldY = y * tileSize;
+            while (!clumpPlaced && attempts < 20) {
+                attempts++;
 
-                Rectangle enemyBounds = new Rectangle(worldX, worldY, 16, 16);
-                if (!isNearSpawn(worldX, worldY, 50f)) {
-                    Body body = createEnemyBody(worldX, worldY);
-                    enemies.add(new DungeonEnemy(enemyBounds, body, player, animationManager, this, 2));
-                    spawned++;
+                // Choose a random floor tile as clump center
+                int centerX = random.nextInt(width);
+                int centerY = random.nextInt(height);
+
+                if (tiles[centerX][centerY] == FLOOR) {
+                    float centerWorldX = centerX * tileSize;
+                    float centerWorldY = centerY * tileSize;
+
+                    // Check if not too close to spawn
+                    if (!isNearSpawn(centerWorldX, centerWorldY, 100f)) {
+                        // Determine number of enemies in this clump (4-10)
+                        int enemiesInClump = 4 + random.nextInt(7); // 4 to 10 enemies
+
+                        // Spawn enemies around the center
+                        for (int i = 0; i < enemiesInClump; i++) {
+                            // Try to find a valid position for this enemy
+                            int enemyAttempts = 0;
+                            boolean enemyPlaced = false;
+
+                            while (!enemyPlaced && enemyAttempts < 10) {
+                                enemyAttempts++;
+
+                                // Calculate position with some random offset from center
+                                int offsetX = random.nextInt(5) - 2; // -2 to +2 tiles
+                                int offsetY = random.nextInt(5) - 2; // -2 to +2 tiles
+
+                                int enemyX = centerX + offsetX;
+                                int enemyY = centerY + offsetY;
+
+                                // Ensure the tile is valid
+                                if (enemyX >= 0 && enemyX < width && enemyY >= 0 && enemyY < height &&
+                                        tiles[enemyX][enemyY] == FLOOR) {
+
+                                    float worldX = enemyX * tileSize;
+                                    float worldY = enemyY * tileSize;
+
+                                    // Create enemy
+                                    Body body = createEnemyBody(worldX, worldY);
+                                    enemies.add(new DungeonEnemy(
+                                            new Rectangle(worldX, worldY, 16, 16),
+                                            body, player, animationManager, this, 2
+                                    ));
+
+                                    totalEnemiesSpawned++;
+                                    enemyPlaced = true;
+                                }
+                            }
+                        }
+
+                        clumpPlaced = true;
+                    }
                 }
             }
         }
+
+        System.out.println("Spawned " + totalEnemiesSpawned + " enemies in " + clumpCount + " clumps");
     }
 
     private boolean isNearSpawn(float x, float y, float minDistance) {

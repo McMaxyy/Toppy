@@ -30,8 +30,7 @@ public abstract class Item {
         WEAPON,
         ARMOR,
         CONSUMABLE,
-        COIN,
-        MATERIAL
+        COIN
     }
 
     public Item(String name, String description, ItemType type,

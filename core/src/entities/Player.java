@@ -20,6 +20,7 @@ import config.Storage;
 import game.GameProj;
 import items.Item;
 import managers.*;
+import abilities.AbilityManager;
 
 public class Player {
     private Body body;
@@ -51,6 +52,7 @@ public class Player {
     private ItemSpawner itemSpawner;
     private PlayerStats stats;
     private Texture healthBarBgTexture;
+    private AbilityManager abilityManager; // NEW: Ability system
 
     private class Trail {
         Vector2 position;
@@ -77,6 +79,7 @@ public class Player {
         this.stats = new PlayerStats();
         this.healthBarBgTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
+        // Note: abilityManager will be initialized after gameP is fully set up
 
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
@@ -101,6 +104,13 @@ public class Player {
         shape.dispose();
     }
 
+    /**
+     * Initialize ability manager (call after GameProj is fully constructed)
+     */
+    public void initializeAbilityManager(GameProj gameProj) {
+        this.abilityManager = new AbilityManager(this, gameProj);
+    }
+
     public void setItemSpawner(ItemSpawner itemSpawner) {
         this.itemSpawner = itemSpawner;
     }
@@ -111,6 +121,16 @@ public class Player {
         }
 
         stats.update(delta);
+
+        // Update ability manager
+        if (abilityManager != null) {
+            abilityManager.update(delta);
+            // Handle ability input only when inventory is closed
+            if (!inventory.isOpen()) {
+                abilityManager.handleInput();
+            }
+        }
+
         input(delta);
         updateAnimationState();
         getAnimationManager().update(delta);
@@ -408,6 +428,15 @@ public class Player {
         renderPlayerHealthBar(batch, TILE_SIZE);
     }
 
+    /**
+     * Render skill bar UI (called from GameProj after camera setup)
+     */
+    public void renderSkillBar(SpriteBatch batch) {
+        if (abilityManager != null) {
+            abilityManager.renderSkillBar(batch);
+        }
+    }
+
     private void renderPlayerHealthBar(SpriteBatch batch, float TILE_SIZE) {
         float barWidth = TILE_SIZE / 2f;
         float barHeight = 4f;
@@ -492,5 +521,9 @@ public class Player {
 
     public PlayerStats getStats() {
         return stats;
+    }
+
+    public AbilityManager getAbilityManager() {
+        return abilityManager;
     }
 }

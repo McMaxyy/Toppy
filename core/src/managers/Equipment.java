@@ -3,9 +3,8 @@ package managers;
 import java.util.HashMap;
 import java.util.Map;
 
-import items.ArmorItem;
+import items.ItemTypes;
 import items.Item;
-import items.WeaponItem;
 
 /**
  * Manages equipped items for the player
@@ -94,11 +93,11 @@ public class Equipment {
      * Determine which slot an item belongs to based on its type and name
      */
     private EquipmentSlot getSlotForItem(Item item) {
-        if (item instanceof WeaponItem) {
+        if (item instanceof ItemTypes.WeaponItem) {
             return EquipmentSlot.WEAPON;
         }
 
-        if (item instanceof ArmorItem) {
+        if (item instanceof ItemTypes.ArmorItem) {
             String name = item.getName().toLowerCase();
 
             // Check for shield/offhand items
