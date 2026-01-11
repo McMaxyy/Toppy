@@ -68,6 +68,10 @@ public class Storage {
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
         assetManager.load("enemies/Mushie/Dying.png", Texture.class);
+
+        assetManager.load("enemies/Skeleton/Walking.png", Texture.class);
+        assetManager.load("enemies/Skeleton/Idle.png", Texture.class);
+        assetManager.load("enemies/Skeleton/Attack.png", Texture.class);
         
         assetManager.load("enemies/BossKitty/Walking.png", Texture.class);
         assetManager.load("enemies/BossKitty/Dying.png", Texture.class);

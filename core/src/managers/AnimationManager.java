@@ -34,97 +34,6 @@ public class AnimationManager {
     }
 
 	private void loadAnimations() {
-//		Array<TextureRegion> up = new Array<>();
-//	    Array<TextureRegion> down = new Array<>();
-//	    Array<TextureRegion> right = new Array<>();
-//	    Array<TextureRegion> left = new Array<>();
-//		
-//		Texture RunningTex = Storage.assetManager.get("character/Running.png", Texture.class);
-//		RunningTex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);           
-//        TextureRegion[][] RunningFrames = TextureRegion.split(RunningTex, RunningTex.getWidth() / 8, RunningTex.getHeight() / 4);
-//        
-//        for (int i = 0; i < 8; i++) {
-//        	down.add(RunningFrames[0][i]);
-//        	up.add(RunningFrames[1][i]);
-//        	left.add(RunningFrames[2][i]);
-//        	right.add(RunningFrames[3][i]);
-//        }
-//        runningAnimation.add(new Animation<>(0.1f, down, Animation.PlayMode.LOOP));  // Index 0
-//        runningAnimation.add(new Animation<>(0.1f, up, Animation.PlayMode.LOOP));    // Index 1
-//        runningAnimation.add(new Animation<>(0.1f, left, Animation.PlayMode.LOOP));  // Index 2
-//        runningAnimation.add(new Animation<>(0.1f, right, Animation.PlayMode.LOOP)); // Index 3
-//        
-//        up.clear();
-//        down.clear();
-//        left.clear();
-//        right.clear();
-//        
-//        // Load Dying Animation
-//        Texture DyingTex = Storage.assetManager.get("character/Dying.png", Texture.class);
-//        DyingTex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-//        TextureRegion[][] DyingFrames = TextureRegion.split(DyingTex, DyingTex.getWidth() / 6, DyingTex.getHeight() / 4);
-//
-//        for (int i = 0; i < 6; i++) {
-//            down.add(DyingFrames[0][i]); 
-//            up.add(DyingFrames[1][i]);    
-//            left.add(DyingFrames[2][i]);  
-//            right.add(DyingFrames[3][i]); 
-//        }
-//
-//        dyingAnimation.add(new Animation<>(0.05f, down, Animation.PlayMode.NORMAL));
-//        dyingAnimation.add(new Animation<>(0.05f, up, Animation.PlayMode.NORMAL));
-//        dyingAnimation.add(new Animation<>(0.05f, left, Animation.PlayMode.NORMAL));
-//        dyingAnimation.add(new Animation<>(0.05f, right, Animation.PlayMode.NORMAL));
-//
-//        up.clear();
-//        down.clear();
-//        left.clear();
-//        right.clear();
-//
-//        // Load Attacking Animation
-//        Texture AttackingTex = Storage.assetManager.get("character/Attacking.png", Texture.class);
-//        AttackingTex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-//        TextureRegion[][] AttackFrames = TextureRegion.split(AttackingTex, AttackingTex.getWidth() / 5, AttackingTex.getHeight() / 4);
-//
-//        for (int i = 0; i < 5; i++) {
-//            down.add(AttackFrames[0][i]);  
-//            up.add(AttackFrames[1][i]);    
-//            left.add(AttackFrames[2][i]);  
-//            right.add(AttackFrames[3][i]); 
-//        }
-//
-//        attackingAnimation.add(new Animation<>(0.1f, down, Animation.PlayMode.NORMAL));
-//        attackingAnimation.add(new Animation<>(0.1f, up, Animation.PlayMode.NORMAL));
-//        attackingAnimation.add(new Animation<>(0.1f, left, Animation.PlayMode.NORMAL));
-//        attackingAnimation.add(new Animation<>(0.1f, right, Animation.PlayMode.NORMAL));
-//
-//        up.clear();
-//        down.clear();
-//        left.clear();
-//        right.clear();
-//
-//        // Load Idle Animation
-//        Texture IdleTex = Storage.assetManager.get("character/Idle.png", Texture.class);
-//        IdleTex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-//        TextureRegion[][] IdleFrames = TextureRegion.split(IdleTex, IdleTex.getWidth() / 4, IdleTex.getHeight() / 4);
-//
-//        for (int i = 0; i < 4; i++) {
-//            down.add(IdleFrames[0][i]);  
-//            up.add(IdleFrames[1][i]);    
-//            left.add(IdleFrames[2][i]);  
-//            right.add(IdleFrames[3][i]); 
-//        }
-//
-//        idleAnimation.add(new Animation<>(0.2f, down, Animation.PlayMode.LOOP));
-//        idleAnimation.add(new Animation<>(0.2f, up, Animation.PlayMode.LOOP));
-//        idleAnimation.add(new Animation<>(0.2f, left, Animation.PlayMode.LOOP));
-//        idleAnimation.add(new Animation<>(0.2f, right, Animation.PlayMode.LOOP));
-//
-//        up.clear();
-//        down.clear();
-//        left.clear();
-//        right.clear();	
-        
 		Texture playerWalkingTexture = Storage.assetManager.get("character/Walking.png", Texture.class);
 	    playerWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);           
 	    TextureRegion[][] playerWalkFrames = TextureRegion.split(playerWalkingTexture, playerWalkingTexture.getWidth() / 4, playerWalkingTexture.getHeight());
@@ -152,7 +61,7 @@ public class AnimationManager {
 	    }
 	    playerDyingAnimation = new Animation<>(0.6f, playerDyingFrame, Animation.PlayMode.NORMAL);
 	    
-	    Texture mushieWalkingTexture = Storage.assetManager.get("enemies/Mushie/Walking.png", Texture.class);
+	    Texture mushieWalkingTexture = Storage.assetManager.get("enemies/Skeleton/Walking.png", Texture.class);
 	    mushieWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);           
 	    TextureRegion[][] mushieWalkFrames = TextureRegion.split(mushieWalkingTexture, mushieWalkingTexture.getWidth() / 4, mushieWalkingTexture.getHeight());
 	    Array<TextureRegion> mushieWalkingFrames = new Array<>();
@@ -161,7 +70,7 @@ public class AnimationManager {
 	    }
 	    mushieRunningAnimation = new Animation<>(0.4f, mushieWalkingFrames, Animation.PlayMode.LOOP);
 
-	    Texture mushieIdleTexture = Storage.assetManager.get("enemies/Mushie/Idle.png", Texture.class);
+	    Texture mushieIdleTexture = Storage.assetManager.get("enemies/Skeleton/Idle.png", Texture.class);
 	    mushieIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);           
 	    TextureRegion[][] mushieIdleFrames = TextureRegion.split(mushieIdleTexture, mushieIdleTexture.getWidth() / 4, mushieIdleTexture.getHeight());
 	    Array<TextureRegion> mushieIdleFrame = new Array<>();
@@ -170,7 +79,7 @@ public class AnimationManager {
 	    }
 	    mushieIdleAnimation = new Animation<>(0.4f, mushieIdleFrame, Animation.PlayMode.LOOP); 
 	    
-	    Texture mushieDyingTexture = Storage.assetManager.get("enemies/Mushie/Dying.png", Texture.class);
+	    Texture mushieDyingTexture = Storage.assetManager.get("enemies/Skeleton/Attack.png", Texture.class);
 	    mushieDyingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);           
 	    TextureRegion[][] mushieDyingFrames = TextureRegion.split(mushieDyingTexture, mushieDyingTexture.getWidth() / 4, mushieDyingTexture.getHeight());
 	    Array<TextureRegion> mushieDyingFrame = new Array<>();
