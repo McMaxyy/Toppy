@@ -26,6 +26,7 @@ class ChargeAbility extends Ability {
     private static final float CHARGE_DISTANCE = 100f;
     private static final float CHARGE_SPEED = 8000f;
     private static final float STUN_DURATION = 1.5f;
+
     public ChargeAbility(Texture iconTexture) {
         super(
                 "Charge",
@@ -403,5 +404,30 @@ class PrayerAbility extends Ability {
     protected void execute(Player player, GameProj gameProj) {
         player.getStats().heal(HEAL_AMOUNT);
         System.out.println("Prayer healed for " + HEAL_AMOUNT + " HP!");
+    }
+}
+
+class BlinkAbility extends Ability {
+    private static final float TELEPORT_DISTANCE = 100f;
+
+    public BlinkAbility(Texture iconTexture) {
+        super(
+                "Blink",
+                "Teleport a distance towards the mouse position",
+                15.0f, // 15 second cooldown
+                0,     // No damage
+                0f,  // 1 second cast time
+                0f,
+                AbilityType.CROWD_CONTROL,
+                iconTexture
+        );
+    }
+
+    @Override
+    protected void execute(Player player, GameProj gameProj) {
+        Vector3 mousePosition3D = gameProj.getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+        Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
+
+        player.getBody().setTransform(mousePosition, 1f);
     }
 }

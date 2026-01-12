@@ -13,7 +13,10 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import config.Storage;
+import game.GameProj;
 import items.Item;
 import managers.Equipment.EquipmentSlot;
 
@@ -139,7 +142,6 @@ public class Inventory {
 
         // Only weapons and armor can be equipped
         if (item.getType() != Item.ItemType.WEAPON && item.getType() != Item.ItemType.ARMOR) {
-            System.out.println("Cannot equip this item type");
             return;
         }
 
@@ -170,7 +172,10 @@ public class Inventory {
         }
     }
 
-    public void useSelectedItem(entities.Player player) {
+    public void useSelectedItem(entities.Player player, GameProj gameP) {
+        Vector3 mousePosition3D = gameP.getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+        Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
+
         if (selectingEquipmentSlot) {
             // Unequip from equipment slot
             if (selectedEquipmentSlot != null) {
@@ -220,7 +225,7 @@ public class Inventory {
         return coins;
     }
 
-    public void update(float delta) {
+    public void update(float delta, entities.Player player, GameProj gameP) {
         if (!inventoryOpen) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
                 toggleInventory();
@@ -228,54 +233,80 @@ public class Inventory {
             return;
         }
 
-        // Close inventory
-        if (Gdx.input.isKeyJustPressed(Input.Keys.B) ||
-                Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             toggleInventory();
             return;
         }
 
-        // Switch between inventory and equipment with TAB
-        if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
-            selectingEquipmentSlot = !selectingEquipmentSlot;
-            if (selectingEquipmentSlot) {
-                selectedEquipmentSlot = EquipmentSlot.HELMET; // Start at first equipment slot
+        // --- MOUSE TRACKING LOGIC ---
+        int screenWidth = Gdx.graphics.getWidth();
+        int screenHeight = Gdx.graphics.getHeight();
+        int panelWidth = 700;
+        int panelHeight = 500;
+        float panelX = (screenWidth - panelWidth) / 2f;
+        float panelY = (screenHeight - panelHeight) / 2f;
+
+        // libGDX mouse Y is top-down, we need bottom-up to match ShapeRenderer
+        float mouseX = Gdx.input.getX();
+        float mouseY = screenHeight - Gdx.input.getY();
+
+        // 1. Check Inventory Slots
+        float invStartX = panelX + 280;
+        float invStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
+
+        for (int i = 0; i < MAX_SLOTS; i++) {
+            int row = i / ITEMS_PER_ROW;
+            int col = i % ITEMS_PER_ROW;
+            float x = invStartX + col * (SLOT_SIZE + SLOT_PADDING);
+            float y = invStartY - row * (SLOT_SIZE + SLOT_PADDING);
+
+            if (mouseX >= x && mouseX <= x + SLOT_SIZE && mouseY >= y && mouseY <= y + SLOT_SIZE) {
+                selectedSlot = i;
+                selectingEquipmentSlot = false; // Mouse over inventory takes priority
+
+                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                    useSelectedItem(player, gameP);
+                }
             }
         }
 
-        if (selectingEquipmentSlot) {
-            // Navigate equipment slots
-            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
-                selectedEquipmentSlot = getNextEquipmentSlot(selectedEquipmentSlot, true);
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
-                selectedEquipmentSlot = getNextEquipmentSlot(selectedEquipmentSlot, false);
-            }
-        } else {
-            // Navigate inventory
-            if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
-                selectedSlot = (selectedSlot + 1) % MAX_SLOTS;
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
-                selectedSlot = (selectedSlot - 1 + MAX_SLOTS) % MAX_SLOTS;
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
-                selectedSlot = (selectedSlot + ITEMS_PER_ROW) % MAX_SLOTS;
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
-                selectedSlot = (selectedSlot - ITEMS_PER_ROW + MAX_SLOTS) % MAX_SLOTS;
+        // 2. Check Equipment Slots
+        checkEquipmentMouseHover(mouseX, mouseY, panelX, panelY, panelHeight, player, gameP);
+
+        // Keep your TAB/Arrow key logic below if you want hybrid controls,
+        // otherwise, you can remove the Arrow Key blocks entirely.
+    }
+
+    private void checkEquipmentMouseHover(float mx, float my, float px, float py, float ph, entities.Player player, GameProj gameP) {
+        float equipmentX = px + UI_PADDING;
+        float equipmentY = py + UI_PADDING + 40;
+        float eqWidth = 250;
+
+        // Define the positions exactly as you do in render
+        EquipmentSlot[] leftSlots = {EquipmentSlot.HELMET, EquipmentSlot.CHEST, EquipmentSlot.GLOVES, EquipmentSlot.BOOTS};
+        float leftX = equipmentX + 10;
+        float leftStartY = equipmentY + ph - 140;
+
+        for (int i = 0; i < leftSlots.length; i++) {
+            float slotY = leftStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
+            if (mx >= leftX && mx <= leftX + EQUIPMENT_SLOT_SIZE && my >= slotY && my <= slotY + EQUIPMENT_SLOT_SIZE) {
+                selectedEquipmentSlot = leftSlots[i];
+                selectingEquipmentSlot = true;
+                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) useSelectedItem(player, gameP);
             }
         }
 
-        // Use/equip with E or Enter
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E) ||
-                Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            // Handled by player
-        }
+        EquipmentSlot[] rightSlots = {EquipmentSlot.WEAPON, EquipmentSlot.OFFHAND};
+        float rightX = equipmentX + eqWidth - EQUIPMENT_SLOT_SIZE - 10;
+        float rightStartY = equipmentY + ph - 140;
 
-        // Drop with Q
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
-            // Handled by player
+        for (int i = 0; i < rightSlots.length; i++) {
+            float slotY = rightStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
+            if (mx >= rightX && mx <= rightX + EQUIPMENT_SLOT_SIZE && my >= slotY && my <= slotY + EQUIPMENT_SLOT_SIZE) {
+                selectedEquipmentSlot = rightSlots[i];
+                selectingEquipmentSlot = true;
+                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) useSelectedItem(player, gameP);
+            }
         }
     }
 

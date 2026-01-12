@@ -243,12 +243,14 @@ public class Chunk {
                 EnemyStats stats = EnemyStats.Factory.createBasicEnemy(enemyInfo.level);
 
                 // Randomly choose enemy type for variety
-                Random random = new Random();
-                if (random.nextInt(100) < 20) { // 20% chance for fast enemy
-                    stats = EnemyStats.Factory.createFastEnemy(enemyInfo.level);
-                } else if (random.nextInt(100) < 10) { // 10% chance for ranged enemy
-                    stats = EnemyStats.Factory.createRangedEnemy(enemyInfo.level);
-                }
+//                Random random = new Random();
+//                if (random.nextInt(100) < 20) { // 20% chance for fast enemy
+//                    stats = EnemyStats.Factory.createFastEnemy(enemyInfo.level);
+//                } else if (random.nextInt(100) < 10) { // 10% chance for ranged enemy
+//                    stats = EnemyStats.Factory.createRangedEnemy(enemyInfo.level);
+//                }
+
+                stats = EnemyStats.Factory.createFastEnemy(enemyInfo.level);
 
                 enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
                         enemyInfo.texture, body, player, getAnimationManager(), stats));

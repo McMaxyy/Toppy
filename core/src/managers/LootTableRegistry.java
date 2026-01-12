@@ -56,11 +56,10 @@ public class LootTableRegistry {
         LootTable dungeonEnemy = new LootTable()
                 .setGuaranteedCoins(2) // Always drops 2 coins
                 .addDrop("coin_pile", 0.5f) // 50% chance for coin pile (5 coins)
-                .addDrop("health_potion", 0.3f) // 30% chance for health potion
-                .addDrop("iron_ore", 0.2f) // 20% chance for iron ore
-                .addDrop("large_health_potion", 0.1f) // 10% chance for large health potion
-                .addDrop("wooden_sword", 0.08f) // 8% chance for wooden sword
-                .addDrop("leather_armor", 0.08f); // 8% chance for leather armor
+                .addDrop("iron_gloves", 0.1f) // 30% chance for health potion
+                .addDrop("iron_boots", 0.1f) // 10% chance for large health potion
+                .addDrop("iron_helmet", 0.1f) // 8% chance for wooden sword
+                .addDrop("iron_armor", 0.1f); // 8% chance for leather armor
 
         registerLootTable("dungeon_enemy", dungeonEnemy);
 

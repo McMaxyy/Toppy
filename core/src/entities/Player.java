@@ -53,6 +53,7 @@ public class Player {
     private PlayerStats stats;
     private Texture healthBarBgTexture;
     private AbilityManager abilityManager; // NEW: Ability system
+    private boolean isPaused = false; // NEW: Pause state
 
     private class Trail {
         Vector2 position;
@@ -115,6 +116,17 @@ public class Player {
         this.itemSpawner = itemSpawner;
     }
 
+    /**
+     * Set paused state (disables input when paused)
+     */
+    public void setPaused(boolean paused) {
+        this.isPaused = paused;
+    }
+
+    public boolean isPaused() {
+        return isPaused;
+    }
+
     public void update(float delta) {
         if (spearCooldown > 0) {
             spearCooldown -= delta;
@@ -125,13 +137,17 @@ public class Player {
         // Update ability manager
         if (abilityManager != null) {
             abilityManager.update(delta);
-            // Handle ability input only when inventory is closed
-            if (!inventory.isOpen()) {
+            // Handle ability input only when inventory is closed and not paused
+            if (!inventory.isOpen() && !isPaused) {
                 abilityManager.handleInput();
             }
         }
 
-        input(delta);
+        // Only process input if not paused
+        if (!isPaused) {
+            input(delta);
+        }
+
         updateAnimationState();
         getAnimationManager().update(delta);
 
@@ -160,14 +176,10 @@ public class Player {
             }
         }
 
-        inventory.update(delta);
+        inventory.update(delta, this, gameP);
 
-        // Handle inventory actions
-        if (inventory.isOpen()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-                inventory.useSelectedItem(this);
-            }
-
+        // Only allow dropping items if not paused
+        if (inventory.isOpen() && !isPaused) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
                 Item droppedItem = inventory.dropItem(inventory.getSelectedSlot());
                 if (droppedItem != null && itemSpawner != null) {
@@ -202,6 +214,12 @@ public class Player {
     public void updateBounds() {}
 
     public void input(float delta) {
+        // Don't process input if paused
+        if (isPaused) {
+            body.setLinearVelocity(0, 0);
+            return;
+        }
+
         float moveX = 0;
         float moveY = 0;
 
@@ -239,7 +257,8 @@ public class Player {
             }
         }
 
-        if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0) {
+        if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0
+                && !gameP.isPaused() && !inventory.isOpen()) {
             createSpear();
             spearCooldown = 0.5f;
         }
@@ -373,9 +392,35 @@ public class Player {
         dyingAnimationStarted = false;
     }
 
+    /**
+     * Clean up all spears (called during disposal)
+     */
+    public void cleanupSpears() {
+        if (world != null && !world.getWorld().isLocked()) {
+            for (int i = spearBodies.size - 1; i >= 0; i--) {
+                Body spearBody = spearBodies.get(i);
+                if (spearBody != null) {
+                    try {
+                        world.getWorld().destroyBody(spearBody);
+                    } catch (Exception e) {
+                        // Already destroyed
+                    }
+                }
+            }
+        }
+        spearBodies.clear();
+        spearVelocities.clear();
+        spearStartPositions.clear();
+        spearMarkedForRemoval.clear();
+    }
+
     public void removeSpear(Body spearBody, int i) {
-        if (spearBody != null) {
-            world.getWorld().destroyBody(spearBody);
+        if (spearBody != null && !world.getWorld().isLocked()) {
+            try {
+                world.getWorld().destroyBody(spearBody);
+            } catch (Exception e) {
+                // Body already destroyed or world locked
+            }
         }
 
         spearBodies.removeIndex(i);

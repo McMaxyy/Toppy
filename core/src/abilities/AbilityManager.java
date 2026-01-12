@@ -64,7 +64,7 @@ public class AbilityManager {
     private void initializeMercenaryAbilities() {
         Texture iconTexture = Storage.assetManager.get("tiles/rip.png", Texture.class);
 
-        abilities[0] = new ChargeAbility(iconTexture);
+        abilities[0] = new BlinkAbility(iconTexture);
         abilities[1] = new DoubleSwingAbility(iconTexture);
         abilities[2] = new BubbleAbility(iconTexture);
         abilities[3] = new RendAbility(iconTexture);

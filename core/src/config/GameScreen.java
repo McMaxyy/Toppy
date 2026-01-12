@@ -2,6 +2,7 @@ package config;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -25,8 +26,11 @@ public class GameScreen implements Screen{
 	public GameScreen(Game game) {
 		this.game = game;
 		viewport = new FitViewport(SELECTED_WIDTH, SELECTED_HEIGHT);
-		Gdx.graphics.setUndecorated(false);
-		Gdx.graphics.setWindowedMode(1280, 720);
+//		Gdx.graphics.setUndecorated(false);
+//		Gdx.graphics.setWindowedMode(1280, 720);
+		Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
+		Gdx.graphics.setUndecorated(true);
+		Gdx.graphics.setWindowedMode(displayMode.width, displayMode.height);
 		setCurrentState(HOME);
 	}
 	
@@ -91,6 +95,6 @@ public class GameScreen implements Screen{
 
 	@Override
 	public void dispose() {
-		gameP.dispose();
+//		gameP.dispose();
 	}
 }

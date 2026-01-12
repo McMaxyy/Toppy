@@ -38,7 +38,7 @@ public class DungeonEnemy {
     private final float STUCK_THRESHOLD = 0.5f; // Reduced threshold
     private final float STUCK_DISTANCE = 0.3f; // More sensitive
     private int pathfindingAttempts = 0;
-    private final int MAX_PATHFINDING_ATTEMPTS = 2; // Fewer attempts before giving up
+    private final int MAX_PATHFINDING_ATTEMPTS = 5; // Fewer attempts before giving up
 
     // Velocity smoothing for better stuck detection
     private final Vector2[] velocityHistory = new Vector2[5];
@@ -222,10 +222,6 @@ public class DungeonEnemy {
             // Follow path with improved navigation
             if (currentPath != null && !currentPath.isEmpty()) {
                 followPath();
-                isMoving = true;
-            } else {
-                // Fallback to direct movement if no path
-                attemptDirectMovement();
                 isMoving = true;
             }
         } else {
@@ -475,14 +471,8 @@ public class DungeonEnemy {
     }
 
     private void attemptDirectMovement() {
-        Vector2 playerPosition = player.getPosition();
-        Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
-
-        Vector2 direction = new Vector2(playerPosition.x - enemyPosition.x,
-                playerPosition.y - enemyPosition.y).nor();
-
-        // Use a slightly reduced speed for direct movement as fallback
-        body.setLinearVelocity(direction.scl(speed * 0.8f));
+        Vector2 targetPosition = new Vector2(player.getPosition().x + 10, player.getPosition().y + 10);
+        body.setTransform(targetPosition, 1f);
     }
 
     public void render(SpriteBatch batch) {

@@ -163,12 +163,8 @@ public class ItemSpawner {
                 playerPosition.y
         );
 
-        // Apply small outward velocity
-        Vector2 dropVelocity = new Vector2(dropDistance, 0).nor().scl(50f);
-
-        // Queue the item with velocity
         pendingItems.add(new PendingItem(item.getName().toLowerCase().replace(" ", "_"),
-                dropPosition, dropVelocity));
+                dropPosition));
 
         return null; // Will be created in update()
     }

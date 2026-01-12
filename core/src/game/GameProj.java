@@ -37,6 +37,7 @@ import entities.Player;
 import entities.Portal;
 import managers.*;
 import abilities.StatusEffect;
+import ui.Settings;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -82,6 +83,8 @@ public class GameProj implements Screen, ContactListener {
     private ItemSpawner itemSpawner;
     private ItemRegistry itemRegistry;
     private LootTableRegistry lootTableRegistry;
+    private Settings settings;
+    private boolean isPaused = false;
 
     // Status effects tracking
     private Map<Object, List<StatusEffect>> statusEffects;
@@ -98,6 +101,8 @@ public class GameProj implements Screen, ContactListener {
         storage.createFont();
         skin = storage.skin;
         animationManager = new AnimationManager();
+        settings = new Settings();
+        settings.setGameProj(this); // Pass reference for safe exit
 
         hudCamera = new OrthographicCamera();
         hudViewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), hudCamera);
@@ -296,44 +301,103 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void render(float delta) {
-        world.getWorld().step(1 / 60f, 6, 2);
-
-        if (!inDungeon) {
-            if (minimap != null) {
-                minimap.update();
-            }
-
-            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
-                minimap.toggleMap();
-            }
-
-            if (Gdx.input.isKeyJustPressed(Input.Keys.P) && minimap.isMapOpen()) {
-                minimap.togglePortalDisplay();
-            }
-        } else {
-            if (dungeonMinimap != null) {
-                dungeonMinimap.update();
-            }
-
-            if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
-                dungeonMinimap.toggleMap();
+        // Handle ESC key for pause menu
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            if (isPaused) {
+                unpauseGame();
+            } else {
+                pauseGame();
             }
         }
 
-        if (!inDungeon) {
-            renderOverworld(delta);
-        } else {
-            renderDungeon(delta);
+        // Handle F5 to return to home (only if not paused)
+        if (Gdx.input.isKeyPressed(Input.Keys.F5) && !isPaused) {
+            gameScreen.switchToNewState(GameScreen.HOME);
+            return;
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.F5)) gameScreen.switchToNewState(GameScreen.HOME);
-        if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) Player.gameStarted = false;
+        // Update settings menu
+        settings.update(delta);
 
-        hudStage.act(delta);
-        hudStage.draw();
+        // If settings menu closes itself (e.g., via Resume button), sync pause state
+        if (settings != null && isPaused && !settings.isOpen()) {
+            unpauseGame();
+        }
+
+        // Only update game logic if not paused
+        if (!isPaused) {
+            world.getWorld().step(1 / 60f, 6, 2);
+
+            if (!inDungeon) {
+                if (minimap != null) {
+                    minimap.update();
+                }
+
+                if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+                    minimap.toggleMap();
+                }
+
+                if (Gdx.input.isKeyJustPressed(Input.Keys.P) && minimap.isMapOpen()) {
+                    minimap.togglePortalDisplay();
+                }
+            } else {
+                if (dungeonMinimap != null) {
+                    dungeonMinimap.update();
+                }
+
+                if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+                    dungeonMinimap.toggleMap();
+                }
+            }
+
+            if (!inDungeon) {
+                renderOverworld(delta);
+            } else {
+                renderDungeon(delta);
+            }
+        } else {
+            // When paused, still render the game but don't update logic
+            if (!inDungeon) {
+                renderOverworld(0); // Pass 0 delta to prevent updates
+            } else {
+                renderDungeon(0);
+            }
+        }
+
+        // Always render HUD
+        if (hudStage != null) {
+            hudStage.act(delta);
+            hudStage.draw();
+        }
+
+
+        // Render settings menu on top of everything if open
+        if (settings != null && settings.isOpen()) {
+            settings.render(batch, false);
+        }
+    }
+
+    /**
+     * Pause the game and open settings menu
+     */
+    private void pauseGame() {
+        isPaused = true;
+        settings.open();
+        player.setPaused(true); // Disable player input
+    }
+
+    /**
+     * Unpause the game and close settings menu
+     */
+    private void unpauseGame() {
+        isPaused = false;
+        settings.close();
+        player.setPaused(false); // Re-enable player input
     }
 
     private void renderOverworld(float delta) {
+        if (batch == null) return;
+
         if (!inDungeon) {
             while (!pendingChunks.isEmpty()) {
                 Chunk chunk = pendingChunks.poll();
@@ -382,11 +446,14 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderEnemies(batch);
         }
 
+        // Only update portals if not paused
         for (Portal portal : dungeonPortals) {
-            portal.update(delta);
+            if (delta > 0) { // Only update if game is running
+                portal.update(delta);
+            }
             portal.render(batch);
 
-            if (portal.isPlayerNear(player.getPosition(), 20f) &&
+            if (!isPaused && portal.isPlayerNear(player.getPosition(), 20f) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.E)) {
                 enterDungeon();
                 break;
@@ -415,10 +482,13 @@ public class GameProj implements Screen, ContactListener {
         }
 
         player.render(batch, PLAYER_TILE_SIZE);
-        player.update(delta);
 
-        // Update all status effects
-        updateStatusEffects(delta);
+        // Only update player if not paused
+        if (delta > 0) {
+            player.update(delta);
+            // Update all status effects
+            updateStatusEffects(delta);
+        }
 
         for (Chunk chunk : chunks.values()) {
             chunk.renderObstacles(batch, player.getPosition().y, true);
@@ -426,11 +496,14 @@ public class GameProj implements Screen, ContactListener {
 
         batch.end();
 
-        itemSpawner.update(delta);
-        itemSpawner.checkPickups(player, player.getInventory());
+        // Only update item spawner if not paused
+        if (delta > 0) {
+            itemSpawner.update(delta);
+            itemSpawner.checkPickups(player, player.getInventory());
 
-        if (minimap != null) {
-            minimap.update(); // This updates exploration and portal positions
+            if (minimap != null) {
+                minimap.update(); // This updates exploration and portal positions
+            }
         }
 
         // Render UI elements with HUD camera
@@ -444,7 +517,7 @@ public class GameProj implements Screen, ContactListener {
         player.renderSkillBar(batch);
         batch.end();
 
-        // ADD THIS: Render minimap if open
+        // Render minimap if open
         if (minimap != null && minimap.isMapOpen()) {
             minimap.render(batch, false);
         }
@@ -454,6 +527,8 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void renderDungeon(float delta) {
+        if (batch == null) return;
+
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
         camera.update();
 
@@ -463,25 +538,37 @@ public class GameProj implements Screen, ContactListener {
         if (currentDungeon != null) {
             currentDungeon.render(batch);
             itemSpawner.render(batch);
-            currentDungeon.renderEnemies(batch, delta);
-            currentDungeon.updateEnemies();
 
-            if (currentDungeon.isPlayerAtExit(player.getPosition()) &&
+            // Only update dungeon if not paused
+            if (delta > 0) {
+                currentDungeon.renderEnemies(batch, delta);
+                currentDungeon.updateEnemies();
+            } else {
+                currentDungeon.renderEnemies(batch, 0);
+            }
+
+            if (!isPaused && currentDungeon.isPlayerAtExit(player.getPosition()) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.E)) {
                 exitDungeon();
             }
         }
 
         player.render(batch, PLAYER_TILE_SIZE);
-        player.update(delta);
 
-        // Update all status effects
-        updateStatusEffects(delta);
+        // Only update player if not paused
+        if (delta > 0) {
+            player.update(delta);
+            // Update all status effects
+            updateStatusEffects(delta);
+        }
 
         batch.end();
 
-        itemSpawner.update(delta);
-        itemSpawner.checkPickups(player, player.getInventory());
+        // Only update item spawner if not paused
+        if (delta > 0) {
+            itemSpawner.update(delta);
+            itemSpawner.checkPickups(player, player.getInventory());
+        }
 
         batch.setProjectionMatrix(hudCamera.combined);
         player.getInventory().render(batch, false);
@@ -495,8 +582,6 @@ public class GameProj implements Screen, ContactListener {
         if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
             dungeonMinimap.render(batch, false);
         }
-
-
     }
 
     private void scheduleChunkGeneration(int chunkX, int chunkY) {
@@ -511,7 +596,7 @@ public class GameProj implements Screen, ContactListener {
     }
 
     public void generateChunksAroundPlayer() {
-        if (inDungeon) return;
+        if (inDungeon || isPaused) return; // Don't generate chunks when paused
 
         int playerChunkX = (int) Math.floor(player.getPosition().x / (CHUNK_SIZE * TILE_SIZE));
         int playerChunkY = (int) Math.floor(player.getPosition().y / (CHUNK_SIZE * TILE_SIZE));
@@ -545,6 +630,23 @@ public class GameProj implements Screen, ContactListener {
         return currentDungeon;
     }
 
+    public boolean isPaused() {
+        return isPaused;
+    }
+
+    /**
+     * Safely exit the game with proper cleanup
+     */
+    public void safeExit() {
+        try {
+            dispose();
+        } catch (Exception e) {
+            System.err.println("Error during safe exit: " + e.getMessage());
+        } finally {
+            Gdx.app.exit();
+        }
+    }
+
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
@@ -563,25 +665,94 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void dispose() {
-        world.dispose();
-        batch.dispose();
-        chunkGenerator.shutdown();
-        if (currentDungeon != null) {
-            currentDungeon.dispose();
-        }
-        for (Portal portal : dungeonPortals) {
-            portal.dispose(world.getWorld());
-        }
-        if (minimap != null) {
-            minimap.dispose();
-        }
-        if (dungeonMinimap != null) {
-            dungeonMinimap.dispose();
+        try {
+            // Clean up player spears first
+            if (player != null) {
+                player.cleanupSpears();
+            }
+
+            // Dispose settings first
+            if (settings != null) {
+                settings.dispose();
+                settings = null;
+            }
+
+            // Dispose minimaps
+            if (dungeonMinimap != null) {
+                dungeonMinimap.dispose();
+                dungeonMinimap = null;
+            }
+            if (minimap != null) {
+                minimap.dispose();
+                minimap = null;
+            }
+
+            // Dispose dungeon
+            if (currentDungeon != null) {
+                currentDungeon.dispose();
+                currentDungeon = null;
+            }
+
+            // Dispose portals before world
+            if (dungeonPortals != null) {
+                for (Portal portal : dungeonPortals) {
+                    if (portal != null) {
+                        portal.dispose(world.getWorld());
+                    }
+                }
+                dungeonPortals.clear();
+            }
+
+            // Dispose chunks
+            if (chunks != null) {
+                chunks.clear();
+            }
+            if (pendingChunks != null) {
+                pendingChunks.clear();
+            }
+
+            // Shutdown executor before disposing world
+            if (chunkGenerator != null && !chunkGenerator.isShutdown()) {
+                chunkGenerator.shutdownNow();
+                try {
+                    chunkGenerator.awaitTermination(1, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            // Dispose stages
+            if (hudStage != null) {
+                hudStage.dispose();
+                hudStage = null;
+            }
+            if (stage != null) {
+                stage.dispose();
+                stage = null;
+            }
+
+            // Dispose batch
+            if (batch != null) {
+                batch.dispose();
+                batch = null;
+            }
+
+            // Dispose world last (after all bodies are removed)
+            if (world != null) {
+                world.dispose();
+                world = null;
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error during disposal: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     @Override
     public void beginContact(Contact contact) {
+        if (isPaused) return; // Don't process collisions when paused
+
         Fixture fixtureA = contact.getFixtureA();
         Fixture fixtureB = contact.getFixtureB();
 

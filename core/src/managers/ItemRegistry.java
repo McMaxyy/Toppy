@@ -126,8 +126,8 @@ public class ItemRegistry {
                 "Iron Armor",
                 "Strong iron chest protection",
                 Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
+                "icons/armor/ironChest.png",  // Placeholder
+                "icons/armor/ironChest.png"   // Placeholder
         ).setDefense(8).setValue(100));
 
         // ===== HELMETS =====
@@ -145,8 +145,8 @@ public class ItemRegistry {
                 "Iron Helmet",
                 "Strong iron head protection",
                 Item.ItemType.ARMOR,
-                "tiles/green_tile.png",
-                "tiles/green_tile.png"
+                "icons/armor/ironHelmet.png",
+                "icons/armor/ironHelmet.png"
         ).setDefense(5).setValue(75));
 
         // ===== GLOVES =====
@@ -164,8 +164,8 @@ public class ItemRegistry {
                 "Iron Gloves",
                 "Heavy iron gauntlets",
                 Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
+                "icons/armor/ironGloves.png",  // Placeholder
+                "icons/armor/ironGloves.png"   // Placeholder
         ).setDefense(3).setValue(50));
 
         // ===== BOOTS =====
@@ -183,8 +183,8 @@ public class ItemRegistry {
                 "Iron Boots",
                 "Heavy iron boots",
                 Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
+                "icons/armor/ironBoots.png",  // Placeholder
+                "icons/armor/ironBoots.png"   // Placeholder
         ).setDefense(3).setValue(50));
 
         // ===== SHIELDS (OFF-HAND) =====
