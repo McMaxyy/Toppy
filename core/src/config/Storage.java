@@ -56,12 +56,15 @@ public class Storage {
         assetManager.load("tiles/stoneFloor4.png", Texture.class);
         assetManager.load("tiles/coin.png", Texture.class);
         assetManager.load("tiles/rip.png", Texture.class);
+        assetManager.load("tiles/hpBar.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
-        assetManager.load("icons/armor/ironHelmet.png", Texture.class);
-        assetManager.load("icons/armor/ironChest.png", Texture.class);
-        assetManager.load("icons/armor/ironGloves.png", Texture.class);
-        assetManager.load("icons/armor/ironBoots.png", Texture.class);
+        assetManager.load("icons/gear/ironHelmet.png", Texture.class);
+        assetManager.load("icons/gear/ironChest.png", Texture.class);
+        assetManager.load("icons/gear/ironGloves.png", Texture.class);
+        assetManager.load("icons/gear/ironBoots.png", Texture.class);
+        assetManager.load("icons/gear/ironSpear.png", Texture.class);
+        assetManager.load("icons/gear/ironShield.png", Texture.class);
 
         assetManager.load("character/Walking.png", Texture.class);
         assetManager.load("character/Idle2.png", Texture.class);
@@ -72,10 +75,15 @@ public class Storage {
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
         assetManager.load("enemies/Mushie/Dying.png", Texture.class);
+        assetManager.load("enemies/Mushie/Attacking.png", Texture.class);
 
         assetManager.load("enemies/Skeleton/Walking.png", Texture.class);
         assetManager.load("enemies/Skeleton/Idle.png", Texture.class);
-        assetManager.load("enemies/Skeleton/Attack.png", Texture.class);
+        assetManager.load("enemies/Skeleton/Attacking.png", Texture.class);
+
+        assetManager.load("enemies/Wolfie/Walking.png", Texture.class);
+        assetManager.load("enemies/Wolfie/Idle.png", Texture.class);
+        assetManager.load("enemies/Wolfie/Attacking.png", Texture.class);
         
         assetManager.load("enemies/BossKitty/Walking.png", Texture.class);
         assetManager.load("enemies/BossKitty/Dying.png", Texture.class);

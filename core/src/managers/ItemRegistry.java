@@ -94,12 +94,12 @@ public class ItemRegistry {
         ).setDamage(5).setValue(10));
 
         registerItem(new ItemDefinition(
-                "iron_sword",
-                "Iron Sword",
-                "A sturdy iron sword",
+                "iron_spear",
+                "Iron Spear",
+                "A sturdy iron spear",
                 Item.ItemType.WEAPON,
-                "character/Spear.png",  // Placeholder
-                "character/Spear.png"   // Placeholder
+                "icons/gear/ironSpear.png",  // Placeholder
+                "icons/gear/ironSpear.png"   // Placeholder
         ).setDamage(10).setValue(50));
 
         registerItem(new ItemDefinition(
@@ -126,8 +126,8 @@ public class ItemRegistry {
                 "Iron Armor",
                 "Strong iron chest protection",
                 Item.ItemType.ARMOR,
-                "icons/armor/ironChest.png",  // Placeholder
-                "icons/armor/ironChest.png"   // Placeholder
+                "icons/gear/ironChest.png",  // Placeholder
+                "icons/gear/ironChest.png"   // Placeholder
         ).setDefense(8).setValue(100));
 
         // ===== HELMETS =====
@@ -145,8 +145,8 @@ public class ItemRegistry {
                 "Iron Helmet",
                 "Strong iron head protection",
                 Item.ItemType.ARMOR,
-                "icons/armor/ironHelmet.png",
-                "icons/armor/ironHelmet.png"
+                "icons/gear/ironHelmet.png",
+                "icons/gear/ironHelmet.png"
         ).setDefense(5).setValue(75));
 
         // ===== GLOVES =====
@@ -164,8 +164,8 @@ public class ItemRegistry {
                 "Iron Gloves",
                 "Heavy iron gauntlets",
                 Item.ItemType.ARMOR,
-                "icons/armor/ironGloves.png",  // Placeholder
-                "icons/armor/ironGloves.png"   // Placeholder
+                "icons/gear/ironGloves.png",  // Placeholder
+                "icons/gear/ironGloves.png"   // Placeholder
         ).setDefense(3).setValue(50));
 
         // ===== BOOTS =====
@@ -183,8 +183,8 @@ public class ItemRegistry {
                 "Iron Boots",
                 "Heavy iron boots",
                 Item.ItemType.ARMOR,
-                "icons/armor/ironBoots.png",  // Placeholder
-                "icons/armor/ironBoots.png"   // Placeholder
+                "icons/gear/ironBoots.png",  // Placeholder
+                "icons/gear/ironBoots.png"   // Placeholder
         ).setDefense(3).setValue(50));
 
         // ===== SHIELDS (OFF-HAND) =====
@@ -202,8 +202,8 @@ public class ItemRegistry {
                 "Iron Shield",
                 "Heavy iron shield with excellent protection",
                 Item.ItemType.ARMOR,
-                "tiles/green_tile.png",  // Placeholder
-                "tiles/green_tile.png"   // Placeholder
+                "icons/gear/ironShield.png",  // Placeholder
+                "icons/gear/ironShield.png"   // Placeholder
         ).setDefense(8).setValue(100));
 
         registerItem(new ItemDefinition(

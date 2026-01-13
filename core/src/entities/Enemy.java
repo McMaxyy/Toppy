@@ -2,6 +2,7 @@ package entities;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -11,6 +12,9 @@ import com.badlogic.gdx.physics.box2d.Body;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Enemy {
     public Rectangle bounds;
@@ -24,33 +28,108 @@ public class Enemy {
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
 
+    // Enemy type system
+    private EnemyType enemyType;
+
+    // Per-instance animation tracking
+    private float animationTime = 0f;
+    private State currentState = State.IDLE;
+
     // Stats system
     private EnemyStats stats;
     private Texture healthBarTexture;
+    private Texture whitePixelTexture;
 
     // Attack system
     private float attackCooldown = 0f;
     private boolean isAttacking = false;
-    private float attackTimer = 0f;
-    private boolean hasDealtDamage = false; // Track if damage was dealt this attack
+    private boolean hasDealtDamage = false;
+
+    // Projectile management (for ranged enemies)
+    private List<Projectile> projectiles = new ArrayList<>();
+    private static final Color MUSHIE_PROJECTILE_COLOR = new Color(0.2f, 0.8f, 0.2f, 1f);
+
+    // Attack indicator
+    private boolean showAttackIndicator = false;
+    private Vector2 attackDirection = new Vector2();
 
     public Enemy(Rectangle bounds, Texture texture, Body body, Player player,
                  AnimationManager animationManager, int level) {
         this(bounds, texture, body, player, animationManager,
-                EnemyStats.Factory.createBasicEnemy(level));
+                EnemyStats.Factory.createBasicEnemy(level), EnemyType.MUSHIE);
     }
 
     public Enemy(Rectangle bounds, Texture texture, Body body, Player player,
                  AnimationManager animationManager, EnemyStats stats) {
+        this(bounds, texture, body, player, animationManager, stats,
+                determineEnemyType(stats.getEnemyName()));
+    }
+
+    public Enemy(Rectangle bounds, Texture texture, Body body, Player player,
+                 AnimationManager animationManager, EnemyStats stats, EnemyType enemyType) {
         this.animationManager = animationManager;
         this.bounds = bounds;
         this.texture = texture;
         this.body = body;
         this.player = player;
         this.stats = stats;
+        this.enemyType = enemyType;
 
-        this.healthBarTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
-        getAnimationManager().setState(AnimationManager.State.IDLE, "Mushie");
+        this.healthBarTexture = Storage.assetManager.get("tiles/hpBar.png", Texture.class);
+        this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
+
+        // Set initial state
+        this.currentState = State.IDLE;
+        this.animationTime = 0f;
+    }
+
+    private static EnemyType determineEnemyType(String name) {
+        if (name == null) return EnemyType.MUSHIE;
+        switch (name.toLowerCase()) {
+            case "wolfie":
+                return EnemyType.WOLFIE;
+            case "skeleton":
+                return EnemyType.SKELETON;
+            case "boss kitty":
+            case "bosskitty":
+                return EnemyType.BOSS_KITTY;
+            default:
+                return EnemyType.MUSHIE;
+        }
+    }
+
+    /**
+     * Set animation state for this enemy instance
+     */
+    private void setState(State newState) {
+        if (currentState != newState) {
+            currentState = newState;
+            animationTime = 0f;
+        }
+    }
+
+    /**
+     * Get current animation frame for this enemy instance
+     */
+    private TextureRegion getCurrentFrame() {
+        Animation<TextureRegion> animation = animationManager.getAnimationForState(enemyType, currentState);
+        if (animation != null) {
+            // Loop for IDLE and RUNNING, don't loop for ATTACKING
+            boolean loop = (currentState == State.IDLE || currentState == State.RUNNING);
+            return animation.getKeyFrame(animationTime, loop);
+        }
+        return null;
+    }
+
+    /**
+     * Check if current animation is finished (for non-looping animations)
+     */
+    private boolean isCurrentAnimationFinished() {
+        Animation<TextureRegion> animation = animationManager.getAnimationForState(enemyType, currentState);
+        if (animation != null) {
+            return animation.isAnimationFinished(animationTime);
+        }
+        return true;
     }
 
     public void update(float delta) {
@@ -64,6 +143,9 @@ public class Enemy {
             return;
         }
 
+        // Update per-instance animation time
+        animationTime += delta;
+
         // Update attack cooldown
         if (attackCooldown > 0) {
             attackCooldown -= delta;
@@ -75,6 +157,9 @@ public class Enemy {
         } else {
             updateMovement(delta);
         }
+
+        // Update projectiles
+        updateProjectiles(delta);
 
         // Update position
         bounds.setPosition(body.getPosition().x - bounds.width / 2f,
@@ -92,40 +177,72 @@ public class Enemy {
                 moveTowardsPlayer();
                 isMoving = true;
 
-                if (getAnimationManager().getState("Mushie") != State.RUNNING) {
-                    getAnimationManager().setState(State.RUNNING, "Mushie");
+                if (currentState != State.RUNNING) {
+                    setState(State.RUNNING);
                 }
             }
         } else {
             body.setLinearVelocity(0, 0);
             isMoving = false;
 
-            if (getAnimationManager().getState("Mushie") != State.IDLE) {
-                getAnimationManager().setState(State.IDLE, "Mushie");
+            if (currentState != State.IDLE) {
+                setState(State.IDLE);
             }
         }
     }
 
     private void updateAttack(float delta) {
-        attackTimer += delta;
-
         body.setLinearVelocity(0, 0);
 
-        // Check if attack animation is complete
-        if (attackTimer >= stats.getAttackSpeed()) {
-            // Attack wind-up complete - check if can deal damage based on attack type
-            if (!hasDealtDamage && canDamagePlayer()) {
-                damagePlayer();
-                hasDealtDamage = true;
-            }
+        // Show attack indicator during wind-up for melee enemies
+        if (stats.getAttackType() == AttackType.MELEE || stats.getAttackType() == AttackType.CONAL) {
+            showAttackIndicator = true;
+            updateAttackDirection();
+        }
 
+        // Check if attack animation is finished
+        boolean animationFinished = isCurrentAnimationFinished();
+
+        if (animationFinished && !hasDealtDamage) {
+            executeAttack();
+            hasDealtDamage = true;
+        }
+
+        // End attack after animation completes
+        if (animationFinished) {
             endAttack();
         }
     }
 
-    /**
-     * Check if enemy can damage player based on attack type
-     */
+    private void executeAttack() {
+        switch (stats.getAttackType()) {
+            case RANGED:
+                createProjectile();
+                break;
+            case MELEE:
+            case CONAL:
+                if (canDamagePlayer()) {
+                    damagePlayer();
+                }
+                break;
+            case AOE:
+                if (isPlayerInAoeRange()) {
+                    damagePlayer();
+                }
+                break;
+            case CHARGE:
+                if (wasPlayerHitDuringCharge()) {
+                    damagePlayer();
+                }
+                break;
+            default:
+                if (canDamagePlayer()) {
+                    damagePlayer();
+                }
+                break;
+        }
+    }
+
     private boolean canDamagePlayer() {
         switch (stats.getAttackType()) {
             case CONAL:
@@ -136,7 +253,7 @@ public class Enemy {
             case AOE:
                 return isPlayerInAoeRange();
             case RANGED:
-                return isPlayerInAttackRange();
+                return true;
             case CHARGE:
                 return wasPlayerHitDuringCharge();
             default:
@@ -146,79 +263,102 @@ public class Enemy {
 
     private void startAttack() {
         isAttacking = true;
-        attackTimer = 0f;
         hasDealtDamage = false;
         body.setLinearVelocity(0, 0);
 
-        getAnimationManager().setState(State.DYING, "Mushie");
+        updateAttackDirection();
+
+        // Set attack animation state - resets animation time
+        setState(State.ATTACKING);
+
         handleAttackStart();
     }
 
-    /**
-     * Handle specific logic for different attack types when starting
-     */
+    private void updateAttackDirection() {
+        Vector2 playerPos = player.getPosition();
+        Vector2 enemyPos = new Vector2(body.getPosition().x, body.getPosition().y);
+        attackDirection.set(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
+    }
+
     private void handleAttackStart() {
         switch (stats.getAttackType()) {
             case CHARGE:
-                // Start charging towards player
                 startChargeAttack();
                 break;
-            case RANGED:
-                // Create projectile
-                createProjectile();
-                break;
-            // Add other attack type specific logic here
         }
     }
 
     private void startChargeAttack() {
-        // Implement charge attack logic
         Vector2 playerPosition = player.getPosition();
         Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
         Vector2 direction = new Vector2(playerPosition.x - enemyPosition.x,
                 playerPosition.y - enemyPosition.y).nor();
 
-        // Set charge velocity
         body.setLinearVelocity(direction.scl(stats.getChargeSpeed()));
     }
 
     private void createProjectile() {
-        // Implement projectile creation
-        // This would create a projectile entity that moves toward the player
-        System.out.println("Projectile created!");
+        Vector2 startPos = new Vector2(body.getPosition());
+        Vector2 playerPos = player.getPosition();
+        Vector2 direction = new Vector2(playerPos.x - startPos.x, playerPos.y - startPos.y).nor();
+
+        Projectile projectile = new Projectile(
+                body.getWorld(),
+                startPos,
+                direction,
+                stats.getProjectileSpeed(),
+                stats.getAttackRange() * 2f,
+                stats.getDamage(),
+                MUSHIE_PROJECTILE_COLOR,
+                this
+        );
+        projectiles.add(projectile);
+
+        System.out.println(stats.getEnemyName() + " fired a projectile!");
+    }
+
+    private void updateProjectiles(float delta) {
+        for (int i = projectiles.size() - 1; i >= 0; i--) {
+            Projectile projectile = projectiles.get(i);
+            projectile.update(delta);
+
+            if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
+                float dist = projectile.getPosition().dst(player.getPosition());
+                if (dist < 10f) {
+                    player.getStats().takeDamage(projectile.getDamage());
+                    System.out.println(stats.getEnemyName() + " projectile hit player for " +
+                            projectile.getDamage() + " damage!");
+                    projectile.markForRemoval();
+                }
+            }
+
+            if (projectile.isMarkedForRemoval()) {
+                projectile.dispose(body.getWorld());
+                projectiles.remove(i);
+            }
+        }
     }
 
     private void endAttack() {
         isAttacking = false;
-        attackTimer = 0f;
         attackCooldown = stats.getAttackCooldown();
         hasDealtDamage = false;
+        showAttackIndicator = false;
 
-        // Return to idle/running state
-        getAnimationManager().setState(State.IDLE, "Mushie");
+        // Return to idle state
+        setState(State.IDLE);
 
-        // Handle attack type specific cleanup
         handleAttackEnd();
-
-        System.out.println(stats.getEnemyName() + " attack ended!");
     }
 
-    /**
-     * Handle specific cleanup for different attack types
-     */
     private void handleAttackEnd() {
         switch (stats.getAttackType()) {
             case CHARGE:
-                // Stop charging
                 body.setLinearVelocity(0, 0);
                 break;
-            // Add other attack type specific cleanup here
         }
     }
 
-    /**
-     * Check if player is within attack range
-     */
     private boolean isPlayerInAttackRange() {
         Vector2 playerPosition = player.getPosition();
         Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
@@ -227,9 +367,6 @@ public class Enemy {
         return distance <= stats.getAttackRange();
     }
 
-    /**
-     * Check if player is within the attack cone (for CONAL attacks)
-     */
     private boolean isPlayerInAttackCone() {
         if (!isPlayerInAttackRange()) {
             return false;
@@ -238,26 +375,19 @@ public class Enemy {
         Vector2 playerPosition = player.getPosition();
         Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
 
-        // Direction from enemy to player
         Vector2 toPlayer = new Vector2(
                 playerPosition.x - enemyPosition.x,
                 playerPosition.y - enemyPosition.y
         ).nor();
 
-        // Enemy's facing direction (based on flip)
         Vector2 facingDirection = new Vector2(isFlipped ? -1 : 1, 0);
 
-        // Calculate angle between facing direction and direction to player
         float dotProduct = toPlayer.dot(facingDirection);
-        float angleToPlayer = (float) Math.toDegrees(Math.acos(dotProduct));
+        float angleToPlayer = (float) Math.toDegrees(Math.acos(Math.min(1f, Math.max(-1f, dotProduct))));
 
-        // Check if player is within the cone angle
         return angleToPlayer <= stats.getAttackConeAngle();
     }
 
-    /**
-     * Check if player is within AOE range (for AOE attacks)
-     */
     private boolean isPlayerInAoeRange() {
         Vector2 playerPosition = player.getPosition();
         Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
@@ -266,62 +396,166 @@ public class Enemy {
         return distance <= stats.getAoeRadius();
     }
 
-    /**
-     * Check if player was hit during charge attack
-     */
     private boolean wasPlayerHitDuringCharge() {
-        // Simple implementation - check if player is very close after charge
         return isPlayerInAttackRange();
     }
 
     public void render(SpriteBatch batch) {
         if (!markForRemoval) {
+            // Render attack indicator BEFORE the enemy sprite
+            if (showAttackIndicator && isAttacking) {
+                renderAttackIndicator(batch);
+            }
+
             // Render enemy sprite
-            TextureRegion currentFrame = new TextureRegion(getAnimationManager().getMushieCurrentFrame());
-            currentFrame.flip(isFlipped, false);
-            batch.draw(currentFrame, bounds.x, bounds.y, bounds.width, bounds.height);
+            TextureRegion currentFrame = getCurrentFrame();
+            if (currentFrame != null) {
+                TextureRegion frame = new TextureRegion(currentFrame);
+                if (isFlipped && !frame.isFlipX()) {
+                    frame.flip(true, false);
+                } else if (!isFlipped && frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+                batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);
+            }
 
             // Render health bar
             renderHealthBar(batch);
 
-            // Render attack indicators based on attack type
-            renderAttackIndicator(batch);
+            // Render projectiles
+            for (Projectile projectile : projectiles) {
+                projectile.render(batch);
+            }
         }
     }
 
-    /**
-     * Render attack indicator based on attack type
-     */
     private void renderAttackIndicator(SpriteBatch batch) {
-        if (!isAttacking || attackTimer < 0.1f) {
-            return; // Don't show indicator at the very start of attack
-        }
-
-        // This is a simple implementation - you can expand this with proper graphics
-        batch.setColor(1f, 0f, 0f, 0.3f); // Red with transparency
-
         Vector2 enemyPos = new Vector2(body.getPosition().x, body.getPosition().y);
 
         switch (stats.getAttackType()) {
+            case MELEE:
+                renderMeleeIndicator(batch, enemyPos);
+                break;
             case CONAL:
-                // Draw cone shape (simplified as triangle)
-                // You would need to implement proper cone rendering here
+                renderConalIndicator(batch, enemyPos);
                 break;
             case AOE:
-                // Draw circle for AOE
-                // You would need to implement proper circle rendering here
+                renderAoeIndicator(batch, enemyPos);
                 break;
         }
-
-        batch.setColor(1f, 1f, 1f, 1f); // Reset color
     }
 
-    /**
-     * Render health bar above enemy
-     */
+    private void renderMeleeIndicator(SpriteBatch batch, Vector2 enemyPos) {
+        float range = stats.getAttackRange();
+
+        batch.setColor(1f, 1f, 1f, 0.3f);
+
+        int segments = 16;
+        float angleStep = 360f / segments;
+
+        for (int i = 0; i < segments; i++) {
+            float angle = i * angleStep;
+            float nextAngle = (i + 1) * angleStep;
+            float rad = (float) Math.toRadians(angle);
+            float nextRad = (float) Math.toRadians(nextAngle);
+
+            float x1 = enemyPos.x + (float) Math.cos(rad) * range;
+            float y1 = enemyPos.y + (float) Math.sin(rad) * range;
+            float x2 = enemyPos.x + (float) Math.cos(nextRad) * range;
+            float y2 = enemyPos.y + (float) Math.sin(nextRad) * range;
+
+            drawLine(batch, x1, y1, x2, y2, 2f);
+        }
+
+        batch.setColor(1f, 1f, 1f, 0.15f);
+        batch.draw(whitePixelTexture, enemyPos.x - range, enemyPos.y - range, range * 2, range * 2);
+
+        batch.setColor(1, 1, 1, 1);
+    }
+
+    private void renderConalIndicator(SpriteBatch batch, Vector2 enemyPos) {
+        float range = stats.getAttackRange();
+        float coneAngle = stats.getAttackConeAngle();
+
+        batch.setColor(1f, 1f, 1f, 0.3f);
+
+        float facingAngle = isFlipped ? 180f : 0f;
+
+        int segments = 12;
+        float halfCone = coneAngle / 2f;
+        float angleStep = coneAngle / segments;
+
+        for (int i = 0; i < segments; i++) {
+            float angle1 = facingAngle - halfCone + (i * angleStep);
+            float angle2 = facingAngle - halfCone + ((i + 1) * angleStep);
+
+            float rad1 = (float) Math.toRadians(angle1);
+            float rad2 = (float) Math.toRadians(angle2);
+
+            float x1 = enemyPos.x + (float) Math.cos(rad1) * range;
+            float y1 = enemyPos.y + (float) Math.sin(rad1) * range;
+            float x2 = enemyPos.x + (float) Math.cos(rad2) * range;
+            float y2 = enemyPos.y + (float) Math.sin(rad2) * range;
+
+            drawLine(batch, enemyPos.x, enemyPos.y, x1, y1, 2f);
+
+            batch.setColor(1f, 1f, 1f, 0.2f);
+            drawLine(batch, x1, y1, x2, y2, 2f);
+            batch.setColor(1f, 1f, 1f, 0.3f);
+        }
+
+        float finalAngle = facingAngle + halfCone;
+        float finalRad = (float) Math.toRadians(finalAngle);
+        float finalX = enemyPos.x + (float) Math.cos(finalRad) * range;
+        float finalY = enemyPos.y + (float) Math.sin(finalRad) * range;
+        drawLine(batch, enemyPos.x, enemyPos.y, finalX, finalY, 2f);
+
+        batch.setColor(1, 1, 1, 1);
+    }
+
+    private void renderAoeIndicator(SpriteBatch batch, Vector2 enemyPos) {
+        float radius = stats.getAoeRadius();
+
+        batch.setColor(1f, 1f, 1f, 0.3f);
+
+        int segments = 24;
+        float angleStep = 360f / segments;
+
+        for (int i = 0; i < segments; i++) {
+            float angle = i * angleStep;
+            float nextAngle = (i + 1) * angleStep;
+            float rad = (float) Math.toRadians(angle);
+            float nextRad = (float) Math.toRadians(nextAngle);
+
+            float x1 = enemyPos.x + (float) Math.cos(rad) * radius;
+            float y1 = enemyPos.y + (float) Math.sin(rad) * radius;
+            float x2 = enemyPos.x + (float) Math.cos(nextRad) * radius;
+            float y2 = enemyPos.y + (float) Math.sin(nextRad) * radius;
+
+            drawLine(batch, x1, y1, x2, y2, 2f);
+        }
+
+        batch.setColor(1f, 1f, 1f, 0.15f);
+        batch.draw(whitePixelTexture, enemyPos.x - radius, enemyPos.y - radius, radius * 2, radius * 2);
+
+        batch.setColor(1, 1, 1, 1);
+    }
+
+    private void drawLine(SpriteBatch batch, float x1, float y1, float x2, float y2, float thickness) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+        float angle = (float) Math.toDegrees(Math.atan2(dy, dx));
+
+        batch.draw(whitePixelTexture, x1, y1 - thickness / 2, 0, thickness / 2,
+                dist, thickness, 1, 1, angle,
+                0, 0, whitePixelTexture.getWidth(), whitePixelTexture.getHeight(),
+                false, false);
+    }
+
     private void renderHealthBar(SpriteBatch batch) {
         if (stats.getHealthPercentage() >= 1.0f) {
-            return; // Don't show health bar if at full health
+            return;
         }
 
         float barWidth = bounds.width;
@@ -329,22 +563,16 @@ public class Enemy {
         float barX = bounds.x;
         float barY = bounds.y + bounds.height + 2f;
 
-        // Background (red)
         batch.setColor(0.8f, 0.1f, 0.1f, 1f);
         batch.draw(healthBarTexture, barX, barY, barWidth, barHeight);
 
-        // Foreground (green) - current health
         float healthWidth = barWidth * stats.getHealthPercentage();
         batch.setColor(0.2f, 0.8f, 0.2f, 1f);
         batch.draw(healthBarTexture, barX, barY, healthWidth, barHeight);
 
-        // Reset color
         batch.setColor(1f, 1f, 1f, 1f);
     }
 
-    /**
-     * Take damage from player
-     */
     public void takeDamage(int damage) {
         stats.takeDamage(damage);
 
@@ -353,15 +581,19 @@ public class Enemy {
         }
     }
 
-    /**
-     * Deal damage to player
-     */
     public void damagePlayer() {
         player.getStats().takeDamage(stats.getDamage());
         System.out.println(stats.getEnemyName() + " hit player for " + stats.getDamage() + " damage!");
     }
 
     public void dispose() {
+        for (Projectile projectile : projectiles) {
+            if (body != null && body.getWorld() != null) {
+                projectile.dispose(body.getWorld());
+            }
+        }
+        projectiles.clear();
+
         if (body != null && markForRemoval) {
             body.getWorld().destroyBody(body);
             body = null;
@@ -406,6 +638,10 @@ public class Enemy {
         return stats.getAttackType();
     }
 
+    public EnemyType getEnemyType() {
+        return enemyType;
+    }
+
     private boolean isPlayerInRadius() {
         Vector2 playerPosition = player.getPosition();
         Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
@@ -427,5 +663,9 @@ public class Enemy {
 
     public AnimationManager getAnimationManager() {
         return animationManager;
+    }
+
+    public List<Projectile> getProjectiles() {
+        return projectiles;
     }
 }

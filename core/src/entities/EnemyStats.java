@@ -11,23 +11,23 @@ public class EnemyStats {
     private int defense;
     private int expReward;
     private int level;
-    private String lootTableType; // Which loot table to use
+    private String lootTableType;
 
     // Attack attributes
-    private float attackCooldown;      // Time between attacks
-    private float attackRange;         // Range at which enemy can attack
-    private float attackSpeed;         // Duration of attack animation (wind-up time)
-    private AttackType attackType;     // Type of attack
-    private float attackConeAngle;     // For conal attacks (in degrees)
-    private float aoeRadius;           // For AOE attacks
-    private float projectileSpeed;     // For ranged attacks
+    private float attackCooldown;
+    private float attackRange;
+    private float attackSpeed;
+    private AttackType attackType;
+    private float attackConeAngle;
+    private float aoeRadius;
+    private float projectileSpeed;
     private float chargeSpeed;
 
     /**
      * Create enemy stats with default values based on level
      */
     public EnemyStats(String enemyName, int level) {
-        this(enemyName, level, AttackType.MELEE,"basic_enemy"); // Default loot table
+        this(enemyName, level, AttackType.MELEE, "basic_enemy");
     }
 
     /**
@@ -93,6 +93,7 @@ public class EnemyStats {
                 break;
         }
     }
+
     /**
      * Create enemy stats with custom values
      */
@@ -197,90 +198,129 @@ public class EnemyStats {
      */
     public static class Factory {
 
+        /**
+         * Create a basic Mushie enemy - RANGED attacker for overworld
+         * Mushie fires green projectiles at the player
+         */
         public static EnemyStats createBasicEnemy(int level) {
-            return new EnemyStats("Mushie", level, AttackType.CONAL, "basic_enemy");
+            return createMushieEnemy(level);
         }
 
-        public static EnemyStats createFastEnemy(int level) {
-            EnemyStats stats = new EnemyStats("Fast Mushie", level, AttackType.MELEE, "fast_enemy");
-            stats.setAttackCooldown(0.8f);
-            stats.setAttackSpeed(0.3f);
-            stats.setAttackRange(20f);
-            return stats;
-        }
-
-        public static EnemyStats createDungeonEnemy(int level) {
+        /**
+         * Create Mushie enemy - Ranged attacker
+         * Fires green circle projectiles at the player
+         */
+        public static EnemyStats createMushieEnemy(int level) {
             return new EnemyStats(
-                    "Dungeon Mushie",
-                    30 + (level * 20),  // More health
-                    8 + (level * 4),    // More damage
-                    2 + level,          // More defense
-                    20 + (level * 10),  // More exp
-                    level,
-                    AttackType.CONAL,
-                    "dungeon_enemy",    // Dungeon loot table
-                    1.3f,               // Faster attack cooldown
-                    35f,                // Slightly longer range
-                    0.7f,               // Slower attack wind-up
-                    75f,                // Wider cone angle
-                    0f, 0f, 0f          // Not AOE, ranged, or charge
-            );
-        }
-
-        public static EnemyStats createRangedEnemy(int level) {
-            return new EnemyStats(
-                    "Ranged Mushie",
-                    15 + (level * 10),  // Less health
-                    3 + (level * 2),    // Less damage
+                    "Mushie",
+                    15 + (level * 10),  // Less health (ranged enemy)
+                    3 + (level * 2),    // Less damage per hit
                     0 + level,          // Less defense
                     15 + (level * 8),   // Medium exp
                     level,
-                    AttackType.RANGED,
-                    "ranged_enemy",     // Ranged loot table
-                    2.0f,               // Standard ranged cooldown
-                    150f,               // Long range
-                    0.4f,               // Fast wind-up
+                    AttackType.RANGED,  // RANGED - fires projectiles
+                    "ranged_enemy",
+                    2.0f,               // Attack cooldown (2 seconds between attacks)
+                    120f,               // Long attack range
+                    1.0f,               // Attack animation duration (1 second)
                     0f,                 // Not conal
                     0f,                 // Not AOE
-                    100f,               // Projectile speed
+                    80f,                // Projectile speed
                     0f                  // Not charge
             );
         }
 
-        public static EnemyStats createAOEEnemy(int level) {
+        /**
+         * Create Wolfie enemy - MELEE attacker for overworld
+         * Has a circular attack indicator
+         */
+        public static EnemyStats createWolfieEnemy(int level) {
             return new EnemyStats(
-                    "AOE Mushie",
-                    40 + (level * 25),  // High health
-                    6 + (level * 3),    // Medium damage
-                    3 + level,          // High defense
-                    25 + (level * 12),  // High exp
+                    "Wolfie",
+                    30 + (level * 20),  // More health (melee enemy needs to get close)
+                    8 + (level * 4),    // More damage
+                    2 + level,          // More defense
+                    20 + (level * 10),  // More exp
                     level,
-                    AttackType.AOE,
-                    "aoe_enemy",        // AOE loot table
-                    3.0f,               // Long cooldown
-                    40f,                // Medium range
-                    0.8f,               // Slow wind-up
+                    AttackType.MELEE,   // MELEE - circular attack zone
+                    "basic_enemy",
+                    1.5f,               // Attack cooldown
+                    25f,                // Short attack range (melee)
+                    1.0f,               // Attack animation duration
                     0f,                 // Not conal
-                    50f,                // AOE radius
-                    0f, 0f              // Not ranged or charge
+                    0f,                 // Not AOE
+                    0f,                 // Not ranged
+                    0f                  // Not charge
             );
         }
 
+        /**
+         * Create Skeleton enemy - CONAL attacker for dungeons
+         * Has a cone-shaped attack indicator in front
+         */
+        public static EnemyStats createSkeletonEnemy(int level) {
+            return new EnemyStats(
+                    "Skeleton",
+                    30 + (level * 20),  // Decent health
+                    8 + (level * 4),    // Good damage
+                    2 + level,          // Some defense
+                    20 + (level * 10),  // Good exp
+                    level,
+                    AttackType.CONAL,   // CONAL - cone attack in front
+                    "dungeon_enemy",
+                    1.5f,               // Attack cooldown
+                    35f,                // Medium attack range
+                    1.0f,               // Attack animation duration
+                    60f,                // 60 degree cone angle (30 degrees each side)
+                    0f,                 // Not AOE
+                    0f,                 // Not ranged
+                    0f                  // Not charge
+            );
+        }
+
+        /**
+         * Create AOE enemy
+         */
+        public static EnemyStats createAOEEnemy(int level) {
+            return new EnemyStats(
+                    "AOE Mushie",
+                    40 + (level * 25),
+                    6 + (level * 3),
+                    3 + level,
+                    25 + (level * 12),
+                    level,
+                    AttackType.AOE,
+                    "aoe_enemy",
+                    3.0f,
+                    40f,
+                    0.8f,
+                    0f,
+                    50f,                // AOE radius
+                    0f,
+                    0f
+            );
+        }
+
+        /**
+         * Create Boss Kitty - powerful boss enemy
+         */
         public static EnemyStats createBoss(int level) {
             return new EnemyStats(
                     "Boss Kitty",
-                    200 + (level * 50), // Much more health
-                    20 + (level * 5),   // High damage
-                    5 + (level * 2),    // Good defense
-                    100 + (level * 50), // Lots of exp
+                    200 + (level * 50),
+                    20 + (level * 5),
+                    5 + (level * 2),
+                    100 + (level * 50),
                     level,
-                    AttackType.CONAL,   // Boss uses conal attack
-                    "boss",             // Boss loot table
-                    2.0f,               // Boss has slower but powerful attacks
-                    50f,                // Longer range
-                    1.0f,               // Slower wind-up
-                    90f,                // Very wide cone
-                    0f, 0f, 0f          // Not AOE, ranged, or charge
+                    AttackType.CONAL,
+                    "boss",
+                    2.0f,
+                    50f,
+                    1.0f,
+                    90f,                // Wide 90 degree cone
+                    0f,
+                    0f,
+                    0f
             );
         }
 

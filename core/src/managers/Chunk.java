@@ -19,6 +19,7 @@ import config.Storage;
 import entities.BossKitty;
 import entities.Enemy;
 import entities.EnemyStats;
+import entities.EnemyType;
 import entities.Player;
 
 public class Chunk {
@@ -75,28 +76,26 @@ public class Chunk {
 
     private void generateEnemyClumps(Random random) {
         // Generate 3-5 clumps per chunk
-        int clumpCount = 8 + random.nextInt(5); // 3 to 5 clumps
+        int clumpCount = 8 + random.nextInt(5);
 
         for (int clump = 0; clump < clumpCount; clump++) {
-            // Choose a random clump center within the chunk (with margin)
             float centerX = chunkX * chunkSize * tileSize +
                     (random.nextInt(chunkSize - 4) + 2) * tileSize;
             float centerY = chunkY * chunkSize * tileSize +
                     (random.nextInt(chunkSize - 4) + 2) * tileSize;
 
-            // Determine number of enemies in this clump (4-10)
-            int enemiesInClump = 8 + random.nextInt(5); // 4 to 10 enemies
+            int enemiesInClump = 8 + random.nextInt(5);
 
-            // Generate enemies around the center
+            // Decide enemy type for this clump (50% Mushie ranged, 50% Wolfie melee)
+            EnemyType clumpEnemyType = random.nextBoolean() ? EnemyType.MUSHIE : EnemyType.WOLFIE;
+
             for (int i = 0; i < enemiesInClump; i++) {
-                // Calculate position with some random offset from center
-                float offsetX = (random.nextFloat() * 3f - 1.5f) * tileSize; // -1.5 to +1.5 tiles
-                float offsetY = (random.nextFloat() * 3f - 1.5f) * tileSize; // -1.5 to +1.5 tiles
+                float offsetX = (random.nextFloat() * 3f - 1.5f) * tileSize;
+                float offsetY = (random.nextFloat() * 3f - 1.5f) * tileSize;
 
                 float x = centerX + offsetX;
                 float y = centerY + offsetY;
 
-                // Ensure the enemy is within chunk bounds
                 x = Math.max(chunkX * chunkSize * tileSize + 16,
                         Math.min((chunkX + 1) * chunkSize * tileSize - 16, x));
                 y = Math.max(chunkY * chunkSize * tileSize + 16,
@@ -104,29 +103,24 @@ public class Chunk {
 
                 Rectangle enemyBounds = new Rectangle(x, y, 16, 16);
 
-                // Check if position is valid
                 if (!isOverlapping(enemyBounds)) {
-                    // Randomly choose enemy type based on game stage
                     Texture enemyTexture = null;
                     int enemyLevel = 1;
 
                     if (Storage.isStageClear()) {
-                        // Post-boss stage - more difficult enemies
-                        enemyLevel = 2 + random.nextInt(2); // Level 2-3
+                        enemyLevel = 2 + random.nextInt(2);
                         enemyTexture = Storage.assetManager.get("enemy_dark.png", Texture.class);
                     } else {
-                        // Normal stage
-                        enemyLevel = 1 + random.nextInt(2); // Level 1-2
+                        enemyLevel = 1 + random.nextInt(2);
                         enemyTexture = Storage.assetManager.get("enemy.png", Texture.class);
                     }
 
-                    // Add enemy to pending list
-                    pendingEnemies.add(new EnemyInfo(enemyTexture, x, y, enemyLevel));
+                    // Add enemy info with type
+                    pendingEnemies.add(new EnemyInfo(enemyTexture, x, y, enemyLevel, clumpEnemyType));
                 }
             }
 
-            // Optional: Add a small gap between clumps by skipping some iterations
-            clump += random.nextInt(2); // Sometimes skip to create more spread
+            clump += random.nextInt(2);
         }
     }
 
@@ -162,7 +156,6 @@ public class Chunk {
 
         return new Vector2(center.x + offsetX, center.y + offsetY);
     }
-
 
     private boolean isOutOfBounds(Rectangle bounds) {
         return bounds.x < chunkX * chunkSize * tileSize ||
@@ -225,7 +218,7 @@ public class Chunk {
     }
 
     public void addBodiesToWorld(World world) {
-        if (bodiesAdded) return; // Skip if bodies already added
+        if (bodiesAdded) return;
 
         // Add obstacle bodies
         for (ObstacleInfo obstacleInfo : pendingObstacles) {
@@ -235,29 +228,44 @@ public class Chunk {
         pendingObstacles.clear();
 
         // Add enemy bodies if not in boss stage
-        if(!Storage.isStageClear()) {
+        if (!Storage.isStageClear()) {
             for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
 
-                // Create enemy stats based on level
-                EnemyStats stats = EnemyStats.Factory.createBasicEnemy(enemyInfo.level);
+                // Create enemy stats based on enemy type
+                EnemyStats stats;
+                switch (enemyInfo.enemyType) {
+                    case WOLFIE:
+                        stats = EnemyStats.Factory.createWolfieEnemy(enemyInfo.level);
+                        enemies.add(new Enemy(
+                                new Rectangle(enemyInfo.x, enemyInfo.y, 20, 16),
+                                enemyInfo.texture,
+                                body,
+                                player,
+                                getAnimationManager(),
+                                stats,
+                                enemyInfo.enemyType
+                        ));
+                        break;
+                    case MUSHIE:
+                    default:
+                        stats = EnemyStats.Factory.createMushieEnemy(enemyInfo.level);
+                        enemies.add(new Enemy(
+                                new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
+                                enemyInfo.texture,
+                                body,
+                                player,
+                                getAnimationManager(),
+                                stats,
+                                enemyInfo.enemyType
+                        ));
+                        break;
+                }
 
-                // Randomly choose enemy type for variety
-//                Random random = new Random();
-//                if (random.nextInt(100) < 20) { // 20% chance for fast enemy
-//                    stats = EnemyStats.Factory.createFastEnemy(enemyInfo.level);
-//                } else if (random.nextInt(100) < 10) { // 10% chance for ranged enemy
-//                    stats = EnemyStats.Factory.createRangedEnemy(enemyInfo.level);
-//                }
 
-                stats = EnemyStats.Factory.createFastEnemy(enemyInfo.level);
-
-                enemies.add(new Enemy(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
-                        enemyInfo.texture, body, player, getAnimationManager(), stats));
             }
             pendingEnemies.clear();
-        }
-        else if (!Storage.isBossAlive()){
+        } else if (!Storage.isBossAlive()) {
             // Boss stage
             for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
@@ -267,10 +275,9 @@ public class Chunk {
             pendingEnemies.clear();
         }
 
-        bodiesAdded = true; // Mark that bodies have been added
+        bodiesAdded = true;
     }
 
-    // Add these methods to your Chunk class:
     public void disableObstacles() {
         for (Obstacle obstacle : obstacles) {
             if (obstacle.body != null) {
@@ -440,12 +447,18 @@ public class Chunk {
         final Texture texture;
         final float x, y;
         final int level;
+        final EnemyType enemyType;
 
         public EnemyInfo(Texture texture, float x, float y, int level) {
+            this(texture, x, y, level, EnemyType.MUSHIE);
+        }
+
+        public EnemyInfo(Texture texture, float x, float y, int level, EnemyType enemyType) {
             this.texture = texture;
             this.x = x;
             this.y = y;
             this.level = level;
+            this.enemyType = enemyType;
         }
     }
 
@@ -453,7 +466,7 @@ public class Chunk {
         return enemies;
     }
 
-    public List<BossKitty> getBossKitty(){
+    public List<BossKitty> getBossKitty() {
         return bossKitty;
     }
 

@@ -203,7 +203,7 @@ public class ItemSpawner {
         }
 
         // Guaranteed rare item
-        String[] bossLoot = {"iron_sword", "iron_armor", "large_health_potion"};
+        String[] bossLoot = {"iron_spear", "iron_armor", "large_health_potion"};
         for (String item : bossLoot) {
             spawnItemWithOffset(item, position, 30f);
         }

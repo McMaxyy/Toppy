@@ -119,9 +119,11 @@ public class GameProj implements Screen, ContactListener {
 
         createComponents();
         itemSpawner.spawnItem("iron_helmet", player.getPosition());
-        itemSpawner.spawnItem("leather_armor", player.getPosition());
+        itemSpawner.spawnItem("iron_armor", player.getPosition());
+        itemSpawner.spawnItem("iron_gloves", player.getPosition());
+        itemSpawner.spawnItem("iron_boots", player.getPosition());
+        itemSpawner.spawnItem("iron_spear", player.getPosition());
         itemSpawner.spawnItem("iron_shield", player.getPosition());
-        itemSpawner.spawnItem("iron_sword", player.getPosition());
     }
 
     private void createComponents() {

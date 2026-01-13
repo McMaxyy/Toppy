@@ -26,11 +26,11 @@ public class GameScreen implements Screen{
 	public GameScreen(Game game) {
 		this.game = game;
 		viewport = new FitViewport(SELECTED_WIDTH, SELECTED_HEIGHT);
-//		Gdx.graphics.setUndecorated(false);
-//		Gdx.graphics.setWindowedMode(1280, 720);
-		Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
-		Gdx.graphics.setUndecorated(true);
-		Gdx.graphics.setWindowedMode(displayMode.width, displayMode.height);
+		Gdx.graphics.setUndecorated(false);
+		Gdx.graphics.setWindowedMode(1280, 720);
+//		Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
+//		Gdx.graphics.setUndecorated(true);
+//		Gdx.graphics.setWindowedMode(displayMode.width, displayMode.height);
 		setCurrentState(HOME);
 	}
 	

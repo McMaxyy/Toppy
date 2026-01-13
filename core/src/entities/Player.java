@@ -380,7 +380,6 @@ public class Player {
         }
 
         if (getAnimationManager().isAnimationFinished()) {
-            System.out.println("Done");
             playerDeath = false;
             dyingAnimationStarted = false;
             gameScreen.switchToNewState(GameScreen.HOME);

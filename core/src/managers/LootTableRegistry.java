@@ -68,7 +68,7 @@ public class LootTableRegistry {
                 .setGuaranteedCoins(5) // Always drops 5 coins
                 .addDrop("coin_pile", 1.0f, 3, 5) // Always drops 3-5 coin piles
                 .addDrop("large_health_potion", 0.8f, 1, 2) // 80% chance for 1-2 large potions
-                .addDrop("iron_sword", 0.5f) // 50% chance for iron sword
+                .addDrop("iron_spear", 0.5f) // 50% chance for iron sword
                 .addDrop("iron_armor", 0.5f) // 50% chance for iron armor
                 .addDrop("health_potion", 1.0f, 2, 3); // Always drops 2-3 health potions
 
@@ -91,7 +91,7 @@ public class LootTableRegistry {
                 .addDrop("coin_pile", 0.7f)
                 .addDrop("health_potion", 0.4f)
                 .addDrop("iron_ore", 0.3f)
-                .addDrop("iron_sword", 0.15f)
+                .addDrop("iron_spear", 0.15f)
                 .addDrop("iron_armor", 0.15f);
 
         registerLootTable("elite_enemy", eliteEnemy);

@@ -432,7 +432,7 @@ public class Inventory {
 
         // Draw armor slots (left side of character)
         float leftSlotStartX = equipmentX + 10;
-        float leftSlotStartY = equipmentY + panelHeight - 140;
+        float leftSlotStartY = equipmentY + panelHeight - 250;
 
         EquipmentSlot[] leftSlots = {
                 EquipmentSlot.HELMET,
@@ -443,7 +443,7 @@ public class Inventory {
 
         // Draw weapon slots (right side of character)
         float rightSlotStartX = equipmentX + equipmentPanelWidth - EQUIPMENT_SLOT_SIZE - 10;
-        float rightSlotStartY = equipmentY + panelHeight - 140;
+        float rightSlotStartY = equipmentY + panelHeight - 250;
 
         EquipmentSlot[] rightSlots = {
                 EquipmentSlot.WEAPON,
@@ -535,7 +535,7 @@ public class Inventory {
 
         // Left slots (armor)
         float leftSlotStartX = equipmentX + 10;
-        float leftSlotStartY = equipmentY + panelHeight - 140;
+        float leftSlotStartY = equipmentY + panelHeight - 250;
 
         EquipmentSlot[] leftSlots = {
                 EquipmentSlot.HELMET,
@@ -554,7 +554,7 @@ public class Inventory {
 
         // Right slots (weapons)
         float rightSlotStartX = equipmentX + equipmentPanelWidth - EQUIPMENT_SLOT_SIZE - 10;
-        float rightSlotStartY = equipmentY + panelHeight - 140;
+        float rightSlotStartY = equipmentY + panelHeight - 250;
 
         EquipmentSlot[] rightSlots = {
                 EquipmentSlot.WEAPON,
@@ -663,12 +663,12 @@ public class Inventory {
 
     private String getShortSlotName(EquipmentSlot slot) {
         switch (slot) {
-            case HELMET: return "Head";
-            case CHEST: return "Chest";
-            case GLOVES: return "Hands";
-            case BOOTS: return "Feet";
-            case WEAPON: return "Main-hand";
-            case OFFHAND: return "Off-hand";
+            case HELMET: return "";
+            case CHEST: return "";
+            case GLOVES: return "";
+            case BOOTS: return "";
+            case WEAPON: return "";
+            case OFFHAND: return "";
             default: return slot.toString();
         }
     }
