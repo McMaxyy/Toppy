@@ -31,6 +31,9 @@ public class AbilityManager {
     // Status effects tracking
     private Map<Object, List<StatusEffect>> activeEffects;
 
+    // Visual effects list (unified)
+    private List<AbilityVisual> activeVisuals;
+
     // UI components
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
@@ -55,6 +58,9 @@ public class AbilityManager {
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
         this.slotTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
 
+        // Initialize unified visual effects list
+        this.activeVisuals = new ArrayList<>();
+
         initializeMercenaryAbilities();
     }
 
@@ -64,11 +70,11 @@ public class AbilityManager {
     private void initializeMercenaryAbilities() {
         Texture iconTexture = Storage.assetManager.get("tiles/rip.png", Texture.class);
 
-        abilities[0] = new BlinkAbility(iconTexture);
-        abilities[1] = new DoubleSwingAbility(iconTexture);
-        abilities[2] = new BubbleAbility(iconTexture);
-        abilities[3] = new RendAbility(iconTexture);
-        abilities[4] = new PrayerAbility(iconTexture);
+        abilities[0] = new BlinkAbility(Storage.assetManager.get("icons/abilities/Blink.png", Texture.class));
+        abilities[1] = new DoubleSwingAbility(Storage.assetManager.get("icons/abilities/DoubleSwing.png", Texture.class));
+        abilities[2] = new BubbleAbility(Storage.assetManager.get("icons/abilities/Bubble.png", Texture.class));
+        abilities[3] = new RendAbility(Storage.assetManager.get("icons/abilities/Rend.png", Texture.class));
+        abilities[4] = new PrayerAbility(Storage.assetManager.get("icons/abilities/Prayer.png", Texture.class));
     }
 
     /**
@@ -104,6 +110,24 @@ public class AbilityManager {
             // Remove empty lists
             if (effects.isEmpty()) {
                 activeEffects.remove(entry.getKey());
+            }
+        }
+
+        // Update visual effects
+        updateVisualEffects(delta);
+    }
+
+    /**
+     * Update all visual effects
+     */
+    private void updateVisualEffects(float delta) {
+        // Update all visuals and remove inactive ones
+        for (int i = activeVisuals.size() - 1; i >= 0; i--) {
+            AbilityVisual visual = activeVisuals.get(i);
+            visual.update(delta);
+            if (!visual.isActive()) {
+                visual.dispose();
+                activeVisuals.remove(i);
             }
         }
     }
@@ -248,6 +272,22 @@ public class AbilityManager {
             activeEffects.put(target, new ArrayList<>());
         }
         activeEffects.get(target).add(effect);
+    }
+
+    /**
+     * Add any ability visual effect
+     */
+    public void addAbilityVisual(AbilityVisual visual) {
+        activeVisuals.add(visual);
+    }
+
+    /**
+     * Render ability visual effects (called from world coordinates)
+     */
+    public void renderAbilityEffects(SpriteBatch batch) {
+        for (AbilityVisual visual : activeVisuals) {
+            visual.render(batch);
+        }
     }
 
     /**
@@ -454,5 +494,11 @@ public class AbilityManager {
 
     public void dispose() {
         shapeRenderer.dispose();
+
+        // Dispose all visual effects
+        for (AbilityVisual visual : activeVisuals) {
+            visual.dispose();
+        }
+        activeVisuals.clear();
     }
 }

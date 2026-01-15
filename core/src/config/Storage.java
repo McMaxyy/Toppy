@@ -66,11 +66,20 @@ public class Storage {
         assetManager.load("icons/gear/ironSpear.png", Texture.class);
         assetManager.load("icons/gear/ironShield.png", Texture.class);
 
+        assetManager.load("icons/abilities/Blink.png", Texture.class);
+        assetManager.load("icons/abilities/DoubleSwing.png", Texture.class);
+        assetManager.load("icons/abilities/Prayer.png", Texture.class);
+        assetManager.load("icons/abilities/Bubble.png", Texture.class);
+        assetManager.load("icons/abilities/Rend.png", Texture.class);
+
         assetManager.load("character/Walking.png", Texture.class);
         assetManager.load("character/Idle2.png", Texture.class);
         assetManager.load("character/knight.png", Texture.class);
         assetManager.load("character/Dying.png", Texture.class);
         assetManager.load("character/Sprite-0002.png", Texture.class);
+
+        assetManager.load("character/abilities/Bubble.png", Texture.class);
+        assetManager.load("character/abilities/Prayer.png", Texture.class);
         
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
@@ -91,6 +100,7 @@ public class Storage {
         assetManager.load("enemies/BossKitty/Kitty.png", Texture.class);
         
         assetManager.load("enemy.png", Texture.class);
+        assetManager.load("title.png", Texture.class);
         assetManager.load("white_pixel.png", Texture.class);
         
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    

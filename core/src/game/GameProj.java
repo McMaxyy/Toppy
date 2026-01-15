@@ -16,13 +16,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
-import com.badlogic.gdx.physics.box2d.Contact;
-import com.badlogic.gdx.physics.box2d.ContactImpulse;
-import com.badlogic.gdx.physics.box2d.ContactListener;
-import com.badlogic.gdx.physics.box2d.Fixture;
-import com.badlogic.gdx.physics.box2d.Manifold;
+import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -31,10 +25,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import config.GameScreen;
 import config.Storage;
-import entities.BossKitty;
-import entities.Enemy;
-import entities.Player;
-import entities.Portal;
+import entities.*;
 import managers.*;
 import abilities.StatusEffect;
 import ui.Settings;
@@ -183,7 +174,7 @@ public class GameProj implements Screen, ContactListener {
         float mapWidth = MAP_SIZE_CHUNKS * CHUNK_SIZE * TILE_SIZE;
         float mapHeight = MAP_SIZE_CHUNKS * CHUNK_SIZE * TILE_SIZE;
         float mapDiagonal = (float) Math.sqrt(mapWidth * mapWidth + mapHeight * mapHeight);
-        float minDistanceFromSpawn = mapDiagonal * 0.25f; // 25% of map diagonal
+        float minDistanceFromSpawn = mapDiagonal * 0.25f;
 
         int attempts = 0;
         int maxAttempts = 100;
@@ -231,9 +222,10 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
 
-//            Portal portal = new Portal(portalX, portalY, 32, world.getWorld());
-            Portal portal = new Portal(player.getPosition().x, player.getPosition().y, 32, world.getWorld());
+            Portal portal = new Portal(portalX, portalY, 32, world.getWorld(), false);
+//            Portal portal = new Portal(player.getPosition().x, player.getPosition().y, 32, world.getWorld(), false);
             dungeonPortals.add(portal);
+            System.out.println("Portal added" + portalX + "   " + portalY);
             attempts = 0;
         }
 
@@ -245,6 +237,12 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void enterDungeon() {
+        for (Portal portal: dungeonPortals) {
+            if (portal.getBounds().contains(player.getPosition())) {
+                portal.setIsCleared(true);
+            }
+        }
+
         inDungeon = true;
         itemSpawner.clear();
         overworldPlayerPosition = new Vector2(player.getPosition());
@@ -312,16 +310,14 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        // Handle F5 to return to home (only if not paused)
         if (Gdx.input.isKeyPressed(Input.Keys.F5) && !isPaused) {
-            gameScreen.switchToNewState(GameScreen.HOME);
+            gameScreen.switchToNewState(GameScreen.START);
             return;
         }
 
         // Update settings menu
         settings.update(delta);
 
-        // If settings menu closes itself (e.g., via Resume button), sync pause state
         if (settings != null && isPaused && !settings.isOpen()) {
             unpauseGame();
         }
@@ -377,6 +373,9 @@ public class GameProj implements Screen, ContactListener {
         if (settings != null && settings.isOpen()) {
             settings.render(batch, false);
         }
+
+        Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
+//        debugRenderer.render(world.getWorld(), camera.combined);
     }
 
     /**
@@ -456,7 +455,7 @@ public class GameProj implements Screen, ContactListener {
             portal.render(batch);
 
             if (!isPaused && portal.isPlayerNear(player.getPosition(), 20f) &&
-                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                    Gdx.input.isKeyJustPressed(Input.Keys.E) && !portal.getIsCleared()) {
                 enterDungeon();
                 break;
             }
@@ -484,6 +483,7 @@ public class GameProj implements Screen, ContactListener {
         }
 
         player.render(batch, PLAYER_TILE_SIZE);
+        player.renderAbilityEffects(batch);
 
         // Only update player if not paused
         if (delta > 0) {
@@ -496,10 +496,11 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderObstacles(batch, player.getPosition().y, true);
         }
 
-        batch.end();
+        if (batch != null)
+            batch.end();
 
         // Only update item spawner if not paused
-        if (delta > 0) {
+        if (delta > 0 && player != null) {
             itemSpawner.update(delta);
             itemSpawner.checkPickups(player, player.getInventory());
 
@@ -509,23 +510,23 @@ public class GameProj implements Screen, ContactListener {
         }
 
         // Render UI elements with HUD camera
-        batch.setProjectionMatrix(hudCamera.combined);
+        if (batch != null) {
+            batch.setProjectionMatrix(hudCamera.combined);
+            player.getInventory().render(batch, false);
 
-        // Render inventory
-        player.getInventory().render(batch, false);
+            // Render skill bar
+            batch.begin();
+            player.renderSkillBar(batch);
+            batch.end();
 
-        // Render skill bar
-        batch.begin();
-        player.renderSkillBar(batch);
-        batch.end();
+            // Render minimap if open
+            if (minimap != null && minimap.isMapOpen()) {
+                minimap.render(batch, false);
+            }
 
-        // Render minimap if open
-        if (minimap != null && minimap.isMapOpen()) {
-            minimap.render(batch, false);
+            // Reset projection matrix back
+            batch.setProjectionMatrix(camera.combined);
         }
-
-        // Reset projection matrix back
-        batch.setProjectionMatrix(camera.combined);
     }
 
     private void renderDungeon(float delta) {
@@ -556,6 +557,7 @@ public class GameProj implements Screen, ContactListener {
         }
 
         player.render(batch, PLAYER_TILE_SIZE);
+        player.renderAbilityEffects(batch);
 
         // Only update player if not paused
         if (delta > 0) {
@@ -564,25 +566,27 @@ public class GameProj implements Screen, ContactListener {
             updateStatusEffects(delta);
         }
 
-        batch.end();
+        if (batch != null) {
+            batch.end();
 
-        // Only update item spawner if not paused
-        if (delta > 0) {
-            itemSpawner.update(delta);
-            itemSpawner.checkPickups(player, player.getInventory());
-        }
+            // Only update item spawner if not paused
+            if (delta > 0) {
+                itemSpawner.update(delta);
+                itemSpawner.checkPickups(player, player.getInventory());
+            }
 
-        batch.setProjectionMatrix(hudCamera.combined);
-        player.getInventory().render(batch, false);
+            batch.setProjectionMatrix(hudCamera.combined);
+            player.getInventory().render(batch, false);
 
-        // Render skill bar
-        batch.begin();
-        player.renderSkillBar(batch);
-        batch.end();
+            // Render skill bar
+            batch.begin();
+            player.renderSkillBar(batch);
+            batch.end();
 
-        // Render dungeon minimap if open
-        if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
-            dungeonMinimap.render(batch, false);
+            // Render dungeon minimap if open
+            if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
+                dungeonMinimap.render(batch, false);
+            }
         }
     }
 
@@ -671,6 +675,35 @@ public class GameProj implements Screen, ContactListener {
             // Clean up player spears first
             if (player != null) {
                 player.cleanupSpears();
+                player = null;
+            }
+
+            // Shutdown executor before disposing world
+            if (chunkGenerator != null && !chunkGenerator.isShutdown()) {
+                chunkGenerator.shutdownNow();
+                try {
+                    // Wait for tasks to terminate
+                    if (!chunkGenerator.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS)) {
+                        System.err.println("Chunk generator thread pool did not terminate in time");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            // Clear pending chunks
+            if (pendingChunks != null) {
+                pendingChunks.clear();
+            }
+
+            // Clear active chunks
+            if (chunks != null) {
+                for (Chunk chunk : chunks.values()) {
+                    if (chunk != null) {
+                        chunk.dispose(); // Make sure Chunk has a dispose method
+                    }
+                }
+                chunks.clear();
             }
 
             // Dispose settings first
@@ -705,22 +738,9 @@ public class GameProj implements Screen, ContactListener {
                 dungeonPortals.clear();
             }
 
-            // Dispose chunks
-            if (chunks != null) {
-                chunks.clear();
-            }
-            if (pendingChunks != null) {
-                pendingChunks.clear();
-            }
-
-            // Shutdown executor before disposing world
-            if (chunkGenerator != null && !chunkGenerator.isShutdown()) {
-                chunkGenerator.shutdownNow();
-                try {
-                    chunkGenerator.awaitTermination(1, java.util.concurrent.TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+            // Clear status effects
+            if (statusEffects != null) {
+                statusEffects.clear();
             }
 
             // Dispose stages
@@ -744,6 +764,9 @@ public class GameProj implements Screen, ContactListener {
                 world.dispose();
                 world = null;
             }
+
+            // Force garbage collection to clean up any remaining resources
+            System.gc();
 
         } catch (Exception e) {
             System.err.println("Error during disposal: " + e.getMessage());
@@ -864,7 +887,7 @@ public class GameProj implements Screen, ContactListener {
                         // Normal enemies damage player
                         for (Enemy enemy : chunk.getEnemies()) {
                             if (enemy.getBody() == enemyBody) {
-                                enemy.damagePlayer(); // Damage with cooldown
+                                enemy.damagePlayer();
 
                                 // Check if player died
                                 if (player.getStats().isDead()) {
@@ -897,6 +920,142 @@ public class GameProj implements Screen, ContactListener {
                             player.playerDie();
                         }
                         break;
+                    }
+                }
+            }
+        }
+
+        // ==== ABILITY (BUBBLE) HIT ENEMY ====
+        if ((categoryA == CollisionFilter.ABILITY && categoryB == CollisionFilter.ENEMY) ||
+                (categoryB == CollisionFilter.ABILITY && categoryA == CollisionFilter.ENEMY)) {
+
+            Body abilityBody = (categoryA == CollisionFilter.ABILITY) ? fixtureA.getBody() : fixtureB.getBody();
+            Body enemyBody = (categoryA == CollisionFilter.ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
+
+            // Push enemy away from the bubble
+            Vector2 abilityPos = abilityBody.getPosition();
+            Vector2 enemyPos = enemyBody.getPosition();
+            Vector2 pushDirection = new Vector2(enemyPos.x - abilityPos.x, enemyPos.y - abilityPos.y).nor();
+
+            float pushForce = 500f;
+            enemyBody.applyLinearImpulse(
+                    pushDirection.x * pushForce,
+                    pushDirection.y * pushForce,
+                    enemyPos.x,
+                    enemyPos.y,
+                    true
+            );
+        }
+
+        // ==== ABILITY (BUBBLE) HIT PROJECTILE - Reflect projectile ====
+        if ((categoryA == CollisionFilter.ABILITY && categoryB == CollisionFilter.PROJECTILE) ||
+                (categoryB == CollisionFilter.ABILITY && categoryA == CollisionFilter.PROJECTILE)) {
+
+            Body abilityBody = (categoryA == CollisionFilter.ABILITY) ? fixtureA.getBody() : fixtureB.getBody();
+            Body projectileBody = (categoryA == CollisionFilter.PROJECTILE) ? fixtureA.getBody() : fixtureB.getBody();
+            Fixture projectileFixture = (categoryA == CollisionFilter.PROJECTILE) ? fixtureA : fixtureB;
+
+            // Push projectile away from the bubble
+            Vector2 abilityPos = abilityBody.getPosition();
+            Vector2 projectilePos = projectileBody.getPosition();
+            Vector2 pushDirection = new Vector2(projectilePos.x - abilityPos.x, projectilePos.y - abilityPos.y).nor();
+
+            float pushForce = 500f;
+            projectileBody.applyLinearImpulse(
+                    pushDirection.x * pushForce,
+                    pushDirection.y * pushForce,
+                    projectilePos.x,
+                    projectilePos.y,
+                    true
+            );
+
+            // Change to REFLECT category so it can damage enemies
+            Filter newFilter = new Filter();
+            newFilter.categoryBits = CollisionFilter.REFLECT;
+            newFilter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
+            projectileFixture.setFilterData(newFilter);
+        }
+
+        // ==== REFLECTED PROJECTILE HIT ENEMY ====
+        if ((categoryA == CollisionFilter.REFLECT && categoryB == CollisionFilter.ENEMY) ||
+                (categoryB == CollisionFilter.REFLECT && categoryA == CollisionFilter.ENEMY)) {
+
+            Body reflectBody = (categoryA == CollisionFilter.REFLECT) ? fixtureA.getBody() : fixtureB.getBody();
+            Body enemyBody = (categoryA == CollisionFilter.ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
+
+            // Find the projectile and enemy, deal damage, mark projectile for removal
+            if (!inDungeon) {
+                for (Chunk chunk : chunks.values()) {
+                    // Find the projectile from any enemy's projectile list
+                    for (Enemy enemy : chunk.getEnemies()) {
+                        for (Projectile projectile : enemy.getProjectiles()) {
+                            if (projectile.getBody() == reflectBody) {
+                                // Find the enemy that was hit
+                                for (Enemy targetEnemy : chunk.getEnemies()) {
+                                    if (targetEnemy.getBody() == enemyBody) {
+                                        targetEnemy.takeDamage(projectile.getDamage());
+                                        projectile.markForRemoval();
+                                        break;
+                                    }
+                                }
+                                // Also check bosses
+                                for (BossKitty boss : chunk.getBossKitty()) {
+                                    if (boss.getBody() == enemyBody) {
+                                        boss.takeDamage(projectile.getDamage());
+                                        projectile.markForRemoval();
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else if (currentDungeon != null) {
+                // Check dungeon enemies
+                for (DungeonEnemy enemy : currentDungeon.getEnemies()) {
+                    for (Projectile projectile : enemy.getProjectiles()) {
+                        if (projectile.getBody() == reflectBody) {
+                            // Find the enemy that was hit
+                            for (DungeonEnemy targetEnemy : currentDungeon.getEnemies()) {
+                                if (targetEnemy.getBody() == enemyBody) {
+                                    targetEnemy.takeDamage(projectile.getDamage());
+                                    projectile.markForRemoval();
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==== REFLECTED PROJECTILE HIT OBSTACLE ====
+        if ((categoryA == CollisionFilter.REFLECT && categoryB == CollisionFilter.OBSTACLE) ||
+                (categoryB == CollisionFilter.REFLECT && categoryA == CollisionFilter.OBSTACLE)) {
+
+            Body reflectBody = (categoryA == CollisionFilter.REFLECT) ? fixtureA.getBody() : fixtureB.getBody();
+
+            // Find and mark the projectile for removal
+            if (!inDungeon) {
+                for (Chunk chunk : chunks.values()) {
+                    for (Enemy enemy : chunk.getEnemies()) {
+                        for (Projectile projectile : enemy.getProjectiles()) {
+                            if (projectile.getBody() == reflectBody) {
+                                projectile.markForRemoval();
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else if (currentDungeon != null) {
+                for (DungeonEnemy enemy : currentDungeon.getEnemies()) {
+                    for (Projectile projectile : enemy.getProjectiles()) {
+                        if (projectile.getBody() == reflectBody) {
+                            projectile.markForRemoval();
+                            break;
+                        }
                     }
                 }
             }

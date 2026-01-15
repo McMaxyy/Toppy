@@ -16,11 +16,7 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 
 import config.Storage;
-import entities.BossKitty;
-import entities.Enemy;
-import entities.EnemyStats;
-import entities.EnemyType;
-import entities.Player;
+import entities.*;
 
 public class Chunk {
     private final int chunkX, chunkY;
@@ -75,8 +71,7 @@ public class Chunk {
     }
 
     private void generateEnemyClumps(Random random) {
-        // Generate 3-5 clumps per chunk
-        int clumpCount = 8 + random.nextInt(5);
+        int clumpCount = 6 + random.nextInt(5);
 
         for (int clump = 0; clump < clumpCount; clump++) {
             float centerX = chunkX * chunkSize * tileSize +
@@ -96,28 +91,31 @@ public class Chunk {
                 float x = centerX + offsetX;
                 float y = centerY + offsetY;
 
-                x = Math.max(chunkX * chunkSize * tileSize + 16,
-                        Math.min((chunkX + 1) * chunkSize * tileSize - 16, x));
-                y = Math.max(chunkY * chunkSize * tileSize + 16,
-                        Math.min((chunkY + 1) * chunkSize * tileSize - 16, y));
+                do {
+                    x = Math.max(chunkX * chunkSize * tileSize + 16,
+                            Math.min((chunkX + 1) * chunkSize * tileSize - 16, x));
+                    y = Math.max(chunkY * chunkSize * tileSize + 16,
+                            Math.min((chunkY + 1) * chunkSize * tileSize - 16, y));
 
-                Rectangle enemyBounds = new Rectangle(x, y, 16, 16);
+                    Rectangle enemyBounds = new Rectangle(x, y, 16, 16);
 
-                if (!isOverlapping(enemyBounds)) {
-                    Texture enemyTexture = null;
-                    int enemyLevel = 1;
+                    if (!isOverlapping(enemyBounds)) {
+                        Texture enemyTexture = null;
+                        int enemyLevel = 1;
 
-                    if (Storage.isStageClear()) {
-                        enemyLevel = 2 + random.nextInt(2);
-                        enemyTexture = Storage.assetManager.get("enemy_dark.png", Texture.class);
-                    } else {
-                        enemyLevel = 1 + random.nextInt(2);
-                        enemyTexture = Storage.assetManager.get("enemy.png", Texture.class);
+                        if (Storage.isStageClear()) {
+                            enemyLevel = 2 + random.nextInt(2);
+                            enemyTexture = Storage.assetManager.get("enemy_dark.png", Texture.class);
+                        } else {
+                            enemyLevel = 1 + random.nextInt(2);
+                            enemyTexture = Storage.assetManager.get("enemy.png", Texture.class);
+                        }
+
+                        // Add enemy info with type
+                        pendingEnemies.add(new EnemyInfo(enemyTexture, x, y, enemyLevel, clumpEnemyType));
                     }
-
-                    // Add enemy info with type
-                    pendingEnemies.add(new EnemyInfo(enemyTexture, x, y, enemyLevel, clumpEnemyType));
-                }
+                } while (x + 10 == player.getPosition().x || x - 10 == player.getPosition().x ||
+                        y + 10 == player.getPosition().y || y - 10 == player.getPosition().y);
             }
 
             clump += random.nextInt(2);
@@ -351,7 +349,8 @@ public class Chunk {
         fixtureDef.friction = 0.3f;
 
         fixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR |
+                CollisionFilter.ENEMY | CollisionFilter.ABILITY;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);

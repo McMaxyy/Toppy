@@ -25,7 +25,7 @@ public class Minimap {
     private List<Portal> portals;
 
     private final Set<String> exploredTiles;
-    private final int EXPLORATION_RADIUS = 3;
+    private final int EXPLORATION_RADIUS = 50;
 
     private boolean mapOpen = false;
     private boolean showPortal = true;
@@ -159,31 +159,41 @@ public class Minimap {
         // Draw portals
         if (showPortal && !portals.isEmpty()) {
             for (Portal portal : portals) {
+                // Use the portal's center position
                 Vector2 portalPos = new Vector2(
-                        portal.getBounds().x + portal.getBounds().width / 2f,
-                        portal.getBounds().y + portal.getBounds().height / 2f
+                        portal.getBounds().x,
+                        portal.getBounds().y
                 );
-                int portalTileX = (int) (portalPos.x / tileSize) - worldMinTileX;
-                int portalTileY = (int) (portalPos.y / tileSize) - worldMinTileY;
 
+                // Convert to tile coordinates
                 int worldPortalTileX = (int) (portalPos.x / tileSize);
                 int worldPortalTileY = (int) (portalPos.y / tileSize);
                 String portalTileKey = worldPortalTileX + "," + worldPortalTileY;
 
+                // Check if this tile has been explored
                 if (exploredTiles.contains(portalTileKey)) {
-                    float portalDisplayX = mapStartX + portalTileX * tileDisplaySize;
-                    float portalDisplayY = mapStartY + portalTileY * tileDisplaySize;
+                    // Convert to minimap display coordinates
+                    int portalTileX = worldPortalTileX - worldMinTileX;
+                    int portalTileY = worldPortalTileY - worldMinTileY;
 
-                    float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 200.0) * 0.2f;
-                    shapeRenderer.setColor(PORTAL_COLOR.r, PORTAL_COLOR.g, PORTAL_COLOR.b, 0.8f);
-                    float pulseSize = tileDisplaySize * pulse;
-                    float pulseOffset = (pulseSize - tileDisplaySize) / 2f;
-                    shapeRenderer.rect(
-                            portalDisplayX - pulseOffset,
-                            portalDisplayY - pulseOffset,
-                            pulseSize,
-                            pulseSize
-                    );
+                    // Ensure within minimap bounds
+                    if (portalTileX >= 0 && portalTileX < totalTilesX &&
+                            portalTileY >= 0 && portalTileY < totalTilesY) {
+
+                        float portalDisplayX = mapStartX + portalTileX * tileDisplaySize;
+                        float portalDisplayY = mapStartY + portalTileY * tileDisplaySize;
+
+                        float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 200.0) * 0.2f;
+                        shapeRenderer.setColor(PORTAL_COLOR.r, PORTAL_COLOR.g, PORTAL_COLOR.b, 0.8f);
+                        float pulseSize = tileDisplaySize * pulse;
+                        float pulseOffset = (pulseSize - tileDisplaySize) / 2f;
+                        shapeRenderer.rect(
+                                portalDisplayX - pulseOffset,
+                                portalDisplayY - pulseOffset,
+                                pulseSize,
+                                pulseSize
+                        );
+                    }
                 }
             }
         }

@@ -18,8 +18,9 @@ public class Portal {
     private Body body;
     private Texture texture;
     private float animationTimer = 0f;
+    private boolean isCleared = false;
 
-    public Portal(float x, float y, float size, World world) {
+    public Portal(float x, float y, float size, World world, boolean isCleared) {
         this.bounds = new Rectangle(x, y, size, size);
         this.texture = Storage.assetManager.get("tiles/coin.png", Texture.class); // Placeholder texture
 
@@ -84,5 +85,13 @@ public class Portal {
             world.destroyBody(body);
             body = null;
         }
+    }
+
+    public boolean getIsCleared() {
+        return isCleared;
+    }
+
+    public void setIsCleared(boolean clear) {
+        isCleared = clear;
     }
 }

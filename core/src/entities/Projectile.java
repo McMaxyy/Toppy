@@ -51,9 +51,9 @@ public class Projectile {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.density = 0.1f;
-        fixtureDef.isSensor = true; // Make it a sensor so it doesn't push things
-        fixtureDef.filter.categoryBits = CollisionFilter.ENEMY; // Use enemy category
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.OBSTACLE;
+        fixtureDef.isSensor = true;
+        fixtureDef.filter.categoryBits = CollisionFilter.PROJECTILE;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.OBSTACLE | CollisionFilter.ABILITY;
 
         body.createFixture(fixtureDef);
         body.setUserData(this);

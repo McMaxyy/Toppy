@@ -54,18 +54,6 @@ public class Enemy {
     private Vector2 attackDirection = new Vector2();
 
     public Enemy(Rectangle bounds, Texture texture, Body body, Player player,
-                 AnimationManager animationManager, int level) {
-        this(bounds, texture, body, player, animationManager,
-                EnemyStats.Factory.createBasicEnemy(level), EnemyType.MUSHIE);
-    }
-
-    public Enemy(Rectangle bounds, Texture texture, Body body, Player player,
-                 AnimationManager animationManager, EnemyStats stats) {
-        this(bounds, texture, body, player, animationManager, stats,
-                determineEnemyType(stats.getEnemyName()));
-    }
-
-    public Enemy(Rectangle bounds, Texture texture, Body body, Player player,
                  AnimationManager animationManager, EnemyStats stats, EnemyType enemyType) {
         this.animationManager = animationManager;
         this.bounds = bounds;
@@ -326,8 +314,6 @@ public class Enemy {
                 float dist = projectile.getPosition().dst(player.getPosition());
                 if (dist < 10f) {
                     player.getStats().takeDamage(projectile.getDamage());
-                    System.out.println(stats.getEnemyName() + " projectile hit player for " +
-                            projectile.getDamage() + " damage!");
                     projectile.markForRemoval();
                 }
             }
@@ -582,8 +568,8 @@ public class Enemy {
     }
 
     public void damagePlayer() {
-        player.getStats().takeDamage(stats.getDamage());
-        System.out.println(stats.getEnemyName() + " hit player for " + stats.getDamage() + " damage!");
+        if (!player.isInvulnerable())
+            player.getStats().takeDamage(stats.getDamage());
     }
 
     public void dispose() {

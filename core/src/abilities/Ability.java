@@ -18,6 +18,7 @@ public abstract class Ability {
     protected boolean isCasting;
     protected float castTimer;
     protected float duration;
+    protected float distance;
 
     public enum AbilityType {
         DAMAGE,
@@ -28,7 +29,7 @@ public abstract class Ability {
     }
 
     public Ability(String name, String description, float cooldown, int damage,
-                   float castTime, float duration, AbilityType type, Texture iconTexture) {
+                   float castTime, float duration, float distance, AbilityType type, Texture iconTexture) {
         this.name = name;
         this.description = description;
         this.cooldown = cooldown;
@@ -39,7 +40,8 @@ public abstract class Ability {
         this.iconTexture = iconTexture;
         this.isCasting = false;
         this.castTimer = 0f;
-        this.duration = 0f;
+        this.duration = duration;
+        this.distance = distance;
     }
 
     /**
@@ -119,6 +121,7 @@ public abstract class Ability {
     }
     public int getDamage() { return damage; }
     public float getCastTime() { return castTime; }
+    public float getDistance() { return distance; }
     public AbilityType getType() { return type; }
     public Texture getIconTexture() { return iconTexture; }
     public boolean isOnCooldown() { return currentCooldown > 0; }

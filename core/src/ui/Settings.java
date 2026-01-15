@@ -136,6 +136,7 @@ public class Settings {
                     gameProj.safeExit();
                 } else {
                     Gdx.app.exit();
+                    System.exit(0);
                 }
             }
         }

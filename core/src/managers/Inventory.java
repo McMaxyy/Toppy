@@ -24,8 +24,8 @@ import managers.Equipment.EquipmentSlot;
  * Enhanced inventory system with equipment screen
  */
 public class Inventory {
-    private static final int MAX_SLOTS = 10;
-    private static final int ITEMS_PER_ROW = 5;
+    private static final int MAX_SLOTS = 28;
+    private static final int ITEMS_PER_ROW = 7;
 
     private Item[] items;
     private int coins;

@@ -467,7 +467,7 @@ public class Dungeon {
 
     private void spawnEnemies(Random random) {
         // Create enemy clumps - all Skeleton enemies in dungeon
-        int clumpCount = 8 + random.nextInt(6);
+        int clumpCount = 24 + random.nextInt(6);
         int totalEnemiesSpawned = 0;
 
         for (int clump = 0; clump < clumpCount; clump++) {
@@ -552,7 +552,8 @@ public class Dungeon {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR |
+                CollisionFilter.OBSTACLE | CollisionFilter.ENEMY | CollisionFilter.ABILITY;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);

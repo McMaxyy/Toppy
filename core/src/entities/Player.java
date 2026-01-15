@@ -1,5 +1,6 @@
 package entities;
 
+import abilities.AbilityVisual;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
@@ -382,7 +383,7 @@ public class Player {
         if (getAnimationManager().isAnimationFinished()) {
             playerDeath = false;
             dyingAnimationStarted = false;
-            gameScreen.switchToNewState(GameScreen.HOME);
+            gameScreen.switchToNewState(GameScreen.START);
         }
     }
 
@@ -428,6 +429,12 @@ public class Player {
         spearMarkedForRemoval.removeIndex(i);
     }
 
+    public void addAbilityVisual(AbilityVisual visual) {
+        if (abilityManager != null) {
+            abilityManager.addAbilityVisual(visual);
+        }
+    }
+
     public void render(SpriteBatch batch, int TILE_SIZE) {
         Vector2 position = body.getPosition();
 
@@ -458,6 +465,10 @@ public class Player {
         }
 
         renderCooldownBar(batch, TILE_SIZE);
+
+        if (abilityManager != null) {
+            abilityManager.renderAbilityEffects(batch);
+        }
 
         for (Trail trail : trails) {
             float alpha = trail.lifetime / trailLifetime;
@@ -524,6 +535,12 @@ public class Player {
             batch.draw(whitePixel, barX, barY, filledWidth, barHeight);
 
             batch.setColor(1, 1, 1, 1);
+        }
+    }
+
+    public void renderAbilityEffects(SpriteBatch batch) {
+        if (abilityManager != null) {
+            abilityManager.renderAbilityEffects(batch);
         }
     }
 

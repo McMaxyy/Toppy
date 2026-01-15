@@ -1,5 +1,6 @@
 package entities;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.badlogic.gdx.graphics.Texture;
@@ -26,6 +27,7 @@ public class DungeonEnemy {
     private boolean isMoving = false;
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
+    private List<Projectile> projectiles = new ArrayList<>();
 
     // Enemy type system
     private EnemyType enemyType;
@@ -650,8 +652,8 @@ public class DungeonEnemy {
     }
 
     public void damagePlayer() {
-        player.getStats().takeDamage(stats.getDamage());
-        System.out.println(stats.getEnemyName() + " hit player for " + stats.getDamage() + " damage!");
+        if (!player.isInvulnerable())
+            player.getStats().takeDamage(stats.getDamage());
     }
 
     public void dispose() {
@@ -694,5 +696,9 @@ public class DungeonEnemy {
         Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
         float distance = playerPosition.dst(enemyPosition);
         return distance <= detectionRadius;
+    }
+
+    public List<Projectile> getProjectiles() {
+        return projectiles;
     }
 }
