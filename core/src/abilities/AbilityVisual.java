@@ -435,4 +435,86 @@ public abstract class AbilityVisual {
             batch.setColor(1f, 1f, 1f, 1f);
         }
     }
+
+    // =========================================================================
+// CHARGE TRAIL VISUAL - Trail effect for Charge ability
+// =========================================================================
+    public static class ChargeTrail extends AbilityVisual {
+        private Player player;
+        private com.badlogic.gdx.utils.Array<TrailPoint> trailPoints;
+        private float spawnInterval = 0.02f;
+        private float spawnTimer = 0f;
+        private float trailPointLifetime = 0.3f;
+
+        private static final float TRAIL_ALPHA = 0.6f;
+
+        private static class TrailPoint {
+            Vector2 position;
+            float lifetime;
+            float maxLifetime;
+
+            TrailPoint(Vector2 pos, float lifetime) {
+                this.position = new Vector2(pos);
+                this.lifetime = lifetime;
+                this.maxLifetime = lifetime;
+            }
+        }
+
+        public ChargeTrail(Player player, float duration) {
+            super(duration);
+            this.player = player;
+            this.trailPoints = new com.badlogic.gdx.utils.Array<>();
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            // Spawn new trail points while charging
+            spawnTimer += delta;
+            if (spawnTimer >= spawnInterval && timer < duration * 0.8f) {
+                trailPoints.add(new TrailPoint(player.getPosition(), trailPointLifetime));
+                spawnTimer = 0f;
+            }
+
+            // Update existing trail points
+            for (int i = trailPoints.size - 1; i >= 0; i--) {
+                TrailPoint point = trailPoints.get(i);
+                point.lifetime -= delta;
+                if (point.lifetime <= 0) {
+                    trailPoints.removeIndex(i);
+                }
+            }
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active && trailPoints.size == 0) return;
+
+            // Get player's current animation frame for the trail
+            com.badlogic.gdx.graphics.g2d.TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            float size = 16f; // Trail sprite size
+
+            for (TrailPoint point : trailPoints) {
+                float alpha = TRAIL_ALPHA * (point.lifetime / point.maxLifetime);
+
+                // Red tint for charge trail
+                batch.setColor(1f, 0.3f, 0.3f, alpha);
+                batch.draw(frame,
+                        point.position.x - size / 2f,
+                        point.position.y - size / 2f,
+                        size, size);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        @Override
+        public void dispose() {
+            trailPoints.clear();
+            super.dispose();
+        }
+
+        public boolean hasTrailPoints() {
+            return trailPoints.size > 0;
+        }
+    }
 }

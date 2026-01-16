@@ -57,6 +57,7 @@ public class Storage {
         assetManager.load("tiles/coin.png", Texture.class);
         assetManager.load("tiles/rip.png", Texture.class);
         assetManager.load("tiles/hpBar.png", Texture.class);
+        assetManager.load("tiles/Portal.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         assetManager.load("icons/gear/ironHelmet.png", Texture.class);
@@ -67,6 +68,7 @@ public class Storage {
         assetManager.load("icons/gear/ironShield.png", Texture.class);
 
         assetManager.load("icons/abilities/Blink.png", Texture.class);
+        assetManager.load("icons/abilities/Charge.png", Texture.class);
         assetManager.load("icons/abilities/DoubleSwing.png", Texture.class);
         assetManager.load("icons/abilities/Prayer.png", Texture.class);
         assetManager.load("icons/abilities/Bubble.png", Texture.class);

@@ -360,6 +360,28 @@ public class Chunk {
         return body;
     }
 
+    /**
+     * Check if the given bounds overlap with any obstacle in this chunk
+     */
+    public boolean isOverlappingAnyObstacle(Rectangle bounds) {
+        // Check existing obstacles
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.bounds.overlaps(bounds)) {
+                return true;
+            }
+        }
+
+        // Check pending obstacles (not yet added to world)
+        for (ObstacleInfo pending : pendingObstacles) {
+            Rectangle pendingBounds = new Rectangle(pending.x, pending.y, pending.width, pending.height);
+            if (pendingBounds.overlaps(bounds)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void renderGround(SpriteBatch batch, Texture groundTexture) {
         for (int x = 0; x < chunkSize; x++) {
             for (int y = 0; y < chunkSize; y++) {

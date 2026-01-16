@@ -37,7 +37,6 @@ public class AbilityManager {
     // UI components
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
-    private final Texture slotTexture;
 
     // Skill bar settings
     private static final int SLOT_SIZE = 45;
@@ -56,9 +55,7 @@ public class AbilityManager {
         this.activeEffects = new HashMap<>();
         this.shapeRenderer = new ShapeRenderer();
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
-        this.slotTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
 
-        // Initialize unified visual effects list
         this.activeVisuals = new ArrayList<>();
 
         initializeMercenaryAbilities();
@@ -68,9 +65,7 @@ public class AbilityManager {
      * Initialize the 5 Mercenary abilities
      */
     private void initializeMercenaryAbilities() {
-        Texture iconTexture = Storage.assetManager.get("tiles/rip.png", Texture.class);
-
-        abilities[0] = new BlinkAbility(Storage.assetManager.get("icons/abilities/Blink.png", Texture.class));
+        abilities[0] = new ChargeAbility(Storage.assetManager.get("icons/abilities/Charge.png", Texture.class));
         abilities[1] = new DoubleSwingAbility(Storage.assetManager.get("icons/abilities/DoubleSwing.png", Texture.class));
         abilities[2] = new BubbleAbility(Storage.assetManager.get("icons/abilities/Bubble.png", Texture.class));
         abilities[3] = new RendAbility(Storage.assetManager.get("icons/abilities/Rend.png", Texture.class));
@@ -136,7 +131,6 @@ public class AbilityManager {
      * Handle ability input (keys 1-5, RMB)
      */
     public void handleInput() {
-        // Check ability keys (1-5)
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
             useAbility(0);
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {

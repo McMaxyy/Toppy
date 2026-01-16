@@ -55,6 +55,10 @@ public class Player {
     private Texture healthBarBgTexture;
     private AbilityManager abilityManager; // NEW: Ability system
     private boolean isPaused = false; // NEW: Pause state
+    private boolean isCharging = false;
+    private float chargeTimer = 0f;
+    private Vector2 chargeVelocity = new Vector2();
+    private java.util.Set<Object> chargeHitEnemies;
 
     private class Trail {
         Vector2 position;
@@ -224,19 +228,37 @@ public class Player {
         float moveX = 0;
         float moveY = 0;
 
+        if (isCharging) {
+            chargeTimer -= delta;
+
+            body.setLinearVelocity(chargeVelocity.x, chargeVelocity.y);
+
+            trailTimer += delta;
+            if (trailTimer >= trailSpawnInterval) {
+                trails.add(new Trail(body.getPosition(), trailLifetime));
+                trailTimer = 0f;
+            }
+
+            if (chargeTimer <= 0) {
+                endCharge();
+            }
+
+            return;
+        }
+
         if (!isDashing && !playerDeath) {
             if (Gdx.input.isKeyPressed(Input.Keys.W)) moveY += 1;
             if (Gdx.input.isKeyPressed(Input.Keys.S)) moveY -= 1;
             if (Gdx.input.isKeyPressed(Input.Keys.A)) moveX -= 1;
             if (Gdx.input.isKeyPressed(Input.Keys.D)) moveX += 1;
 
-            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && dashCooldownTimer <= 0) {
-                setInvulnerable(true);
-                isDashing = true;
-                dashTimer = dashDuration;
-                dashDirection.set(moveX, moveY).nor();
-                dashCooldownTimer = dashCooldown;
-            }
+//            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && dashCooldownTimer <= 0) {
+//                setInvulnerable(true);
+//                isDashing = true;
+//                dashTimer = dashDuration;
+//                dashDirection.set(moveX, moveY).nor();
+//                dashCooldownTimer = dashCooldown;
+//            }
 
             move(moveX, moveY, delta);
         } else {
@@ -392,9 +414,6 @@ public class Player {
         dyingAnimationStarted = false;
     }
 
-    /**
-     * Clean up all spears (called during disposal)
-     */
     public void cleanupSpears() {
         if (world != null && !world.getWorld().isLocked()) {
             for (int i = spearBodies.size - 1; i >= 0; i--) {
@@ -435,6 +454,34 @@ public class Player {
         }
     }
 
+    public void startCharge(Vector2 velocity, float duration) {
+        isCharging = true;
+        chargeTimer = duration;
+        chargeVelocity = velocity;
+        setInvulnerable(true);
+
+        if (chargeHitEnemies == null) {
+            chargeHitEnemies = new java.util.HashSet<>();
+        } else {
+            chargeHitEnemies.clear();
+        }
+    }
+
+    public void endCharge() {
+        isCharging = false;
+        chargeTimer = 0f;
+        body.setLinearVelocity(0, 0);
+        setInvulnerable(false);
+    }
+
+    public boolean isCharging() {
+        return isCharging;
+    }
+
+    public java.util.Set<Object> getChargeHitEnemies() {
+        return chargeHitEnemies;
+    }
+
     public void render(SpriteBatch batch, int TILE_SIZE) {
         Vector2 position = body.getPosition();
 
@@ -448,7 +495,7 @@ public class Player {
             Body spearBody = spearBodies.get(i);
 
             if (spearBody != null) {
-                Texture spearTexture = Storage.assetManager.get("character/Spear.png");
+                Texture spearTexture = Storage.assetManager.get("icons/gear/ironSpear.png");
                 TextureRegion spearRegion = new TextureRegion(spearTexture);
 
                 float rotationAngle = (float) Math.toDegrees(spearBody.getAngle());
@@ -458,7 +505,7 @@ public class Player {
                 batch.draw(spearRegion,
                         posX, posY,
                         spearTexture.getWidth() / 8f, spearTexture.getHeight() / 8f,
-                        spearTexture.getWidth() / 4f, spearTexture.getHeight() / 4f,
+                        spearTexture.getWidth() / 6f, spearTexture.getHeight() / 6f,
                         1, 1,
                         rotationAngle - 45);
             }

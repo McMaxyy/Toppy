@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import config.Storage;
 import entities.*;
 import game.GameProj;
 import managers.Chunk;
@@ -15,23 +16,24 @@ import java.util.ArrayList;
  */
 public abstract class MercenaryAbilities {}
 
-/**
- * Charge - Dash in a direction and stun/damage enemies on impact
- * (No visual indicator as requested)
- */
 class ChargeAbility extends Ability {
-    private static final float CHARGE_DISTANCE = 100f;
-    private static final float CHARGE_SPEED = 8000f;
+    private static final float CHARGE_SPEED = 3000f; // Match Player dash speed
+    private static final float CHARGE_DURATION = 0.5f; // Match Player dash duration
     private static final float STUN_DURATION = 1.5f;
+
+    // Charge state
+    private Player chargingPlayer;
+    private GameProj currentGameProj;
+    private AbilityVisual.ChargeTrail trailVisual;
 
     public ChargeAbility(Texture iconTexture) {
         super(
                 "Charge",
                 "Dash forward, dealing damage and stunning enemies on impact",
-                8.0f,  // cooldown
+                1.0f,  // cooldown
                 50,    // damage
                 0f,    // cast time
-                1f,    // duration
+                CHARGE_DURATION,    // duration
                 30f,   // distance (hit radius)
                 AbilityType.CROWD_CONTROL,
                 iconTexture
@@ -40,81 +42,141 @@ class ChargeAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        Vector3 mousePosition3D = gameProj.getCamera().unproject(
-                new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
-        );
-        Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
-        Vector2 playerPosition = player.getPosition();
-
-        Vector2 direction = new Vector2(
-                mousePosition.x - playerPosition.x,
-                mousePosition.y - playerPosition.y
-        ).nor();
-
         player.setInvulnerable(true);
-        performCharge(player, direction, gameProj);
-    }
+        Vector2 movementDirection = getPlayerMovementDirection();
 
-    private void performCharge(Player player, Vector2 direction, GameProj gameProj) {
-        player.getBody().setLinearVelocity(direction.x * CHARGE_SPEED, direction.y * CHARGE_SPEED);
+        // If no movement keys are pressed, dash towards mouse instead
+        if (movementDirection.isZero()) {
+            Vector3 mousePosition3D = gameProj.getCamera().unproject(
+                    new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
+            );
+            Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
+            Vector2 playerPosition = player.getPosition();
+
+            movementDirection = new Vector2(
+                    mousePosition.x - playerPosition.x,
+                    mousePosition.y - playerPosition.y
+            ).nor();
+        }
+
+        // Calculate velocity EXACTLY like Player dash
+        Vector2 chargeVelocity = new Vector2(
+                movementDirection.x * CHARGE_SPEED * 25,
+                movementDirection.y * CHARGE_SPEED * 25
+        );
+
+        // Start charging using Player's charge system
+        player.startCharge(chargeVelocity, CHARGE_DURATION);
+        chargingPlayer = player;
+        currentGameProj = gameProj;
+
+        // Create trail visual
+        trailVisual = new AbilityVisual.ChargeTrail(player, CHARGE_DURATION + 0.5f);
+        player.addAbilityVisual(trailVisual);
 
         new Thread(() -> {
             try {
-                Thread.sleep(200);
-                player.getBody().setLinearVelocity(0, 0);
-                player.setInvulnerable(false);
-                checkForEnemyHits(player, gameProj);
+                Thread.sleep((long)(duration * 2 * 1000));
+
+                Gdx.app.postRunnable(() -> {
+                    player.setInvulnerable(false);
+                });
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }).start();
-
-        System.out.println("Charge activated!");
     }
 
-    private void checkForEnemyHits(Player player, GameProj gameProj) {
-        Vector2 playerPos = player.getPosition();
-        float hitRadius = 30f;
+    @Override
+    public void update(float delta) {
+        super.update(delta);
 
-        for (Chunk chunk : gameProj.getChunks().values()) {
+        if (chargingPlayer != null && chargingPlayer.isCharging()) {
+            checkForEnemyHits();
+        } else if (chargingPlayer != null && !chargingPlayer.isCharging()) {
+            chargingPlayer = null;
+            currentGameProj = null;
+        }
+    }
+
+    /**
+     * Get the player's current movement direction based on input keys
+     * This mimics the Player.input() method
+     */
+    private Vector2 getPlayerMovementDirection() {
+        Vector2 direction = new Vector2(0, 0);
+
+//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.W)) direction.y += 1;
+//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.S)) direction.y -= 1;
+//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.A)) direction.x -= 1;
+//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.D)) direction.x += 1;
+
+        // Normalize to prevent diagonal movement being faster
+        if (!direction.isZero()) {
+            direction.nor();
+        }
+
+        return direction;
+    }
+
+    private void checkForEnemyHits() {
+        if (chargingPlayer == null || currentGameProj == null) return;
+
+        Vector2 playerPos = chargingPlayer.getPosition();
+        float hitRadius = distance;
+
+        // Get the set of already hit enemies from the player
+        java.util.Set<Object> hitEnemies = chargingPlayer.getChargeHitEnemies();
+
+        // Check overworld enemies
+        for (Chunk chunk : currentGameProj.getChunks().values()) {
+            // Regular enemies
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
-                if (enemy.getBody() != null) {
-                    float distance = playerPos.dst(enemy.getBody().getPosition());
-                    if (distance < hitRadius) {
+                if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < hitRadius) {
                         enemy.takeDamage(damage);
                         StunEffect stun = new StunEffect(enemy, STUN_DURATION);
                         stun.onApply();
-                        gameProj.addStatusEffect(enemy, stun);
+                        currentGameProj.addStatusEffect(enemy, stun);
+                        hitEnemies.add(enemy);
                     }
                 }
             }
 
+            // Boss enemies
             for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
-                if (boss.getBody() != null) {
-                    float distance = playerPos.dst(boss.getBody().getPosition());
-                    if (distance < hitRadius) {
+                if (boss.getBody() != null && !hitEnemies.contains(boss)) {
+                    float dist = playerPos.dst(boss.getBody().getPosition());
+                    if (dist < hitRadius) {
                         boss.takeDamage(damage);
                         StunEffect stun = new StunEffect(boss, STUN_DURATION);
                         stun.onApply();
-                        gameProj.addStatusEffect(boss, stun);
+                        currentGameProj.addStatusEffect(boss, stun);
+                        hitEnemies.add(boss);
                     }
                 }
             }
         }
 
-        if (gameProj.getCurrentDungeon() != null) {
-            for (DungeonEnemy enemy : new ArrayList<>(gameProj.getCurrentDungeon().getEnemies())) {
-                if (enemy.getBody() != null) {
-                    float distance = playerPos.dst(enemy.getBody().getPosition());
-                    if (distance < hitRadius) {
+        // Check dungeon enemies
+        if (currentGameProj.getCurrentDungeon() != null) {
+            for (DungeonEnemy enemy : new ArrayList<>(currentGameProj.getCurrentDungeon().getEnemies())) {
+                if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < hitRadius) {
                         enemy.takeDamage(damage);
                         StunEffect stun = new StunEffect(enemy, STUN_DURATION);
                         stun.onApply();
-                        gameProj.addStatusEffect(enemy, stun);
+                        currentGameProj.addStatusEffect(enemy, stun);
+                        hitEnemies.add(enemy);
                     }
                 }
             }
         }
+    }
+    public boolean isCharging() {
+        return chargingPlayer != null && chargingPlayer.isCharging();
     }
 }
 

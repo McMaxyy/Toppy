@@ -110,7 +110,7 @@ public class Dungeon {
         wallTJunctionLTexture = wallFrames[0][14];
 
         floorTexture = Storage.assetManager.get("tiles/stoneFloor4.png", Texture.class);
-        exitTexture = Storage.assetManager.get("enemy.png", Texture.class);
+        exitTexture = Storage.assetManager.get("tiles/Portal.png", Texture.class);
     }
 
     private void generateDungeon(Random random) {
@@ -671,8 +671,8 @@ public class Dungeon {
                 } else if (tiles[x][y] == EXIT) {
                     batch.draw(floorTexture, x * tileSize, y * tileSize, tileSize, tileSize);
                     float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 200.0) * 0.2f;
-                    batch.setColor(0.5f, 1f, 0.5f, 0.8f);
-                    batch.draw(exitTexture, x * tileSize, y * tileSize, tileSize * pulse, tileSize * pulse);
+//                    batch.setColor(0.5f, 1f, 0.5f, 0.8f);
+                    batch.draw(exitTexture, x * tileSize, y * tileSize, tileSize, tileSize);
                     batch.setColor(1, 1, 1, 1);
                 }
             }

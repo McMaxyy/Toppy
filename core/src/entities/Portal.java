@@ -22,7 +22,7 @@ public class Portal {
 
     public Portal(float x, float y, float size, World world, boolean isCleared) {
         this.bounds = new Rectangle(x, y, size, size);
-        this.texture = Storage.assetManager.get("tiles/coin.png", Texture.class); // Placeholder texture
+        this.texture = Storage.assetManager.get("tiles/Portal.png", Texture.class); // Placeholder texture
 
         createBody(world, x, y, size);
     }
@@ -58,12 +58,22 @@ public class Portal {
         float size = bounds.width * scale;
         float offset = (bounds.width - size) / 2f;
 
-        batch.setColor(0.5f, 0.2f, 1f, 0.8f);
-        batch.draw(texture,
-                bounds.x + offset,
-                bounds.y + offset,
-                size,
-                size);
+//        batch.setColor(0.5f, 0.2f, 1f, 0.8f);
+        if (!isCleared) {
+            batch.draw(texture,
+                    bounds.x + offset,
+                    bounds.y + offset,
+                    size,
+                    size);
+        }
+        else {
+            batch.setColor(0.5f, 0.2f, 1f, 0.8f);
+            batch.draw(texture,
+                    bounds.x,
+                    bounds.y,
+                    bounds.width,
+                    bounds.width);
+        }
         batch.setColor(1, 1, 1, 1);
     }
 

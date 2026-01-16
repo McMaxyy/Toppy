@@ -15,6 +15,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -217,15 +218,16 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
 
-                if (distanceFromSpawn >= minDistanceFromSpawn && !tooCloseToOtherPortals) {
+                // Check for obstacle overlap in the chunk
+                boolean overlapsObstacle = isPortalOverlappingObstacles(portalX, portalY, 32);
+
+                if (distanceFromSpawn >= minDistanceFromSpawn && !tooCloseToOtherPortals && !overlapsObstacle) {
                     validPosition = true;
                 }
             }
 
             Portal portal = new Portal(portalX, portalY, 32, world.getWorld(), false);
-//            Portal portal = new Portal(player.getPosition().x, player.getPosition().y, 32, world.getWorld(), false);
             dungeonPortals.add(portal);
-            System.out.println("Portal added" + portalX + "   " + portalY);
             attempts = 0;
         }
 
@@ -234,6 +236,31 @@ public class GameProj implements Screen, ContactListener {
                 minimap.setPortal(portal);
             }
         }
+    }
+
+    /**
+     * Check if a portal position overlaps with any obstacles in loaded chunks
+     */
+    private boolean isPortalOverlappingObstacles(float portalX, float portalY, float portalSize) {
+        Rectangle portalBounds = new Rectangle(portalX, portalY, portalSize, portalSize);
+
+        // Calculate which chunk this portal would be in
+        int chunkX = (int) Math.floor(portalX / (CHUNK_SIZE * TILE_SIZE));
+        int chunkY = (int) Math.floor(portalY / (CHUNK_SIZE * TILE_SIZE));
+
+        // Check the portal's chunk and adjacent chunks
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                Vector2 chunkCoord = new Vector2(chunkX + dx, chunkY + dy);
+                Chunk chunk = chunks.get(chunkCoord);
+
+                if (chunk != null && chunk.isOverlappingAnyObstacle(portalBounds)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private void enterDungeon() {
@@ -322,6 +349,10 @@ public class GameProj implements Screen, ContactListener {
             unpauseGame();
         }
 
+        if (delta > 0) {
+            checkForDeadEnemies();
+        }
+
         // Only update game logic if not paused
         if (!isPaused) {
             world.getWorld().step(1 / 60f, 6, 2);
@@ -406,6 +437,10 @@ public class GameProj implements Screen, ContactListener {
                     chunk.addBodiesToWorld(world.getWorld());
                 }
             }
+        }
+
+        if (delta > 0) {
+            checkForDeadEnemies();
         }
 
         int halfMapChunks = MAP_SIZE_CHUNKS / 2;
@@ -535,6 +570,10 @@ public class GameProj implements Screen, ContactListener {
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
         camera.update();
 
+        if (delta > 0) {
+            checkForDeadEnemies();
+        }
+
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
@@ -638,6 +677,64 @@ public class GameProj implements Screen, ContactListener {
 
     public boolean isPaused() {
         return isPaused;
+    }
+
+    public void handleEnemyDeath(Object enemy, Vector2 enemyPosition, boolean isBoss) {
+        if (enemy instanceof Enemy) {
+            Enemy regularEnemy = (Enemy) enemy;
+
+            String lootTable = regularEnemy.getStats().getLootTableType();
+            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
+
+            player.getStats().addExperience(regularEnemy.getStats().getExpReward());
+
+            enemiesKilled++;
+            hudLabel.setText("Enemies killed: " + enemiesKilled);
+
+        } else if (enemy instanceof BossKitty) {
+            BossKitty boss = (BossKitty) enemy;
+
+            itemSpawner.spawnBossLoot(enemyPosition);
+
+            player.getStats().addExperience(boss.getStats().getExpReward());
+
+            bossSpawned = false;
+
+        } else if (enemy instanceof DungeonEnemy) {
+            DungeonEnemy dungeonEnemy = (DungeonEnemy) enemy;
+
+            String lootTable = dungeonEnemy.getStats().getLootTableType();
+            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
+
+            player.getStats().addExperience(dungeonEnemy.getStats().getExpReward());
+        }
+    }
+
+    public void checkForDeadEnemies() {
+        for (Chunk chunk : chunks.values()) {
+            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
+                    handleEnemyDeath(enemy, enemy.getBody().getPosition(), false);
+                    chunk.getEnemies().remove(enemy);
+                }
+            }
+
+            for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
+                if (boss.isMarkedForRemoval() && boss.getBody() != null) {
+                    handleEnemyDeath(boss, boss.getBody().getPosition(), true);
+                    chunk.getBossKitty().remove(boss);
+                }
+            }
+        }
+
+        if (currentDungeon != null) {
+            for (DungeonEnemy enemy : new ArrayList<>(currentDungeon.getEnemies())) {
+                if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
+                    handleEnemyDeath(enemy, enemy.getBody().getPosition(), false);
+                    currentDungeon.getEnemies().remove(enemy);
+                }
+            }
+        }
     }
 
     /**
@@ -800,21 +897,7 @@ public class GameProj implements Screen, ContactListener {
                         // Normal enemies
                         for (Enemy enemy : chunk.getEnemies()) {
                             if (enemy.getBody() == enemyBody) {
-                                // Deal damage instead of instant kill
                                 enemy.takeDamage(playerDamage);
-
-                                // If enemy died from this hit, give XP and spawn loot
-                                if (enemy.isMarkedForRemoval()) {
-                                    Vector2 enemyPos = enemyBody.getPosition();
-                                    String lootTable = enemy.getStats().getLootTableType();
-                                    lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPos);
-
-                                    // Give experience to player
-                                    player.getStats().addExperience(enemy.getStats().getExpReward());
-
-                                    enemiesKilled++;
-                                    hudLabel.setText("Enemies killed: " + enemiesKilled);
-                                }
                                 break;
                             }
                         }
@@ -822,19 +905,7 @@ public class GameProj implements Screen, ContactListener {
                         // Boss enemies
                         for (BossKitty boss : chunk.getBossKitty()) {
                             if (boss.getBody() == enemyBody) {
-                                // Deal damage to boss
                                 boss.takeDamage(playerDamage);
-
-                                // If boss died, spawn loot and give XP
-                                if (boss.isMarkedForRemoval()) {
-                                    Vector2 bossPos = enemyBody.getPosition();
-                                    itemSpawner.spawnBossLoot(bossPos);
-
-                                    // Give lots of experience
-                                    player.getStats().addExperience(boss.getStats().getExpReward());
-
-                                    bossSpawned = false;
-                                }
                                 break;
                             }
                         }
@@ -844,16 +915,7 @@ public class GameProj implements Screen, ContactListener {
                 // Dungeon enemies
                 for (entities.DungeonEnemy enemy : currentDungeon.getEnemies()) {
                     if (enemy.getBody() == enemyBody) {
-                        // Deal damage
                         enemy.takeDamage(playerDamage);
-
-                        // If enemy died, spawn loot and give XP
-                        if (enemy.isMarkedForRemoval()) {
-                            Vector2 enemyPos = enemyBody.getPosition();
-                            String lootTable = enemy.getStats().getLootTableType();
-                            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPos);
-                            player.getStats().addExperience(enemy.getStats().getExpReward());
-                        }
                         break;
                     }
                 }
@@ -886,7 +948,7 @@ public class GameProj implements Screen, ContactListener {
                     if(!bossSpawned) {
                         // Normal enemies damage player
                         for (Enemy enemy : chunk.getEnemies()) {
-                            if (enemy.getBody() == enemyBody) {
+                            if (enemy.getBody() == enemyBody && !player.isInvulnerable()) {
                                 enemy.damagePlayer();
 
                                 // Check if player died
