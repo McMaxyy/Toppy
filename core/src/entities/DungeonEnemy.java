@@ -151,7 +151,6 @@ public class DungeonEnemy {
 
     public void update(float delta) {
         if (markForRemoval) {
-            dispose();
             return;
         }
 
@@ -656,11 +655,17 @@ public class DungeonEnemy {
             player.getStats().takeDamage(stats.getDamage());
     }
 
+    public void clearBody() {
+        this.body = null;
+    }
+
     public void dispose() {
-        if (body != null && markForRemoval) {
-            body.getWorld().destroyBody(body);
-            body = null;
+        for (Projectile projectile : projectiles) {
+            if (body != null && body.getWorld() != null) {
+                projectile.dispose(body.getWorld());
+            }
         }
+        projectiles.clear();
     }
 
     public void markForRemoval() {

@@ -122,7 +122,6 @@ public class Enemy {
 
     public void update(float delta) {
         if (markForRemoval) {
-            dispose();
             return;
         }
 
@@ -572,18 +571,18 @@ public class Enemy {
             player.getStats().takeDamage(stats.getDamage());
     }
 
+    public void clearBody() {
+        this.body = null;
+    }
+
     public void dispose() {
+        // Dispose projectiles
         for (Projectile projectile : projectiles) {
             if (body != null && body.getWorld() != null) {
                 projectile.dispose(body.getWorld());
             }
         }
         projectiles.clear();
-
-        if (body != null && markForRemoval) {
-            body.getWorld().destroyBody(body);
-            body = null;
-        }
     }
 
     public void removeEnemies() {

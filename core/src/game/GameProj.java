@@ -60,7 +60,7 @@ public class GameProj implements Screen, ContactListener {
 
     private final int MAP_SIZE_CHUNKS = 5;
     private final int CHUNK_SIZE = 32;
-    private final int TILE_SIZE = 18;
+    private final int TILE_SIZE = 16;
     private final int PLAYER_TILE_SIZE = 32;
 
     private boolean inDungeon = false;
@@ -119,7 +119,7 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void createComponents() {
-        groundTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
+        groundTexture = Storage.assetManager.get("tiles/grass.png", Texture.class);
 
         player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen);
         batch = new SpriteBatch();
@@ -349,10 +349,6 @@ public class GameProj implements Screen, ContactListener {
             unpauseGame();
         }
 
-        if (delta > 0) {
-            checkForDeadEnemies();
-        }
-
         // Only update game logic if not paused
         if (!isPaused) {
             world.getWorld().step(1 / 60f, 6, 2);
@@ -393,6 +389,10 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        if (delta > 0) {
+            checkForDeadEnemies();
+        }
+
         // Always render HUD
         if (hudStage != null) {
             hudStage.act(delta);
@@ -405,8 +405,10 @@ public class GameProj implements Screen, ContactListener {
             settings.render(batch, false);
         }
 
-        Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-//        debugRenderer.render(world.getWorld(), camera.combined);
+        if (world != null) {
+            Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
+//            debugRenderer.render(world.getWorld(), camera.combined);
+        }
     }
 
     /**
@@ -482,9 +484,8 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderEnemies(batch);
         }
 
-        // Only update portals if not paused
         for (Portal portal : dungeonPortals) {
-            if (delta > 0) { // Only update if game is running
+            if (delta > 0) {
                 portal.update(delta);
             }
             portal.render(batch);
@@ -520,10 +521,8 @@ public class GameProj implements Screen, ContactListener {
         player.render(batch, PLAYER_TILE_SIZE);
         player.renderAbilityEffects(batch);
 
-        // Only update player if not paused
         if (delta > 0) {
             player.update(delta);
-            // Update all status effects
             updateStatusEffects(delta);
         }
 
@@ -711,10 +710,15 @@ public class GameProj implements Screen, ContactListener {
     }
 
     public void checkForDeadEnemies() {
+        // Collect bodies to destroy after iteration
+        List<Body> bodiesToDestroy = new ArrayList<>();
+
         for (Chunk chunk : chunks.values()) {
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
                     handleEnemyDeath(enemy, enemy.getBody().getPosition(), false);
+                    bodiesToDestroy.add(enemy.getBody());
+                    enemy.clearBody();
                     chunk.getEnemies().remove(enemy);
                 }
             }
@@ -722,6 +726,8 @@ public class GameProj implements Screen, ContactListener {
             for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
                 if (boss.isMarkedForRemoval() && boss.getBody() != null) {
                     handleEnemyDeath(boss, boss.getBody().getPosition(), true);
+                    bodiesToDestroy.add(boss.getBody());
+                    boss.clearBody();
                     chunk.getBossKitty().remove(boss);
                 }
             }
@@ -731,8 +737,17 @@ public class GameProj implements Screen, ContactListener {
             for (DungeonEnemy enemy : new ArrayList<>(currentDungeon.getEnemies())) {
                 if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
                     handleEnemyDeath(enemy, enemy.getBody().getPosition(), false);
+                    bodiesToDestroy.add(enemy.getBody());
+                    enemy.clearBody();
                     currentDungeon.getEnemies().remove(enemy);
                 }
+            }
+        }
+
+        // Destroy all bodies AFTER iteration is complete
+        for (Body body : bodiesToDestroy) {
+            if (body != null) {
+                world.getWorld().destroyBody(body);
             }
         }
     }

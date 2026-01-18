@@ -58,6 +58,7 @@ public class Storage {
         assetManager.load("tiles/rip.png", Texture.class);
         assetManager.load("tiles/hpBar.png", Texture.class);
         assetManager.load("tiles/Portal.png", Texture.class);
+        assetManager.load("tiles/grass.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         assetManager.load("icons/gear/ironHelmet.png", Texture.class);

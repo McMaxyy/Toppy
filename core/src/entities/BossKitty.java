@@ -62,7 +62,6 @@ public class BossKitty {
 
     public void update(float delta) {
         if (markForRemoval) {
-            dispose();
             return;
         }
 
@@ -412,11 +411,12 @@ public class BossKitty {
         System.out.println("Boss hit player for " + stats.getDamage() + " damage!");
     }
 
+    public void clearBody() {
+        this.body = null;
+    }
+
     public void dispose() {
-        if (body != null && markForRemoval) {
-            body.getWorld().destroyBody(body);
-            body = null;
-        }
+
     }
 
     public void removeEnemies() {
