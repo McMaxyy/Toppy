@@ -131,7 +131,7 @@ public class AbilityManager {
      * Handle ability input (keys 1-5, RMB)
      */
     public void handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             useAbility(0);
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
             useAbility(1);

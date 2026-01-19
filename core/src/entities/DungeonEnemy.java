@@ -21,7 +21,8 @@ public class DungeonEnemy {
     private Body body;
     private final Player player;
     private final Dungeon dungeon;
-    private final float detectionRadius = 200f;
+    private final float detectionRadius = 100f;
+    private boolean hasDetected = false;
     private final float speed = 70f;
     private boolean markForRemoval = false;
     private boolean isMoving = false;
@@ -231,7 +232,8 @@ public class DungeonEnemy {
         updateStuckDetection(delta);
         pathUpdateTimer += delta;
 
-        if (isPlayerInRadius()) {
+        if (isPlayerInRadius() || hasDetected) {
+            hasDetected = true;
             if (isPlayerInAttackRange() && attackCooldown <= 0) {
                 startAttack();
                 return;
