@@ -199,7 +199,7 @@ public class Player {
             Fixture fixture = body.getFixtureList().first();
             Filter filter = fixture.getFilterData();
 
-            if (invulnerable) {
+            if (invulnerable && !gameP.isInDungeon()) {
                 filter.maskBits = invulnerable ? (short) 0 : originalMaskBits;
             } else {
                 filter.maskBits = originalMaskBits;

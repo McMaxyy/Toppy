@@ -1,8 +1,5 @@
 package entities;
 
-/**
- * Enemy statistics and attributes
- */
 public class EnemyStats {
     private String enemyName;
     private int maxHealth;
@@ -23,16 +20,10 @@ public class EnemyStats {
     private float projectileSpeed;
     private float chargeSpeed;
 
-    /**
-     * Create enemy stats with default values based on level
-     */
     public EnemyStats(String enemyName, int level) {
         this(enemyName, level, AttackType.MELEE, "basic_enemy");
     }
 
-    /**
-     * Create enemy stats with custom loot table
-     */
     public EnemyStats(String enemyName, int level, AttackType attackType, String lootTableType) {
         this.enemyName = enemyName;
         this.level = level;
@@ -94,9 +85,6 @@ public class EnemyStats {
         }
     }
 
-    /**
-     * Create enemy stats with custom values
-     */
     public EnemyStats(String enemyName, int maxHealth, int damage, int defense,
                       int expReward, int level, AttackType attackType, String lootTableType,
                       float attackCooldown, float attackRange, float attackSpeed,
@@ -119,33 +107,19 @@ public class EnemyStats {
         this.chargeSpeed = chargeSpeed;
     }
 
-    /**
-     * Take damage with defense reduction
-     */
     public void takeDamage(int incomingDamage) {
         int actualDamage = Math.max(1, incomingDamage - defense);
         currentHealth = Math.max(0, currentHealth - actualDamage);
-
-        System.out.println(enemyName + " took " + actualDamage + " damage! Health: " + currentHealth + "/" + maxHealth);
     }
 
-    /**
-     * Check if enemy is dead
-     */
     public boolean isDead() {
         return currentHealth <= 0;
     }
 
-    /**
-     * Get health percentage (0-1)
-     */
     public float getHealthPercentage() {
         return (float) currentHealth / maxHealth;
     }
 
-    /**
-     * Heal the enemy
-     */
     public void heal(int amount) {
         currentHealth = Math.min(maxHealth, currentHealth + amount);
     }
@@ -193,134 +167,84 @@ public class EnemyStats {
         this.attackConeAngle = attackConeAngle;
     }
 
-    /**
-     * Create stats for different enemy types
-     */
     public static class Factory {
-
-        /**
-         * Create a basic Mushie enemy - RANGED attacker for overworld
-         * Mushie fires green projectiles at the player
-         */
-        public static EnemyStats createBasicEnemy(int level) {
-            return createMushieEnemy(level);
-        }
-
-        /**
-         * Create Mushie enemy - Ranged attacker
-         * Fires green circle projectiles at the player
-         */
         public static EnemyStats createMushieEnemy(int level) {
             return new EnemyStats(
                     "Mushie",
-                    15 + (level * 10),  // Less health (ranged enemy)
-                    3 + (level * 2),    // Less damage per hit
-                    0 + level,          // Less defense
-                    15 + (level * 8),   // Medium exp
+                    15 + (level * 10),
+                    3 + (level * 2),
+                    0 + level,
+                    15 + (level * 8),
                     level,
-                    AttackType.RANGED,  // RANGED - fires projectiles
+                    AttackType.RANGED,
                     "ranged_enemy",
-                    2.0f,               // Attack cooldown (2 seconds between attacks)
-                    120f,               // Long attack range
-                    1.0f,               // Attack animation duration (1 second)
-                    0f,                 // Not conal
-                    0f,                 // Not AOE
-                    80f,                // Projectile speed
-                    0f                  // Not charge
+                    2.0f,
+                    120f,
+                    1.0f,
+                    0f,
+                    0f,
+                    80f,
+                    0f
             );
         }
 
-        /**
-         * Create Wolfie enemy - MELEE attacker for overworld
-         * Has a circular attack indicator
-         */
         public static EnemyStats createWolfieEnemy(int level) {
             return new EnemyStats(
                     "Wolfie",
-                    30 + (level * 20),  // More health (melee enemy needs to get close)
-                    8 + (level * 4),    // More damage
-                    2 + level,          // More defense
-                    20 + (level * 10),  // More exp
+                    30 + (level * 20),
+                    8 + (level * 4),
+                    2 + level,
+                    20 + (level * 10),
                     level,
-                    AttackType.MELEE,   // MELEE - circular attack zone
+                    AttackType.MELEE,
                     "basic_enemy",
-                    1.5f,               // Attack cooldown
-                    25f,                // Short attack range (melee)
-                    1.0f,               // Attack animation duration
-                    0f,                 // Not conal
-                    0f,                 // Not AOE
-                    0f,                 // Not ranged
-                    0f                  // Not charge
+                    1.5f,
+                    25f,
+                    1.0f,
+                    0f,
+                    0f,
+                    0f,
+                    0f
             );
         }
 
-        /**
-         * Create Skeleton enemy - CONAL attacker for dungeons
-         * Has a cone-shaped attack indicator in front
-         */
         public static EnemyStats createSkeletonEnemy(int level) {
             return new EnemyStats(
                     "Skeleton",
-                    30 + (level * 20),  // Decent health
-                    8 + (level * 4),    // Good damage
-                    2 + level,          // Some defense
-                    20 + (level * 10),  // Good exp
+                    30 + (level * 20),
+                    8 + (level * 4),
+                    2 + level,
+                    20 + (level * 10),
                     level,
-                    AttackType.CONAL,   // CONAL - cone attack in front
+                    AttackType.CONAL,
                     "dungeon_enemy",
-                    1.5f,               // Attack cooldown
-                    35f,                // Medium attack range
-                    1.0f,               // Attack animation duration
-                    60f,                // 60 degree cone angle (30 degrees each side)
-                    0f,                 // Not AOE
-                    0f,                 // Not ranged
-                    0f                  // Not charge
-            );
-        }
-
-        /**
-         * Create AOE enemy
-         */
-        public static EnemyStats createAOEEnemy(int level) {
-            return new EnemyStats(
-                    "AOE Mushie",
-                    40 + (level * 25),
-                    6 + (level * 3),
-                    3 + level,
-                    25 + (level * 12),
-                    level,
-                    AttackType.AOE,
-                    "aoe_enemy",
-                    3.0f,
-                    40f,
-                    0.8f,
+                    1.5f,
+                    35f,
+                    1.0f,
+                    60f,
                     0f,
-                    50f,                // AOE radius
                     0f,
                     0f
             );
         }
 
-        /**
-         * Create Boss Kitty - powerful boss enemy
-         */
         public static EnemyStats createBoss(int level) {
             return new EnemyStats(
                     "Boss Kitty",
-                    200 + (level * 50),
-                    20 + (level * 5),
+                    300 + (level * 75),
+                    15 + (level * 5),
                     5 + (level * 2),
-                    100 + (level * 50),
+                    150 + (level * 50),
                     level,
-                    AttackType.CONAL,
+                    AttackType.MELEE,
                     "boss",
-                    2.0f,
-                    50f,
-                    1.0f,
-                    90f,                // Wide 90 degree cone
+                    1.5f,
+                    35f,
+                    0.8f,
                     0f,
+                    100f,
                     0f,
-                    0f
+                    250f
             );
         }
 

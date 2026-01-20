@@ -67,7 +67,7 @@ public class Inventory {
         this.shapeRenderer = new ShapeRenderer();
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
         this.slotTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
-        this.coinIconTexture = Storage.assetManager.get("tiles/coin.png", Texture.class);
+        this.coinIconTexture = Storage.assetManager.get("icons/items/coin.png", Texture.class);
         this.characterSprite = Storage.assetManager.get("character/Sprite-0002.png", Texture.class);
     }
 
@@ -395,15 +395,6 @@ public class Inventory {
         // Draw selected item info
         renderItemInfo(batch, panelX, panelY, panelWidth);
 
-        // Instructions
-        font.setColor(Color.GRAY);
-        font.getData().setScale(0.6f);
-        float instructY = panelY + UI_PADDING;
-        String instructions = selectingEquipmentSlot ?
-                "Up/Down: Navigate Equipment | E: Unequip | C: Switch to Inventory" :
-                "Arrows: Navigate | E: Use/Equip | Q: Drop | C: Switch to Equipment | B/ESC: Close";
-        font.draw(batch, instructions, panelX + UI_PADDING, instructY);
-
         font.setColor(Color.WHITE);
         font.getData().setScale(1.0f);
 
@@ -710,5 +701,9 @@ public class Inventory {
 
     public void dispose() {
         shapeRenderer.dispose();
+    }
+
+    public boolean isInventoryOpen () {
+        return inventoryOpen;
     }
 }

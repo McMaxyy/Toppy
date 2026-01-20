@@ -170,16 +170,11 @@ public class AbilityManager {
             return;
         }
 
-        // Check if shield is equipped
         Item offhand = player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.OFFHAND);
 
-        if (offhand != null && (offhand.getName().toLowerCase().contains("shield") ||
-                offhand.getName().toLowerCase().contains("buckler"))) {
-            // Perform shield bash
+        if (offhand != null && (offhand.getName().toLowerCase().contains("shield"))) {
             performShieldBash();
             offhandCooldown = OFFHAND_COOLDOWN_TIME;
-        } else {
-            System.out.println("No shield equipped!");
         }
     }
 
@@ -187,11 +182,10 @@ public class AbilityManager {
      * Perform shield bash attack
      */
     private void performShieldBash() {
-        System.out.println("Shield Bash!");
+        player.addAbilityVisual(AbilityVisual.ConalAttack.createWhite(player, gameProj, 0.1f, 30f));
 
-        // Similar to Double Swing, deal damage in front of player
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
-        float attackRange = 20f;
+        float attackRange = 30f;
 
         // Get mouse direction
         com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(

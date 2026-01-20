@@ -54,11 +54,13 @@ public class Storage {
         assetManager.load("tiles/stoneFloor.png", Texture.class);
         assetManager.load("tiles/stoneFloor3.png", Texture.class);
         assetManager.load("tiles/stoneFloor4.png", Texture.class);
-        assetManager.load("tiles/coin.png", Texture.class);
         assetManager.load("tiles/rip.png", Texture.class);
         assetManager.load("tiles/hpBar.png", Texture.class);
         assetManager.load("tiles/Portal.png", Texture.class);
         assetManager.load("tiles/grass.png", Texture.class);
+
+        assetManager.load("icons/items/coin.png", Texture.class);
+        assetManager.load("icons/items/HealthPotion.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         assetManager.load("icons/gear/ironHelmet.png", Texture.class);
@@ -74,6 +76,8 @@ public class Storage {
         assetManager.load("icons/abilities/Prayer.png", Texture.class);
         assetManager.load("icons/abilities/Bubble.png", Texture.class);
         assetManager.load("icons/abilities/Rend.png", Texture.class);
+
+        assetManager.load("icons/abilities/Cone.png", Texture.class);
 
         assetManager.load("character/Walking.png", Texture.class);
         assetManager.load("character/Idle2.png", Texture.class);

@@ -4,15 +4,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import config.Storage;
 
-/**
- * Container class for all item type implementations.
- * All item classes are public static inner classes.
- */
 public abstract class ItemTypes {
 
-    /**
-     * Armor items that can be equipped for defense
-     */
     public static class ArmorItem extends Item {
 
         public ArmorItem(String name, String description, Texture texture,
@@ -32,14 +25,12 @@ public abstract class ItemTypes {
         public void equip(entities.Player player) {
             // Apply armor stats to player through equipment system
             player.getStats().setArmorDefense(defense);
-            System.out.println("Equipped armor: " + name + " (+" + defense + " defense)");
         }
 
         @Override
         public void unequip(entities.Player player) {
             // Remove armor stats from player
             player.getStats().setArmorDefense(0);
-            System.out.println("Unequipped armor: " + name);
         }
 
         @Override
@@ -49,9 +40,6 @@ public abstract class ItemTypes {
         }
     }
 
-    /**
-     * Coin items for currency
-     */
     public static class CoinItem extends Item {
         private int amount;
 
@@ -59,7 +47,7 @@ public abstract class ItemTypes {
             super("Coin", "Currency", ItemType.COIN, texture, iconTexture, position);
             this.amount = amount;
             this.value = amount;
-            this.texture = Storage.assetManager.get("tiles/coin.png", Texture.class);
+            this.texture = Storage.assetManager.get("icons/items/coin.png", Texture.class);
         }
 
         @Override
@@ -88,9 +76,6 @@ public abstract class ItemTypes {
         }
     }
 
-    /**
-     * Consumable items that can be used for effects
-     */
     public static class ConsumableItem extends Item {
 
         public ConsumableItem(String name, String description, Texture texture,
@@ -104,7 +89,6 @@ public abstract class ItemTypes {
         @Override
         public void use(entities.Player player) {
             player.getStats().heal(healthRestore);
-            System.out.println("Used " + name + " (+" + healthRestore + " health)");
         }
 
         @Override
@@ -124,9 +108,6 @@ public abstract class ItemTypes {
         }
     }
 
-    /**
-     * Weapon items that can be equipped to deal damage
-     */
     public static class WeaponItem extends Item {
         private int attackSpeed;
 
@@ -135,25 +116,22 @@ public abstract class ItemTypes {
             super(name, description, ItemType.WEAPON, texture, iconTexture, position);
             this.damage = damage;
             this.value = value;
-            this.attackSpeed = 100; // Default attack speed
+            this.attackSpeed = 100;
         }
 
         @Override
         public void use(entities.Player player) {
-            // Weapons are equipped, not used directly
             equip(player);
         }
 
         @Override
         public void equip(entities.Player player) {
             player.getStats().setWeaponDamage(damage);
-            System.out.println("Equipped weapon: " + name + " (+" + damage + " damage)");
         }
 
         @Override
         public void unequip(entities.Player player) {
             player.getStats().setWeaponDamage(0);
-            System.out.println("Unequipped weapon: " + name);
         }
 
         @Override

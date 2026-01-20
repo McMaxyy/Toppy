@@ -33,7 +33,6 @@ import ui.Settings;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.List;
 
 public class GameProj implements Screen, ContactListener {
     private Skin skin;
@@ -63,10 +62,15 @@ public class GameProj implements Screen, ContactListener {
     private final int TILE_SIZE = 16;
     private final int PLAYER_TILE_SIZE = 32;
 
+    // Location states
     private boolean inDungeon = false;
+    private boolean inBossRoom = false;
+
     private Dungeon currentDungeon;
+    private BossRoom currentBossRoom;
     private List<Portal> dungeonPortals = new ArrayList<>();
     private Vector2 overworldPlayerPosition;
+    private Vector2 dungeonPlayerPosition;
     private final int NUM_DUNGEONS = 5;
 
     private MapBoundary mapBoundary;
@@ -78,7 +82,6 @@ public class GameProj implements Screen, ContactListener {
     private Settings settings;
     private boolean isPaused = false;
 
-    // Status effects tracking
     private Map<Object, List<StatusEffect>> statusEffects;
 
     public GameProj(Viewport viewport, Game game, GameScreen gameScreen) {
@@ -94,7 +97,7 @@ public class GameProj implements Screen, ContactListener {
         skin = storage.skin;
         animationManager = new AnimationManager();
         settings = new Settings();
-        settings.setGameProj(this); // Pass reference for safe exit
+        settings.setGameProj(this);
 
         hudCamera = new OrthographicCamera();
         hudViewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), hudCamera);
@@ -138,10 +141,8 @@ public class GameProj implements Screen, ContactListener {
         itemSpawner = new ItemSpawner(world.getWorld());
         player.setItemSpawner(itemSpawner);
 
-        // Initialize status effects tracking
         statusEffects = new HashMap<>();
 
-        // Initialize ability manager for player
         player.initializeAbilityManager(this);
 
         setRandomPlayerSpawn();
@@ -171,7 +172,6 @@ public class GameProj implements Screen, ContactListener {
 
         Vector2 playerSpawn = player.getPosition();
 
-        // Calculate 1/4 of the map's diagonal distance as minimum spawn distance
         float mapWidth = MAP_SIZE_CHUNKS * CHUNK_SIZE * TILE_SIZE;
         float mapHeight = MAP_SIZE_CHUNKS * CHUNK_SIZE * TILE_SIZE;
         float mapDiagonal = (float) Math.sqrt(mapWidth * mapWidth + mapHeight * mapHeight);
@@ -218,7 +218,6 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
 
-                // Check for obstacle overlap in the chunk
                 boolean overlapsObstacle = isPortalOverlappingObstacles(portalX, portalY, 32);
 
                 if (distanceFromSpawn >= minDistanceFromSpawn && !tooCloseToOtherPortals && !overlapsObstacle) {
@@ -238,17 +237,12 @@ public class GameProj implements Screen, ContactListener {
         }
     }
 
-    /**
-     * Check if a portal position overlaps with any obstacles in loaded chunks
-     */
     private boolean isPortalOverlappingObstacles(float portalX, float portalY, float portalSize) {
         Rectangle portalBounds = new Rectangle(portalX, portalY, portalSize, portalSize);
 
-        // Calculate which chunk this portal would be in
         int chunkX = (int) Math.floor(portalX / (CHUNK_SIZE * TILE_SIZE));
         int chunkY = (int) Math.floor(portalY / (CHUNK_SIZE * TILE_SIZE));
 
-        // Check the portal's chunk and adjacent chunks
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
                 Vector2 chunkCoord = new Vector2(chunkX + dx, chunkY + dy);
@@ -271,6 +265,7 @@ public class GameProj implements Screen, ContactListener {
         }
 
         inDungeon = true;
+        inBossRoom = false;
         itemSpawner.clear();
         overworldPlayerPosition = new Vector2(player.getPosition());
 
@@ -290,11 +285,75 @@ public class GameProj implements Screen, ContactListener {
         Vector2 spawnPoint = currentDungeon.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
-        hudLabel.setText("Find the exit!");
+        hudLabel.setText("Find the boss portal!");
+    }
+
+    private void enterBossRoom() {
+        inBossRoom = true;
+        inDungeon = false;
+        itemSpawner.clear();
+
+        dungeonPlayerPosition = new Vector2(player.getPosition());
+
+        // Dispose dungeon (this removes all dungeon enemy bodies and walls)
+        if (currentDungeon != null) {
+            currentDungeon.dispose();
+            currentDungeon = null;
+        }
+
+        if (dungeonMinimap != null) {
+            dungeonMinimap.dispose();
+            dungeonMinimap = null;
+        }
+
+        // Ensure overworld chunks are still disabled (they should be from enterDungeon)
+        for (Chunk chunk : chunks.values()) {
+            chunk.disableObstacles();
+            chunk.disableEnemies();
+        }
+
+        if (mapBoundary != null) {
+            mapBoundary.disable();
+        }
+
+        int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
+        currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager);
+
+        Vector2 spawnPoint = currentBossRoom.getSpawnPoint();
+        player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
+
+        hudLabel.setText("Defeat the boss!");
+    }
+
+    private void exitBossRoom() {
+        inBossRoom = false;
+        inDungeon = false;
+        itemSpawner.clear();
+
+        if (currentBossRoom != null) {
+            currentBossRoom.dispose();
+            currentBossRoom = null;
+        }
+
+        for (Chunk chunk : chunks.values()) {
+            chunk.enableObstacles();
+            chunk.enableEnemies();
+        }
+
+        if (mapBoundary != null) {
+            mapBoundary.enable();
+        }
+
+        if (overworldPlayerPosition != null) {
+            player.getBody().setTransform(overworldPlayerPosition.x, overworldPlayerPosition.y, 0);
+        }
+
+        hudLabel.setText("Enemies killed: " + enemiesKilled);
     }
 
     private void exitDungeon() {
         inDungeon = false;
+        inBossRoom = false;
         itemSpawner.clear();
 
         if (currentDungeon != null) {
@@ -320,7 +379,7 @@ public class GameProj implements Screen, ContactListener {
             player.getBody().setTransform(overworldPlayerPosition.x, overworldPlayerPosition.y, 0);
         }
 
-        hudLabel.setText("Enemied killed: " + enemiesKilled);
+        hudLabel.setText("Enemies killed: " + enemiesKilled);
     }
 
     @Override
@@ -328,8 +387,13 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void render(float delta) {
-        // Handle ESC key for pause menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            if (player.getInventory().isInventoryOpen())
+                player.getInventory().toggleInventory();
+
+            if (minimap.isMapOpen())
+                minimap.toggleMap();
+
             if (isPaused) {
                 unpauseGame();
             } else {
@@ -342,18 +406,16 @@ public class GameProj implements Screen, ContactListener {
             return;
         }
 
-        // Update settings menu
         settings.update(delta);
 
         if (settings != null && isPaused && !settings.isOpen()) {
             unpauseGame();
         }
 
-        // Only update game logic if not paused
         if (!isPaused) {
             world.getWorld().step(1 / 60f, 6, 2);
 
-            if (!inDungeon) {
+            if (!inDungeon && !inBossRoom) {
                 if (minimap != null) {
                     minimap.update();
                 }
@@ -365,7 +427,7 @@ public class GameProj implements Screen, ContactListener {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.P) && minimap.isMapOpen()) {
                     minimap.togglePortalDisplay();
                 }
-            } else {
+            } else if (inDungeon) {
                 if (dungeonMinimap != null) {
                     dungeonMinimap.update();
                 }
@@ -375,17 +437,20 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
 
-            if (!inDungeon) {
+            if (!inDungeon && !inBossRoom) {
                 renderOverworld(delta);
-            } else {
+            } else if (inDungeon) {
                 renderDungeon(delta);
+            } else if (inBossRoom) {
+                renderBossRoom(delta);
             }
         } else {
-            // When paused, still render the game but don't update logic
-            if (!inDungeon) {
-                renderOverworld(0); // Pass 0 delta to prevent updates
-            } else {
+            if (!inDungeon && !inBossRoom) {
+                renderOverworld(0);
+            } else if (inDungeon) {
                 renderDungeon(0);
+            } else if (inBossRoom) {
+                renderBossRoom(0);
             }
         }
 
@@ -393,46 +458,32 @@ public class GameProj implements Screen, ContactListener {
             checkForDeadEnemies();
         }
 
-        // Always render HUD
         if (hudStage != null) {
             hudStage.act(delta);
             hudStage.draw();
         }
 
-
-        // Render settings menu on top of everything if open
         if (settings != null && settings.isOpen()) {
             settings.render(batch, false);
         }
-
-        if (world != null) {
-            Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-//            debugRenderer.render(world.getWorld(), camera.combined);
-        }
     }
 
-    /**
-     * Pause the game and open settings menu
-     */
     private void pauseGame() {
         isPaused = true;
         settings.open();
-        player.setPaused(true); // Disable player input
+        player.setPaused(true);
     }
 
-    /**
-     * Unpause the game and close settings menu
-     */
     private void unpauseGame() {
         isPaused = false;
         settings.close();
-        player.setPaused(false); // Re-enable player input
+        player.setPaused(false);
     }
 
     private void renderOverworld(float delta) {
         if (batch == null) return;
 
-        if (!inDungeon) {
+        if (!inDungeon && !inBossRoom) {
             while (!pendingChunks.isEmpty()) {
                 Chunk chunk = pendingChunks.poll();
                 if (chunk != null) {
@@ -533,32 +584,27 @@ public class GameProj implements Screen, ContactListener {
         if (batch != null)
             batch.end();
 
-        // Only update item spawner if not paused
         if (delta > 0 && player != null) {
             itemSpawner.update(delta);
             itemSpawner.checkPickups(player, player.getInventory());
 
             if (minimap != null) {
-                minimap.update(); // This updates exploration and portal positions
+                minimap.update();
             }
         }
 
-        // Render UI elements with HUD camera
         if (batch != null) {
             batch.setProjectionMatrix(hudCamera.combined);
             player.getInventory().render(batch, false);
 
-            // Render skill bar
             batch.begin();
             player.renderSkillBar(batch);
             batch.end();
 
-            // Render minimap if open
             if (minimap != null && minimap.isMapOpen()) {
                 minimap.render(batch, false);
             }
 
-            // Reset projection matrix back
             batch.setProjectionMatrix(camera.combined);
         }
     }
@@ -578,9 +624,9 @@ public class GameProj implements Screen, ContactListener {
 
         if (currentDungeon != null) {
             currentDungeon.render(batch);
+            currentDungeon.renderPortal(batch, delta);
             itemSpawner.render(batch);
 
-            // Only update dungeon if not paused
             if (delta > 0) {
                 currentDungeon.renderEnemies(batch, delta);
                 currentDungeon.updateEnemies();
@@ -588,26 +634,25 @@ public class GameProj implements Screen, ContactListener {
                 currentDungeon.renderEnemies(batch, 0);
             }
 
-            if (!isPaused && currentDungeon.isPlayerAtExit(player.getPosition()) &&
+            if (!isPaused && currentDungeon.isPlayerAtBossPortal(player.getPosition()) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-                exitDungeon();
+                batch.end();
+                enterBossRoom();
+                return;
             }
         }
 
         player.render(batch, PLAYER_TILE_SIZE);
         player.renderAbilityEffects(batch);
 
-        // Only update player if not paused
         if (delta > 0) {
             player.update(delta);
-            // Update all status effects
             updateStatusEffects(delta);
         }
 
         if (batch != null) {
             batch.end();
 
-            // Only update item spawner if not paused
             if (delta > 0) {
                 itemSpawner.update(delta);
                 itemSpawner.checkPickups(player, player.getInventory());
@@ -616,20 +661,78 @@ public class GameProj implements Screen, ContactListener {
             batch.setProjectionMatrix(hudCamera.combined);
             player.getInventory().render(batch, false);
 
-            // Render skill bar
             batch.begin();
             player.renderSkillBar(batch);
             batch.end();
 
-            // Render dungeon minimap if open
             if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
                 dungeonMinimap.render(batch, false);
             }
         }
     }
 
+    private void renderBossRoom(float delta) {
+        if (batch == null) return;
+
+        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+        camera.update();
+
+        if (delta > 0) {
+            checkForDeadEnemies();
+        }
+
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+
+        if (currentBossRoom != null) {
+            currentBossRoom.render(batch);
+            itemSpawner.render(batch);
+
+            if (delta > 0) {
+                currentBossRoom.renderBoss(batch, delta);
+            } else {
+                currentBossRoom.renderBoss(batch, 0);
+            }
+
+            if (currentBossRoom.isBossDefeated() && currentBossRoom.getExitPortal() != null) {
+                currentBossRoom.getExitPortal().render(batch);
+            }
+
+            if (!isPaused && currentBossRoom.isPlayerAtExit(player.getPosition()) &&
+                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                batch.end();
+                exitBossRoom();
+                return;
+            }
+        }
+
+        player.render(batch, PLAYER_TILE_SIZE);
+        player.renderAbilityEffects(batch);
+
+        if (delta > 0) {
+            player.update(delta);
+            updateStatusEffects(delta);
+        }
+
+        if (batch != null) {
+            batch.end();
+
+            if (delta > 0) {
+                itemSpawner.update(delta);
+                itemSpawner.checkPickups(player, player.getInventory());
+            }
+
+            batch.setProjectionMatrix(hudCamera.combined);
+            player.getInventory().render(batch, false);
+
+            batch.begin();
+            player.renderSkillBar(batch);
+            batch.end();
+        }
+    }
+
     private void scheduleChunkGeneration(int chunkX, int chunkY) {
-        if (inDungeon) return;
+        if (inDungeon || inBossRoom) return;
 
         chunkGenerator.submit(() -> {
             Vector2 chunkCoord = new Vector2(chunkX, chunkY);
@@ -640,7 +743,7 @@ public class GameProj implements Screen, ContactListener {
     }
 
     public void generateChunksAroundPlayer() {
-        if (inDungeon || isPaused) return; // Don't generate chunks when paused
+        if (inDungeon || inBossRoom || isPaused) return;
 
         int playerChunkX = (int) Math.floor(player.getPosition().x / (CHUNK_SIZE * TILE_SIZE));
         int playerChunkY = (int) Math.floor(player.getPosition().y / (CHUNK_SIZE * TILE_SIZE));
@@ -674,6 +777,10 @@ public class GameProj implements Screen, ContactListener {
         return currentDungeon;
     }
 
+    public BossRoom getCurrentBossRoom() {
+        return currentBossRoom;
+    }
+
     public boolean isPaused() {
         return isPaused;
     }
@@ -697,7 +804,12 @@ public class GameProj implements Screen, ContactListener {
 
             player.getStats().addExperience(boss.getStats().getExpReward());
 
-            bossSpawned = false;
+            if (inBossRoom && currentBossRoom != null && currentBossRoom.getBoss() == boss) {
+                currentBossRoom.onBossDefeated();
+                hudLabel.setText("Boss defeated! Use the portal to return!");
+            } else {
+                bossSpawned = false;
+            }
 
         } else if (enemy instanceof DungeonEnemy) {
             DungeonEnemy dungeonEnemy = (DungeonEnemy) enemy;
@@ -710,30 +822,33 @@ public class GameProj implements Screen, ContactListener {
     }
 
     public void checkForDeadEnemies() {
-        // Collect bodies to destroy after iteration
         List<Body> bodiesToDestroy = new ArrayList<>();
 
-        for (Chunk chunk : chunks.values()) {
-            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
-                if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
-                    handleEnemyDeath(enemy, enemy.getBody().getPosition(), false);
-                    bodiesToDestroy.add(enemy.getBody());
-                    enemy.clearBody();
-                    chunk.getEnemies().remove(enemy);
+        // Only check overworld enemies when in overworld
+        if (!inDungeon && !inBossRoom) {
+            for (Chunk chunk : chunks.values()) {
+                for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                    if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
+                        handleEnemyDeath(enemy, enemy.getBody().getPosition(), false);
+                        bodiesToDestroy.add(enemy.getBody());
+                        enemy.clearBody();
+                        chunk.getEnemies().remove(enemy);
+                    }
                 }
-            }
 
-            for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
-                if (boss.isMarkedForRemoval() && boss.getBody() != null) {
-                    handleEnemyDeath(boss, boss.getBody().getPosition(), true);
-                    bodiesToDestroy.add(boss.getBody());
-                    boss.clearBody();
-                    chunk.getBossKitty().remove(boss);
+                for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
+                    if (boss.isMarkedForRemoval() && boss.getBody() != null) {
+                        handleEnemyDeath(boss, boss.getBody().getPosition(), true);
+                        bodiesToDestroy.add(boss.getBody());
+                        boss.clearBody();
+                        chunk.getBossKitty().remove(boss);
+                    }
                 }
             }
         }
 
-        if (currentDungeon != null) {
+        // Only check dungeon enemies when in dungeon
+        if (inDungeon && currentDungeon != null) {
             for (DungeonEnemy enemy : new ArrayList<>(currentDungeon.getEnemies())) {
                 if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
                     handleEnemyDeath(enemy, enemy.getBody().getPosition(), false);
@@ -744,7 +859,17 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        // Destroy all bodies AFTER iteration is complete
+        // Only check boss room boss when in boss room
+        if (inBossRoom && currentBossRoom != null) {
+            BossKitty bossRoomBoss = currentBossRoom.getBoss();
+            if (bossRoomBoss != null && bossRoomBoss.isMarkedForRemoval() && bossRoomBoss.getBody() != null) {
+                handleEnemyDeath(bossRoomBoss, bossRoomBoss.getBody().getPosition(), true);
+                bodiesToDestroy.add(bossRoomBoss.getBody());
+                bossRoomBoss.clearBody();
+                currentBossRoom.setBoss(null);
+            }
+        }
+
         for (Body body : bodiesToDestroy) {
             if (body != null) {
                 world.getWorld().destroyBody(body);
@@ -752,9 +877,6 @@ public class GameProj implements Screen, ContactListener {
         }
     }
 
-    /**
-     * Safely exit the game with proper cleanup
-     */
     public void safeExit() {
         try {
             dispose();
@@ -763,6 +885,14 @@ public class GameProj implements Screen, ContactListener {
         } finally {
             Gdx.app.exit();
         }
+    }
+
+    public boolean isInDungeon() {
+        return inDungeon;
+    }
+
+    public boolean isInBossRoom() {
+        return inBossRoom;
     }
 
     @Override
@@ -784,17 +914,14 @@ public class GameProj implements Screen, ContactListener {
     @Override
     public void dispose() {
         try {
-            // Clean up player spears first
             if (player != null) {
                 player.cleanupSpears();
                 player = null;
             }
 
-            // Shutdown executor before disposing world
             if (chunkGenerator != null && !chunkGenerator.isShutdown()) {
                 chunkGenerator.shutdownNow();
                 try {
-                    // Wait for tasks to terminate
                     if (!chunkGenerator.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS)) {
                         System.err.println("Chunk generator thread pool did not terminate in time");
                     }
@@ -803,28 +930,24 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
 
-            // Clear pending chunks
             if (pendingChunks != null) {
                 pendingChunks.clear();
             }
 
-            // Clear active chunks
             if (chunks != null) {
                 for (Chunk chunk : chunks.values()) {
                     if (chunk != null) {
-                        chunk.dispose(); // Make sure Chunk has a dispose method
+                        chunk.dispose();
                     }
                 }
                 chunks.clear();
             }
 
-            // Dispose settings first
             if (settings != null) {
                 settings.dispose();
                 settings = null;
             }
 
-            // Dispose minimaps
             if (dungeonMinimap != null) {
                 dungeonMinimap.dispose();
                 dungeonMinimap = null;
@@ -834,13 +957,16 @@ public class GameProj implements Screen, ContactListener {
                 minimap = null;
             }
 
-            // Dispose dungeon
             if (currentDungeon != null) {
                 currentDungeon.dispose();
                 currentDungeon = null;
             }
 
-            // Dispose portals before world
+            if (currentBossRoom != null) {
+                currentBossRoom.dispose();
+                currentBossRoom = null;
+            }
+
             if (dungeonPortals != null) {
                 for (Portal portal : dungeonPortals) {
                     if (portal != null) {
@@ -850,12 +976,10 @@ public class GameProj implements Screen, ContactListener {
                 dungeonPortals.clear();
             }
 
-            // Clear status effects
             if (statusEffects != null) {
                 statusEffects.clear();
             }
 
-            // Dispose stages
             if (hudStage != null) {
                 hudStage.dispose();
                 hudStage = null;
@@ -865,19 +989,16 @@ public class GameProj implements Screen, ContactListener {
                 stage = null;
             }
 
-            // Dispose batch
             if (batch != null) {
                 batch.dispose();
                 batch = null;
             }
 
-            // Dispose world last (after all bodies are removed)
             if (world != null) {
                 world.dispose();
                 world = null;
             }
 
-            // Force garbage collection to clean up any remaining resources
             System.gc();
 
         } catch (Exception e) {
@@ -888,7 +1009,7 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void beginContact(Contact contact) {
-        if (isPaused) return; // Don't process collisions when paused
+        if (isPaused) return;
 
         Fixture fixtureA = contact.getFixtureA();
         Fixture fixtureB = contact.getFixtureB();
@@ -903,13 +1024,11 @@ public class GameProj implements Screen, ContactListener {
             Body spearBody = (categoryA == CollisionFilter.SPEAR) ? fixtureA.getBody() : fixtureB.getBody();
             Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
 
-            // Get player damage
             int playerDamage = player.getStats().getTotalDamage();
 
-            if (!inDungeon) {
+            if (!inDungeon && !inBossRoom) {
                 for (Chunk chunk : chunks.values()) {
                     if (!bossSpawned) {
-                        // Normal enemies
                         for (Enemy enemy : chunk.getEnemies()) {
                             if (enemy.getBody() == enemyBody) {
                                 enemy.takeDamage(playerDamage);
@@ -917,7 +1036,6 @@ public class GameProj implements Screen, ContactListener {
                             }
                         }
                     } else {
-                        // Boss enemies
                         for (BossKitty boss : chunk.getBossKitty()) {
                             if (boss.getBody() == enemyBody) {
                                 boss.takeDamage(playerDamage);
@@ -926,13 +1044,17 @@ public class GameProj implements Screen, ContactListener {
                         }
                     }
                 }
-            } else if (currentDungeon != null) {
-                // Dungeon enemies
+            } else if (inDungeon && currentDungeon != null) {
                 for (entities.DungeonEnemy enemy : currentDungeon.getEnemies()) {
                     if (enemy.getBody() == enemyBody) {
                         enemy.takeDamage(playerDamage);
                         break;
                     }
+                }
+            } else if (inBossRoom && currentBossRoom != null) {
+                BossKitty boss = currentBossRoom.getBoss();
+                if (boss != null && boss.getBody() == enemyBody) {
+                    boss.takeDamage(playerDamage);
                 }
             }
 
@@ -958,15 +1080,12 @@ public class GameProj implements Screen, ContactListener {
                 (categoryB == CollisionFilter.PLAYER && categoryA == CollisionFilter.ENEMY)) {
             Body enemyBody = categoryA == CollisionFilter.ENEMY ? fixtureA.getBody() : fixtureB.getBody();
 
-            if (!inDungeon) {
+            if (!inDungeon && !inBossRoom) {
                 for (Chunk chunk : chunks.values()) {
                     if(!bossSpawned) {
-                        // Normal enemies damage player
                         for (Enemy enemy : chunk.getEnemies()) {
                             if (enemy.getBody() == enemyBody && !player.isInvulnerable()) {
                                 enemy.damagePlayer();
-
-                                // Check if player died
                                 if (player.getStats().isDead()) {
                                     player.playerDie();
                                 }
@@ -974,11 +1093,9 @@ public class GameProj implements Screen, ContactListener {
                             }
                         }
                     } else {
-                        // Boss damages player
                         for (BossKitty boss : chunk.getBossKitty()) {
                             if (boss.getBody() == enemyBody) {
                                 boss.damagePlayer();
-
                                 if (player.getStats().isDead()) {
                                     player.playerDie();
                                 }
@@ -987,16 +1104,22 @@ public class GameProj implements Screen, ContactListener {
                         }
                     }
                 }
-            } else if (currentDungeon != null) {
-                // Dungeon enemies damage player
+            } else if (inDungeon && currentDungeon != null) {
                 for (entities.DungeonEnemy enemy : currentDungeon.getEnemies()) {
                     if (enemy.getBody() == enemyBody) {
                         enemy.damagePlayer();
-
                         if (player.getStats().isDead()) {
                             player.playerDie();
                         }
                         break;
+                    }
+                }
+            } else if (inBossRoom && currentBossRoom != null) {
+                BossKitty boss = currentBossRoom.getBoss();
+                if (boss != null && boss.getBody() == enemyBody && !player.isInvulnerable()) {
+                    boss.damagePlayer();
+                    if (player.getStats().isDead()) {
+                        player.playerDie();
                     }
                 }
             }
@@ -1009,7 +1132,6 @@ public class GameProj implements Screen, ContactListener {
             Body abilityBody = (categoryA == CollisionFilter.ABILITY) ? fixtureA.getBody() : fixtureB.getBody();
             Body enemyBody = (categoryA == CollisionFilter.ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
 
-            // Push enemy away from the bubble
             Vector2 abilityPos = abilityBody.getPosition();
             Vector2 enemyPos = enemyBody.getPosition();
             Vector2 pushDirection = new Vector2(enemyPos.x - abilityPos.x, enemyPos.y - abilityPos.y).nor();
@@ -1024,7 +1146,7 @@ public class GameProj implements Screen, ContactListener {
             );
         }
 
-        // ==== ABILITY (BUBBLE) HIT PROJECTILE - Reflect projectile ====
+        // ==== ABILITY (BUBBLE) HIT PROJECTILE ====
         if ((categoryA == CollisionFilter.ABILITY && categoryB == CollisionFilter.PROJECTILE) ||
                 (categoryB == CollisionFilter.ABILITY && categoryA == CollisionFilter.PROJECTILE)) {
 
@@ -1032,7 +1154,6 @@ public class GameProj implements Screen, ContactListener {
             Body projectileBody = (categoryA == CollisionFilter.PROJECTILE) ? fixtureA.getBody() : fixtureB.getBody();
             Fixture projectileFixture = (categoryA == CollisionFilter.PROJECTILE) ? fixtureA : fixtureB;
 
-            // Push projectile away from the bubble
             Vector2 abilityPos = abilityBody.getPosition();
             Vector2 projectilePos = projectileBody.getPosition();
             Vector2 pushDirection = new Vector2(projectilePos.x - abilityPos.x, projectilePos.y - abilityPos.y).nor();
@@ -1046,7 +1167,6 @@ public class GameProj implements Screen, ContactListener {
                     true
             );
 
-            // Change to REFLECT category so it can damage enemies
             Filter newFilter = new Filter();
             newFilter.categoryBits = CollisionFilter.REFLECT;
             newFilter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
@@ -1060,14 +1180,11 @@ public class GameProj implements Screen, ContactListener {
             Body reflectBody = (categoryA == CollisionFilter.REFLECT) ? fixtureA.getBody() : fixtureB.getBody();
             Body enemyBody = (categoryA == CollisionFilter.ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
 
-            // Find the projectile and enemy, deal damage, mark projectile for removal
-            if (!inDungeon) {
+            if (!inDungeon && !inBossRoom) {
                 for (Chunk chunk : chunks.values()) {
-                    // Find the projectile from any enemy's projectile list
                     for (Enemy enemy : chunk.getEnemies()) {
                         for (Projectile projectile : enemy.getProjectiles()) {
                             if (projectile.getBody() == reflectBody) {
-                                // Find the enemy that was hit
                                 for (Enemy targetEnemy : chunk.getEnemies()) {
                                     if (targetEnemy.getBody() == enemyBody) {
                                         targetEnemy.takeDamage(projectile.getDamage());
@@ -1075,7 +1192,6 @@ public class GameProj implements Screen, ContactListener {
                                         break;
                                     }
                                 }
-                                // Also check bosses
                                 for (BossKitty boss : chunk.getBossKitty()) {
                                     if (boss.getBody() == enemyBody) {
                                         boss.takeDamage(projectile.getDamage());
@@ -1088,12 +1204,10 @@ public class GameProj implements Screen, ContactListener {
                         }
                     }
                 }
-            } else if (currentDungeon != null) {
-                // Check dungeon enemies
+            } else if (inDungeon && currentDungeon != null) {
                 for (DungeonEnemy enemy : currentDungeon.getEnemies()) {
                     for (Projectile projectile : enemy.getProjectiles()) {
                         if (projectile.getBody() == reflectBody) {
-                            // Find the enemy that was hit
                             for (DungeonEnemy targetEnemy : currentDungeon.getEnemies()) {
                                 if (targetEnemy.getBody() == enemyBody) {
                                     targetEnemy.takeDamage(projectile.getDamage());
@@ -1114,8 +1228,7 @@ public class GameProj implements Screen, ContactListener {
 
             Body reflectBody = (categoryA == CollisionFilter.REFLECT) ? fixtureA.getBody() : fixtureB.getBody();
 
-            // Find and mark the projectile for removal
-            if (!inDungeon) {
+            if (!inDungeon && !inBossRoom) {
                 for (Chunk chunk : chunks.values()) {
                     for (Enemy enemy : chunk.getEnemies()) {
                         for (Projectile projectile : enemy.getProjectiles()) {
@@ -1126,7 +1239,7 @@ public class GameProj implements Screen, ContactListener {
                         }
                     }
                 }
-            } else if (currentDungeon != null) {
+            } else if (inDungeon && currentDungeon != null) {
                 for (DungeonEnemy enemy : currentDungeon.getEnemies()) {
                     for (Projectile projectile : enemy.getProjectiles()) {
                         if (projectile.getBody() == reflectBody) {
@@ -1152,13 +1265,10 @@ public class GameProj implements Screen, ContactListener {
         return camera;
     }
 
-    // Getters for ability system
     public ConcurrentHashMap<Vector2, Chunk> getChunks() {
         return chunks;
     }
-    /**
-     * Add status effect to target (called by abilities)
-     */
+
     public void addStatusEffect(Object target, StatusEffect effect) {
         if (!statusEffects.containsKey(target)) {
             statusEffects.put(target, new java.util.ArrayList<>());
@@ -1166,16 +1276,12 @@ public class GameProj implements Screen, ContactListener {
         statusEffects.get(target).add(effect);
     }
 
-    /**
-     * Update all status effects and remove expired ones
-     */
     public void updateStatusEffects(float delta) {
         java.util.Iterator<java.util.Map.Entry<Object, List<StatusEffect>>> it = statusEffects.entrySet().iterator();
         while (it.hasNext()) {
             java.util.Map.Entry<Object, List<StatusEffect>> entry = it.next();
             List<StatusEffect> effects = entry.getValue();
 
-            // Update each effect and remove expired ones
             java.util.Iterator<StatusEffect> effectIt = effects.iterator();
             while (effectIt.hasNext()) {
                 StatusEffect effect = effectIt.next();
@@ -1187,7 +1293,6 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
 
-            // Remove empty effect lists
             if (effects.isEmpty()) {
                 it.remove();
             }

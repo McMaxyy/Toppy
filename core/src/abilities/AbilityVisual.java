@@ -3,6 +3,7 @@ package abilities;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
@@ -189,19 +190,22 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-// CONAL ATTACK INDICATOR - For DoubleSwing (white) and Rend (red)
-// Now with swinging animation for DoubleSwing
-// =========================================================================
+    // CONAL ATTACK INDICATOR - Using Cone.png texture with segmented fill
+    // =========================================================================
     public static class ConalAttack extends AbilityVisual {
         private Player player;
         private GameProj gameProj;
         private float range;
         private float coneAngle;
         private Color indicatorColor;
-        private boolean isSwingAnimation; // NEW: Whether to use swing animation
-        private float swingProgress;      // NEW: Progress of swing animation (0-1)
-        private int swingCount;           // NEW: Current swing count (for DoubleSwing)
-        private float swingSpeed = 2.5f;  // NEW: Speed of swing animation
+        private boolean isSwingAnimation;
+        private float swingProgress;
+        private int swingCount;
+        private float swingSpeed = 2.5f;
+
+        // Cone texture
+        private static Texture coneTexture;
+        private static final int NUM_SEGMENTS = 8; // Number of segments to divide cone into
 
         private static final float DEFAULT_RANGE = 25f;
         private static final float DEFAULT_CONE_ANGLE = 60f;
@@ -216,17 +220,15 @@ public abstract class AbilityVisual {
             this.isSwingAnimation = false;
             this.swingProgress = 0f;
             this.swingCount = 1;
-        }
 
-        /**
-         * Create swinging white indicator for DoubleSwing with custom range
-         */
-        public static ConalAttack createSwingingWhite(Player player, GameProj gameProj, float duration, float range, int swingNumber) {
-            ConalAttack attack = new ConalAttack(player, gameProj, duration, range, Color.WHITE);
-            attack.isSwingAnimation = true;
-            attack.swingProgress = 0f;
-            attack.swingCount = swingNumber;
-            return attack;
+            // Load cone texture if not already loaded
+            if (coneTexture == null) {
+                try {
+                    coneTexture = Storage.assetManager.get("icons/abilities/Cone.png", Texture.class);
+                } catch (Exception e) {
+                    coneTexture = null;
+                }
+            }
         }
 
         /**
@@ -269,65 +271,40 @@ public abstract class AbilityVisual {
             Vector2 direction = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
             float facingAngle = direction.angleDeg();
 
-            if (isSwingAnimation) {
-                renderSwingingCone(batch, playerPos, facingAngle);
+            if (coneTexture != null) {
+                renderTexturedConeStatic(batch, playerPos, facingAngle);
             } else {
                 renderStaticCone(batch, playerPos, facingAngle);
             }
         }
 
         /**
-         * Render swinging cone animation (for DoubleSwing)
+         * Render cone using texture (static, full cone)
          */
-        private void renderSwingingCone(SpriteBatch batch, Vector2 playerPos, float facingAngle) {
-            int segments = 20;
-            float halfCone = coneAngle / 3.5f;
-            float angleStep = coneAngle / segments;
+        private void renderTexturedConeStatic(SpriteBatch batch, Vector2 playerPos, float facingAngle) {
+            // Draw the full cone texture
+            float coneWidth = range;
+            float coneHeight = range * 0.8f; // Adjust aspect ratio as needed
 
-            // Calculate how many segments to draw based on swing progress
-            int segmentsToDraw = (int) (segments * swingProgress);
-            if (segmentsToDraw > segments) segmentsToDraw = segments;
+            batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.5f);
 
-            // Render the arc of the swing
-            batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.4f);
-
-            for (int i = 0; i < segmentsToDraw; i++) {
-                float angle1 = facingAngle - halfCone + (i * angleStep);
-                float angle2 = facingAngle - halfCone + ((i + 1) * angleStep);
-
-                float rad1 = (float) Math.toRadians(angle1);
-                float rad2 = (float) Math.toRadians(angle2);
-
-                float x1 = playerPos.x + (float) Math.cos(rad1) * range;
-                float y1 = playerPos.y + (float) Math.sin(rad1) * range;
-                float x2 = playerPos.x + (float) Math.cos(rad2) * range;
-                float y2 = playerPos.y + (float) Math.sin(rad2) * range;
-
-                // Draw the radial line
-                drawLine(batch, playerPos.x, playerPos.y, x1, y1, 2f);
-
-                // Draw the arc segment (but only if we're drawing full cone)
-                if (i < segmentsToDraw - 1) {
-                    batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.2f);
-                    drawLine(batch, x1, y1, x2, y2, 2f);
-                    batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.4f);
-                }
-            }
-
-            // Draw the final radial line if we're at full swing
-            if (segmentsToDraw == segments) {
-                float finalAngle = facingAngle + halfCone;
-                float finalRad = (float) Math.toRadians(finalAngle);
-                float finalX = playerPos.x + (float) Math.cos(finalRad) * range;
-                float finalY = playerPos.y + (float) Math.sin(finalRad) * range;
-                drawLine(batch, playerPos.x, playerPos.y, finalX, finalY, 2f);
-            }
+            // Draw cone with origin at left center (tip of cone)
+            batch.draw(coneTexture,
+                    playerPos.x, playerPos.y - coneHeight / 2f,  // position
+                    0, coneHeight / 2f,                           // origin (left center - cone tip)
+                    coneWidth, coneHeight,                        // size
+                    1f, 1f,                                       // scale
+                    facingAngle,                                  // rotation
+                    0, 0,                                         // src position
+                    coneTexture.getWidth(), coneTexture.getHeight(), // src size
+                    false, false);                                // flip
 
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
+
         /**
-         * Render static cone (for Rend and other abilities)
+         * Render static cone (fallback line-based)
          */
         private void renderStaticCone(SpriteBatch batch, Vector2 playerPos, float facingAngle) {
             batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.3f);
@@ -362,6 +339,169 @@ public abstract class AbilityVisual {
             drawLine(batch, playerPos.x, playerPos.y, finalX, finalY, 2f);
 
             batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        /**
+         * Set the cone texture (can be called to change texture at runtime)
+         */
+        public static void setConeTexture(Texture texture) {
+            coneTexture = texture;
+        }
+    }
+
+    // =========================================================================
+    // ENEMY CONAL ATTACK - For enemy attacks (position-based, not player-based)
+    // =========================================================================
+    public static class EnemyConalAttack extends AbilityVisual {
+        private Vector2 position;
+        private float facingAngle;
+        private float range;
+        private float coneAngle;
+        private Color indicatorColor;
+        private float fillProgress;
+        private float fillSpeed;
+
+        // Cone texture
+        private static Texture coneTexture;
+        private static final int NUM_SEGMENTS = 8;
+
+        public EnemyConalAttack(Vector2 position, float facingAngle, float duration,
+                                float range, float coneAngle, Color color, float fillSpeed) {
+            super(duration);
+            this.position = new Vector2(position);
+            this.facingAngle = facingAngle;
+            this.range = range;
+            this.coneAngle = coneAngle;
+            this.indicatorColor = color;
+            this.fillProgress = 0f;
+            this.fillSpeed = fillSpeed;
+
+            // Load cone texture if not already loaded
+            if (coneTexture == null) {
+                try {
+                    coneTexture = Storage.assetManager.get("tiles/Cone.png", Texture.class);
+                } catch (Exception e) {
+                    coneTexture = null;
+                }
+            }
+        }
+
+        /**
+         * Update the position and facing angle (for moving enemies)
+         */
+        public void updatePositionAndAngle(Vector2 newPosition, float newAngle) {
+            this.position.set(newPosition);
+            this.facingAngle = newAngle;
+        }
+
+        /**
+         * Get current fill progress (0-1)
+         */
+        public float getFillProgress() {
+            return fillProgress;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            if (fillProgress < 1f) {
+                fillProgress += delta * fillSpeed;
+                if (fillProgress > 1f) {
+                    fillProgress = 1f;
+                }
+            }
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            if (coneTexture != null) {
+                renderTexturedCone(batch);
+            } else {
+                renderLineCone(batch);
+            }
+        }
+
+        private void renderTexturedCone(SpriteBatch batch) {
+            int segmentsToDraw = (int)(NUM_SEGMENTS * fillProgress);
+            if (segmentsToDraw < 1 && fillProgress > 0) segmentsToDraw = 1;
+
+            float segmentAngle = coneAngle / NUM_SEGMENTS;
+            float startAngle = facingAngle - (coneAngle / 2f);
+
+            int textureWidth = coneTexture.getWidth();
+            int textureHeight = coneTexture.getHeight();
+            int segmentWidth = textureWidth / NUM_SEGMENTS;
+
+            float coneWidth = range;
+            float coneHeight = range * ((float)textureHeight / textureWidth) * NUM_SEGMENTS;
+            float segmentDrawWidth = coneWidth / NUM_SEGMENTS;
+
+            for (int i = 0; i < segmentsToDraw; i++) {
+                int srcX = i * segmentWidth;
+                TextureRegion segmentRegion = new TextureRegion(coneTexture, srcX, 0, segmentWidth, textureHeight);
+
+                float angle = startAngle + (i * segmentAngle) + (segmentAngle / 2f);
+
+                float segmentAlpha = 0.5f;
+                if (i == segmentsToDraw - 1) {
+                    segmentAlpha = 0.7f;
+                }
+
+                batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, segmentAlpha);
+
+                batch.draw(segmentRegion,
+                        position.x, position.y - coneHeight / 2f,
+                        0, coneHeight / 2f,
+                        segmentDrawWidth, coneHeight,
+                        1f, 1f,
+                        angle);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderLineCone(SpriteBatch batch) {
+            int segments = 12;
+            int segmentsToDraw = (int)(segments * fillProgress);
+            if (segmentsToDraw < 1 && fillProgress > 0) segmentsToDraw = 1;
+
+            float halfCone = coneAngle / 2f;
+            float angleStep = coneAngle / segments;
+
+            batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.4f);
+
+            for (int i = 0; i < segmentsToDraw; i++) {
+                float angle1 = facingAngle - halfCone + (i * angleStep);
+                float rad1 = (float) Math.toRadians(angle1);
+
+                float x1 = position.x + (float) Math.cos(rad1) * range;
+                float y1 = position.y + (float) Math.sin(rad1) * range;
+
+                drawLine(batch, position.x, position.y, x1, y1, 2f);
+            }
+
+            // Draw arc
+            batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.2f);
+            for (int i = 0; i < segmentsToDraw - 1; i++) {
+                float angle1 = facingAngle - halfCone + (i * angleStep);
+                float angle2 = facingAngle - halfCone + ((i + 1) * angleStep);
+                float rad1 = (float) Math.toRadians(angle1);
+                float rad2 = (float) Math.toRadians(angle2);
+
+                float x1 = position.x + (float) Math.cos(rad1) * range;
+                float y1 = position.y + (float) Math.sin(rad1) * range;
+                float x2 = position.x + (float) Math.cos(rad2) * range;
+                float y2 = position.y + (float) Math.sin(rad2) * range;
+
+                drawLine(batch, x1, y1, x2, y2, 2f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        public static void setConeTexture(Texture texture) {
+            coneTexture = texture;
         }
     }
 
@@ -437,8 +577,8 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-// CHARGE TRAIL VISUAL - Trail effect for Charge ability
-// =========================================================================
+    // CHARGE TRAIL VISUAL - Trail effect for Charge ability
+    // =========================================================================
     public static class ChargeTrail extends AbilityVisual {
         private Player player;
         private com.badlogic.gdx.utils.Array<TrailPoint> trailPoints;

@@ -9,9 +9,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import game.GameProj;
-import game.StartScreen; // Import the StartScreen
+import game.StartScreen;
 
-public class GameScreen implements Screen{
+public class GameScreen implements Screen {
 	private Game game;
 	private Viewport viewport;
 	private GameProj gameP;
@@ -26,11 +26,11 @@ public class GameScreen implements Screen{
 	public static final int HOME = 1;
 	public static final int START = 2;
 
+	private boolean isDisposed = false;
+
 	public GameScreen(Game game) {
 		this.game = game;
 		viewport = new FitViewport(SELECTED_WIDTH, SELECTED_HEIGHT);
-//		Gdx.graphics.setUndecorated(false);
-//		Gdx.graphics.setWindowedMode(1920, 1080);
 
 		Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
 		Gdx.graphics.setUndecorated(true);
@@ -40,23 +40,33 @@ public class GameScreen implements Screen{
 	}
 
 	public void setCurrentState(int newState) {
+		if (isDisposed) return;
+
+		// Dispose previous state resources BEFORE changing state
 		if (currentState == HOME && newState == START) {
 			// When switching from game to start screen, dispose game properly
 			if (gameP != null) {
 				gameP.dispose();
 				gameP = null;
 			}
+		} else if (currentState == START && newState == HOME) {
+			// When switching from start screen to game, dispose start screen
+			if (startScreen != null) {
+				startScreen.dispose();
+				startScreen = null;
+			}
 		}
 
 		currentState = newState;
 
-		switch(currentState) {
+		// Create new state resources AFTER disposing old ones
+		switch (currentState) {
 			case START:
 				startScreen = new StartScreen(viewport, game, this);
 				Gdx.input.setInputProcessor(startScreen.getStage());
 				break;
 			case HOME:
-				this.gameP = new GameProj(viewport, game, this);
+				gameP = new GameProj(viewport, game, this);
 				Gdx.input.setInputProcessor(gameP.stage);
 				break;
 		}
@@ -69,24 +79,30 @@ public class GameScreen implements Screen{
 	@Override
 	public void show() {
 		// When screen is shown, set input processor based on current state
-		if (currentState == START) {
+		if (currentState == START && startScreen != null) {
 			Gdx.input.setInputProcessor(startScreen.getStage());
-		} else if (currentState == HOME) {
+		} else if (currentState == HOME && gameP != null) {
 			Gdx.input.setInputProcessor(gameP.stage);
 		}
 	}
 
 	@Override
 	public void render(float delta) {
+		if (isDisposed) return;
+
 		Gdx.gl.glClearColor(55 / 255f, 55 / 255f, 55 / 255f, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		switch(currentState) {
+		switch (currentState) {
 			case START:
-				startScreen.render(delta);
+				if (startScreen != null && !startScreen.isDisposed()) {
+					startScreen.render(delta);
+				}
 				break;
 			case HOME:
-				gameP.render(delta);
+				if (gameP != null) {
+					gameP.render(delta);
+				}
 				break;
 		}
 	}
@@ -97,32 +113,31 @@ public class GameScreen implements Screen{
 		viewport.apply();
 		viewport.getCamera().update();
 
-		// Update StartScreen viewport
-		if (startScreen != null) {
+		// Only resize the CURRENT state
+		if (currentState == START && startScreen != null && !startScreen.isDisposed()) {
 			startScreen.resize(width, height);
+		} else if (currentState == HOME && gameP != null) {
+			gameP.resize(width, height);
 		}
 	}
 
 	@Override
 	public void pause() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void resume() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void hide() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void dispose() {
+		if (isDisposed) return;
+		isDisposed = true;
+
 		// Dispose StartScreen
 		if (startScreen != null) {
 			startScreen.dispose();

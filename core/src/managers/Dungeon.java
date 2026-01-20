@@ -23,23 +23,28 @@ import entities.DungeonEnemy;
 import entities.EnemyStats;
 import entities.EnemyType;
 import entities.Player;
+import entities.Portal;
 
 public class Dungeon {
     private final int width;
     private final int height;
     private final int tileSize;
-    private final int[][] tiles; // 0 = wall, 1 = floor, 2 = exit
+    private final int[][] tiles; // 0 = wall, 1 = floor, 2 = boss portal location
     private final List<Wall> walls;
     private final List<DungeonEnemy> enemies;
     private final Player player;
     private final AnimationManager animationManager;
     private final World world;
     private Vector2 spawnPoint;
-    private Vector2 exitPoint;
+
+    // Boss room portal (leads to boss room, not the exit)
+    private Portal bossRoomPortal;
+    private Vector2 bossPortalPoint;
+    private Room bossPortalRoom;
 
     private static final int FLOOR = 1;
     private static final int WALL = 0;
-    private static final int EXIT = 2;
+    private static final int BOSS_PORTAL = 2;
 
     private Texture wallTexture;
     private Texture floorTexture;
@@ -165,12 +170,37 @@ public class Dungeon {
             spawnPoint = new Vector2(firstRoom.centerX() * tileSize, firstRoom.centerY() * tileSize);
         }
 
-        // Place exit portal in furthest room from spawn
+        // Find furthest room and place the boss portal there
         if (rooms.size() > 1) {
             Room furthestRoom = findFurthestRoom(rooms);
-            exitPoint = new Vector2(furthestRoom.centerX() * tileSize, furthestRoom.centerY() * tileSize);
-            tiles[furthestRoom.centerX()][furthestRoom.centerY()] = EXIT;
+            placeBossPortal(furthestRoom);
         }
+    }
+
+    /**
+     * Places the boss room portal in the furthest room
+     */
+    private void placeBossPortal(Room room) {
+        bossPortalRoom = room;
+        bossPortalPoint = new Vector2(room.centerX() * tileSize, room.centerY() * tileSize);
+
+        // Mark the tile as boss portal location
+        int tileX = room.centerX();
+        int tileY = room.centerY();
+        if (tileX >= 0 && tileX < width && tileY >= 0 && tileY < height) {
+            tiles[tileX][tileY] = BOSS_PORTAL;
+        }
+
+        // Create the portal entity (not cleared - leads to boss room)
+        bossRoomPortal = new Portal(
+                bossPortalPoint.x - 16,
+                bossPortalPoint.y - 16,
+                32,
+                world,
+                false // Not cleared - this portal leads to the boss room
+        );
+
+        System.out.println("Boss room portal placed at: " + bossPortalPoint.x + ", " + bossPortalPoint.y);
     }
 
     private Room findFurthestRoom(List<Room> rooms) {
@@ -236,233 +266,119 @@ public class Dungeon {
     }
 
     private void createWalls() {
-
         for (int x = 0; x < width; x++) {
-
             for (int y = 0; y < height; y++) {
-
-                if (tiles[x][y] == WALL && isEdgeWall(x, y)) {  // ONLY create edge walls
-
+                if (tiles[x][y] == WALL && isEdgeWall(x, y)) {
                     float worldX = x * tileSize;
-
                     float worldY = y * tileSize;
-
-
 
                     TextureRegion wallTile = getWallTextureForTile(x, y, true);
 
-
-
                     Body body = createWallBody(worldX, worldY);
-
                     walls.add(new Wall(new Rectangle(worldX, worldY, tileSize, tileSize),
-
                             wallTile, body));
-
                 }
-
             }
-
         }
-
     }
-
-
 
     private TextureRegion getWallTextureForTile(int x, int y, boolean isEdge) {
-
         if (!isEdge) return null;
 
-
-
         boolean hasWallUp = isEdgeWallNeighbor(x, y + 1);
-
         boolean hasWallDown = isEdgeWallNeighbor(x, y - 1);
-
         boolean hasWallLeft = isEdgeWallNeighbor(x - 1, y);
-
         boolean hasWallRight = isEdgeWallNeighbor(x + 1, y);
 
-
-
         int edgeWallCount = (hasWallUp ? 1 : 0) + (hasWallDown ? 1 : 0) +
-
                 (hasWallLeft ? 1 : 0) + (hasWallRight ? 1 : 0);
 
-
-
         // === T-JUNCTIONS ===
-
         if (edgeWallCount == 3) {
-
             if (hasWallLeft && hasWallRight && hasWallDown) return wallTJunctionTTexture;
-
             if (hasWallUp && hasWallDown && hasWallLeft) return wallTJunctionRTexture;
-
             if (hasWallLeft && hasWallRight && hasWallUp) return wallTJunctionBTexture;
-
             if (hasWallUp && hasWallDown && hasWallRight) return wallTJunctionLTexture;
-
         }
-
-
 
         // === CORNERS ===
-
         if (hasWallDown && hasWallRight) return wallCornerTLTexture;
-
         if (hasWallDown && hasWallLeft) return wallCornerTRTexture;
-
         if (hasWallUp && hasWallRight) return wallCornerBLTexture;
-
         if (hasWallUp && hasWallLeft) return wallCornerBRTexture;
 
-
-
         // === STRAIGHT WALLS ===
-
         if (hasWallLeft && hasWallRight) return wallHorizontalTexture;
-
         if (hasWallUp && hasWallDown) return wallVerticalTexture;
 
-
-
         // === DEAD ENDS ===
-
         if (hasWallRight) return wallEndLTexture;
-
         if (hasWallLeft) return wallEndRTexture;
-
         if (hasWallDown) return wallEndTTexture;
-
         if (hasWallUp) return wallEndBTexture;
 
-
-
         // === SINGLE WALL ===
-
         return wallSingleTexture;
-
     }
-
-
 
     private boolean isWall(int x, int y) {
-
         if (x < 0 || x >= width || y < 0 || y >= height) return true;
-
         return tiles[x][y] == WALL;
-
     }
-
-
 
     private boolean isEdgeWall(int x, int y) {
-
         if (x < 0 || x >= width || y < 0 || y >= height) return false;
-
         if (tiles[x][y] != WALL) return false;
 
-
-
         // Check 8 directions (including diagonals)
-
         int[][] allDirections = {
-
                 {-1, 1}, {0, 1}, {1, 1},
-
                 {-1, 0},         {1, 0},
-
                 {-1, -1}, {0, -1}, {1, -1}
-
         };
 
-
-
         for (int[] dir : allDirections) {
-
             int nx = x + dir[0];
-
             int ny = y + dir[1];
 
-
-
             // If out of bounds, this is an edge (outside corner touching void)
-
             if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
-
                 return true;
-
             }
 
-
-
-            // If adjacent to floor/exit
-
-            if (tiles[nx][ny] == FLOOR || tiles[nx][ny] == EXIT) {
-
+            // If adjacent to floor or boss portal
+            if (tiles[nx][ny] == FLOOR || tiles[nx][ny] == BOSS_PORTAL) {
                 return true;
-
             }
-
         }
 
-
-
         return false;
-
     }
-
-
 
     private boolean isEdgeWallNeighbor(int x, int y) {
-
         // Only check for edge walls, not interior walls
-
         if (x < 0 || x >= width || y < 0 || y >= height) return false;
-
         return isEdgeWall(x, y);
-
     }
 
-
-
     private Body createWallBody(float x, float y) {
-
         BodyDef bodyDef = new BodyDef();
-
         bodyDef.type = BodyDef.BodyType.StaticBody;
-
         bodyDef.position.set(x + tileSize / 2f, y + tileSize / 2f);
 
-
-
         PolygonShape shape = new PolygonShape();
-
         shape.setAsBox(tileSize / 2f, tileSize / 2f);
 
-
-
         FixtureDef fixtureDef = new FixtureDef();
-
         fixtureDef.shape = shape;
-
         fixtureDef.filter.categoryBits = CollisionFilter.WALL;
-
         fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY;
 
-
-
         Body body = world.createBody(bodyDef);
-
         body.createFixture(fixtureDef);
-
         shape.dispose();
 
-
-
         return body;
-
     }
 
     private void spawnEnemies(Random random) {
@@ -484,7 +400,8 @@ public class Dungeon {
                     float centerWorldX = centerX * tileSize;
                     float centerWorldY = centerY * tileSize;
 
-                    if (!isNearSpawn(centerWorldX, centerWorldY, 100f)) {
+                    if (!isNearSpawn(centerWorldX, centerWorldY, 100f) &&
+                            !isNearBossPortal(centerWorldX, centerWorldY, 80f)) {
                         int enemiesInClump = 4 + random.nextInt(7);
 
                         for (int i = 0; i < enemiesInClump; i++) {
@@ -538,6 +455,13 @@ public class Dungeon {
     private boolean isNearSpawn(float x, float y, float minDistance) {
         float dx = x - spawnPoint.x;
         float dy = y - spawnPoint.y;
+        return Math.sqrt(dx * dx + dy * dy) < minDistance;
+    }
+
+    private boolean isNearBossPortal(float x, float y, float minDistance) {
+        if (bossPortalPoint == null) return false;
+        float dx = x - bossPortalPoint.x;
+        float dy = y - bossPortalPoint.y;
         return Math.sqrt(dx * dx + dy * dy) < minDistance;
     }
 
@@ -668,12 +592,9 @@ public class Dungeon {
             for (int y = 0; y < height; y++) {
                 if (tiles[x][y] == FLOOR) {
                     batch.draw(floorTexture, x * tileSize, y * tileSize, tileSize, tileSize);
-                } else if (tiles[x][y] == EXIT) {
+                } else if (tiles[x][y] == BOSS_PORTAL) {
                     batch.draw(floorTexture, x * tileSize, y * tileSize, tileSize, tileSize);
-                    float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 200.0) * 0.2f;
-//                    batch.setColor(0.5f, 1f, 0.5f, 0.8f);
-                    batch.draw(exitTexture, x * tileSize, y * tileSize, tileSize, tileSize);
-                    batch.setColor(1, 1, 1, 1);
+                    // Portal will be rendered separately
                 }
             }
         }
@@ -683,6 +604,13 @@ public class Dungeon {
             if (wall.textureRegion != null) {
                 batch.draw(wall.textureRegion, wall.bounds.x, wall.bounds.y, wall.bounds.width, wall.bounds.height);
             }
+        }
+    }
+
+    public void renderPortal(SpriteBatch batch, float delta) {
+        if (bossRoomPortal != null) {
+            bossRoomPortal.update(delta);
+            bossRoomPortal.render(batch);
         }
     }
 
@@ -697,12 +625,22 @@ public class Dungeon {
         enemies.removeIf(DungeonEnemy::isMarkedForRemoval);
     }
 
-    public boolean isPlayerAtExit(Vector2 playerPos) {
-        if (exitPoint == null) return false;
+    /**
+     * Check if player is at the boss room portal
+     */
+    public boolean isPlayerAtBossPortal(Vector2 playerPos) {
+        if (bossPortalPoint == null || bossRoomPortal == null) return false;
 
-        float dx = playerPos.x - exitPoint.x;
-        float dy = playerPos.y - exitPoint.y;
+        float dx = playerPos.x - bossPortalPoint.x;
+        float dy = playerPos.y - bossPortalPoint.y;
         return Math.sqrt(dx * dx + dy * dy) < tileSize;
+    }
+
+    /**
+     * Get the boss room portal
+     */
+    public Portal getBossRoomPortal() {
+        return bossRoomPortal;
     }
 
     public Vector2 getSpawnPoint() {
@@ -720,12 +658,33 @@ public class Dungeon {
         return tiles[x][y];
     }
 
+    public int getTileSize() {
+        return tileSize;
+    }
+
     public void dispose() {
+        // Destroy wall bodies
         for (Wall wall : walls) {
-            world.destroyBody(wall.body);
+            if (wall.body != null) {
+                world.destroyBody(wall.body);
+            }
         }
+        walls.clear();
+
+        // Destroy enemy bodies and dispose enemies
         for (DungeonEnemy enemy : enemies) {
+            if (enemy.getBody() != null) {
+                world.destroyBody(enemy.getBody());
+                enemy.clearBody();
+            }
             enemy.dispose();
+        }
+        enemies.clear();
+
+        // Dispose boss room portal if exists
+        if (bossRoomPortal != null) {
+            bossRoomPortal.dispose(world);
+            bossRoomPortal = null;
         }
     }
 

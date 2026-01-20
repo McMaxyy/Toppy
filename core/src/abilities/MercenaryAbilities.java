@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Vector3;
 import config.Storage;
 import entities.*;
 import game.GameProj;
+import managers.BossRoom;
 import managers.Chunk;
 
 import java.util.ArrayList;
@@ -17,11 +18,10 @@ import java.util.ArrayList;
 public abstract class MercenaryAbilities {}
 
 class ChargeAbility extends Ability {
-    private static final float CHARGE_SPEED = 3000f; // Match Player dash speed
-    private static final float CHARGE_DURATION = 0.5f; // Match Player dash duration
+    private static final float CHARGE_SPEED = 3000f;
+    private static final float CHARGE_DURATION = 0.5f;
     private static final float STUN_DURATION = 1.5f;
 
-    // Charge state
     private Player chargingPlayer;
     private GameProj currentGameProj;
     private AbilityVisual.ChargeTrail trailVisual;
@@ -30,11 +30,11 @@ class ChargeAbility extends Ability {
         super(
                 "Charge",
                 "Dash forward, dealing damage and stunning enemies on impact",
-                1.0f,  // cooldown
-                50,    // damage
-                0f,    // cast time
-                CHARGE_DURATION,    // duration
-                30f,   // distance (hit radius)
+                1.0f,
+                50,
+                0f,
+                CHARGE_DURATION,
+                30f,
                 AbilityType.CROWD_CONTROL,
                 iconTexture
         );
@@ -45,7 +45,6 @@ class ChargeAbility extends Ability {
         player.setInvulnerable(true);
         Vector2 movementDirection = getPlayerMovementDirection();
 
-        // If no movement keys are pressed, dash towards mouse instead
         if (movementDirection.isZero()) {
             Vector3 mousePosition3D = gameProj.getCamera().unproject(
                     new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
@@ -59,24 +58,21 @@ class ChargeAbility extends Ability {
             ).nor();
         }
 
-        // Calculate velocity EXACTLY like Player dash
         Vector2 chargeVelocity = new Vector2(
                 movementDirection.x * CHARGE_SPEED * 25,
                 movementDirection.y * CHARGE_SPEED * 25
         );
 
-        // Start charging using Player's charge system
         player.startCharge(chargeVelocity, CHARGE_DURATION);
         chargingPlayer = player;
         currentGameProj = gameProj;
 
-        // Create trail visual
-        trailVisual = new AbilityVisual.ChargeTrail(player, CHARGE_DURATION + 0.5f);
+        trailVisual = new AbilityVisual.ChargeTrail(player, CHARGE_DURATION);
         player.addAbilityVisual(trailVisual);
 
         new Thread(() -> {
             try {
-                Thread.sleep((long)(duration * 2 * 1000));
+                Thread.sleep((long)(duration * 1000 * 2));
 
                 Gdx.app.postRunnable(() -> {
                     player.setInvulnerable(false);
@@ -99,19 +95,14 @@ class ChargeAbility extends Ability {
         }
     }
 
-    /**
-     * Get the player's current movement direction based on input keys
-     * This mimics the Player.input() method
-     */
     private Vector2 getPlayerMovementDirection() {
         Vector2 direction = new Vector2(0, 0);
 
-//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.W)) direction.y += 1;
-//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.S)) direction.y -= 1;
-//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.A)) direction.x -= 1;
-//        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.D)) direction.x += 1;
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.W)) direction.y += 1;
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.S)) direction.y -= 1;
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.A)) direction.x -= 1;
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.D)) direction.x += 1;
 
-        // Normalize to prevent diagonal movement being faster
         if (!direction.isZero()) {
             direction.nor();
         }
@@ -125,12 +116,10 @@ class ChargeAbility extends Ability {
         Vector2 playerPos = chargingPlayer.getPosition();
         float hitRadius = distance;
 
-        // Get the set of already hit enemies from the player
         java.util.Set<Object> hitEnemies = chargingPlayer.getChargeHitEnemies();
 
         // Check overworld enemies
         for (Chunk chunk : currentGameProj.getChunks().values()) {
-            // Regular enemies
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
@@ -144,7 +133,6 @@ class ChargeAbility extends Ability {
                 }
             }
 
-            // Boss enemies
             for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
                 if (boss.getBody() != null && !hitEnemies.contains(boss)) {
                     float dist = playerPos.dst(boss.getBody().getPosition());
@@ -174,7 +162,23 @@ class ChargeAbility extends Ability {
                 }
             }
         }
+
+        // Check boss room boss
+        if (currentGameProj.getCurrentBossRoom() != null) {
+            BossKitty bossRoomBoss = currentGameProj.getCurrentBossRoom().getBoss();
+            if (bossRoomBoss != null && bossRoomBoss.getBody() != null && !hitEnemies.contains(bossRoomBoss)) {
+                float dist = playerPos.dst(bossRoomBoss.getBody().getPosition());
+                if (dist < hitRadius) {
+                    bossRoomBoss.takeDamage(damage);
+                    StunEffect stun = new StunEffect(bossRoomBoss, STUN_DURATION);
+                    stun.onApply();
+                    currentGameProj.addStatusEffect(bossRoomBoss, stun);
+                    hitEnemies.add(bossRoomBoss);
+                }
+            }
+        }
     }
+
     public boolean isCharging() {
         return chargingPlayer != null && chargingPlayer.isCharging();
     }
@@ -193,11 +197,11 @@ class DoubleSwingAbility extends Ability {
         super(
                 "Double Swing",
                 "Strike twice, each hit dealing 90% weapon damage",
-                1.0f,  // cooldown
-                0,     // damage (based on player weapon)
-                0f,    // cast time
-                0f,    // duration
-                50f,   // distance (attack range)
+                1.0f,
+                0,
+                0f,
+                0f,
+                50f,
                 AbilityType.DAMAGE,
                 iconTexture
         );
@@ -208,21 +212,18 @@ class DoubleSwingAbility extends Ability {
         int playerDamage = player.getStats().getTotalDamage();
         int swingDamage = (int)(playerDamage * 0.9f);
 
-        // Create first swinging visual
-        firstSwing = AbilityVisual.ConalAttack.createSwingingWhite(player, gameProj, 0.3f, distance, 1);
+        firstSwing = AbilityVisual.ConalAttack.createWhite(player, gameProj, 0.1f, distance);
         player.addAbilityVisual(firstSwing);
 
-        // Deal first swing damage immediately
         dealDamageInArea(player, swingDamage, gameProj);
 
-        // Schedule second swing after a delay
         new Thread(() -> {
             try {
                 Thread.sleep(300);
 
                 Gdx.app.postRunnable(() -> {
                     if (player != null) {
-                        secondSwing = AbilityVisual.ConalAttack.createSwingingWhite(player, gameProj, 0.3f, distance, 2);
+                        secondSwing = AbilityVisual.ConalAttack.createWhite(player, gameProj, 0.1f, distance);
                         player.addAbilityVisual(secondSwing);
 
                         dealDamageInArea(player, swingDamage, gameProj);
@@ -243,6 +244,7 @@ class DoubleSwingAbility extends Ability {
         Vector2 mousePos = new Vector2(mousePos3D.x, mousePos3D.y);
         Vector2 attackDir = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
 
+        // Check overworld enemies
         for (Chunk chunk : gameProj.getChunks().values()) {
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -267,6 +269,7 @@ class DoubleSwingAbility extends Ability {
             }
         }
 
+        // Check dungeon enemies
         if (gameProj.getCurrentDungeon() != null) {
             for (DungeonEnemy enemy : new ArrayList<>(gameProj.getCurrentDungeon().getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -276,6 +279,19 @@ class DoubleSwingAbility extends Ability {
                     if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(damage);
                     }
+                }
+            }
+        }
+
+        // Check boss room boss
+        if (gameProj.getCurrentBossRoom() != null) {
+            BossKitty bossRoomBoss = gameProj.getCurrentBossRoom().getBoss();
+            if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
+                Vector2 enemyPos = bossRoomBoss.getBody().getPosition();
+                Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+
+                if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    bossRoomBoss.takeDamage(damage);
                 }
             }
         }
@@ -292,11 +308,11 @@ class BubbleAbility extends Ability {
         super(
                 "Bubble",
                 "Gain a shield that blocks all damage for 2 seconds",
-                12.0f, // cooldown
-                0,     // damage
-                0f,    // cast time
-                2f,    // duration
-                0f,    // distance (not used)
+                12.0f,
+                0,
+                0f,
+                2f,
+                0f,
                 AbilityType.BUFF,
                 iconTexture
         );
@@ -306,7 +322,6 @@ class BubbleAbility extends Ability {
     protected void execute(Player player, GameProj gameProj) {
         player.setInvulnerable(true);
 
-        // Create bubble visual with protective body
         AbilityVisual.Bubble bubbleVisual = new AbilityVisual.Bubble(
                 player, player.getBody().getWorld(), 2.0f
         );
@@ -320,7 +335,6 @@ class BubbleAbility extends Ability {
             try {
                 Thread.sleep((long)(duration * 1000));
 
-                // Run on main thread to avoid concurrency issues
                 Gdx.app.postRunnable(() -> {
                     player.setInvulnerable(false);
                 });
@@ -343,11 +357,11 @@ class RendAbility extends Ability {
         super(
                 "Rend",
                 "Inflict bleeding wounds on all enemies in a cone, dealing damage over time",
-                10.0f, // cooldown
-                0,    // initial damage
-                0f,    // cast time
-                BLEED_DURATION, // duration
-                50f,   // distance (attack range)
+                10.0f,
+                0,
+                0f,
+                BLEED_DURATION,
+                50f,
                 AbilityType.DEBUFF,
                 iconTexture
         );
@@ -358,8 +372,7 @@ class RendAbility extends Ability {
         Vector2 playerPos = player.getPosition();
         int enemiesHit = 0;
 
-        // Create RED conal attack indicator with ability's distance
-        AbilityVisual.ConalAttack indicator = AbilityVisual.ConalAttack.createRed(player, gameProj, 0.4f, distance);
+        AbilityVisual.ConalAttack indicator = AbilityVisual.ConalAttack.createRed(player, gameProj, 0.2f, distance);
         player.addAbilityVisual(indicator);
 
         Vector3 mousePos3D = gameProj.getCamera().unproject(
@@ -370,18 +383,15 @@ class RendAbility extends Ability {
 
         // Hit ALL enemies in overworld chunks
         for (Chunk chunk : gameProj.getChunks().values()) {
-            // Hit regular enemies
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null) {
                     Vector2 enemyPos = enemy.getBody().getPosition();
                     Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
                     float dist = toEnemy.len();
 
-                    // Check if enemy is within range and in the cone
                     if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(damage);
 
-                        // Apply bleed effect
                         BleedEffect bleed = new BleedEffect(enemy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
                         bleed.onApply();
                         gameProj.addStatusEffect(enemy, bleed);
@@ -391,7 +401,6 @@ class RendAbility extends Ability {
                 }
             }
 
-            // Hit boss enemies
             for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
                 if (boss.getBody() != null) {
                     Vector2 enemyPos = boss.getBody().getPosition();
@@ -401,7 +410,6 @@ class RendAbility extends Ability {
                     if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         boss.takeDamage(damage);
 
-                        // Apply bleed effect to boss
                         BleedEffect bleed = new BleedEffect(boss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
                         bleed.onApply();
                         gameProj.addStatusEffect(boss, bleed);
@@ -423,13 +431,32 @@ class RendAbility extends Ability {
                     if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(damage);
 
-                        // Apply bleed effect
                         BleedEffect bleed = new BleedEffect(enemy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
                         bleed.onApply();
                         gameProj.addStatusEffect(enemy, bleed);
 
                         enemiesHit++;
                     }
+                }
+            }
+        }
+
+        // Hit boss room boss
+        if (gameProj.getCurrentBossRoom() != null) {
+            BossKitty bossRoomBoss = gameProj.getCurrentBossRoom().getBoss();
+            if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
+                Vector2 enemyPos = bossRoomBoss.getBody().getPosition();
+                Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+                float dist = toEnemy.len();
+
+                if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    bossRoomBoss.takeDamage(damage);
+
+                    BleedEffect bleed = new BleedEffect(bossRoomBoss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                    bleed.onApply();
+                    gameProj.addStatusEffect(bossRoomBoss, bleed);
+
+                    enemiesHit++;
                 }
             }
         }
@@ -455,11 +482,11 @@ class PrayerAbility extends Ability {
         super(
                 "Prayer",
                 "Channel divine energy to restore 80 health",
-                15.0f, // cooldown
-                0,     // damage
-                1.0f,  // cast time
-                0f,    // duration
-                0f,    // distance (not used)
+                15.0f,
+                0,
+                1.0f,
+                0f,
+                0f,
                 AbilityType.HEALING,
                 iconTexture
         );
@@ -470,7 +497,6 @@ class PrayerAbility extends Ability {
         super.onCastStart(player, gameProj);
         this.targetPlayer = player;
 
-        // Create prayer visual during cast
         prayerVisual = new AbilityVisual.Prayer(player, castTime);
         player.addAbilityVisual(prayerVisual);
 
@@ -514,11 +540,11 @@ class BlinkAbility extends Ability {
         super(
                 "Blink",
                 "Teleport a distance towards the mouse position",
-                15.0f, // cooldown
-                0,     // damage
-                0f,    // cast time
-                0f,    // duration
-                100f,  // distance (teleport range)
+                15.0f,
+                0,
+                0f,
+                0f,
+                100f,
                 AbilityType.CROWD_CONTROL,
                 iconTexture
         );
@@ -531,10 +557,8 @@ class BlinkAbility extends Ability {
         );
         Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
 
-        // Teleport the player
         player.getBody().setTransform(mousePosition, 0f);
 
-        // Create blink visual at destination
         AbilityVisual.Blink blinkVisual = new AbilityVisual.Blink(mousePosition);
         player.addAbilityVisual(blinkVisual);
 

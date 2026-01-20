@@ -23,6 +23,7 @@ public class Enemy {
     private final Player player;
     private final float detectionRadius = 150f;
     private final float speed = 60f;
+    private float windupTimer = 0f;
     private boolean markForRemoval = false;
     private boolean isMoving = false;
     private final AnimationManager animationManager;
@@ -180,6 +181,7 @@ public class Enemy {
 
     private void updateAttack(float delta) {
         body.setLinearVelocity(0, 0);
+        windupTimer += delta;
 
         // Show attack indicator during wind-up for melee enemies
         if (stats.getAttackType() == AttackType.MELEE || stats.getAttackType() == AttackType.CONAL) {
@@ -249,13 +251,13 @@ public class Enemy {
     }
 
     private void startAttack() {
+        windupTimer = 0f;
         isAttacking = true;
         hasDealtDamage = false;
         body.setLinearVelocity(0, 0);
 
         updateAttackDirection();
 
-        // Set attack animation state - resets animation time
         setState(State.ATTACKING);
 
         handleAttackStart();
@@ -433,29 +435,44 @@ public class Enemy {
     private void renderMeleeIndicator(SpriteBatch batch, Vector2 enemyPos) {
         float range = stats.getAttackRange();
 
-        batch.setColor(1f, 1f, 1f, 0.3f);
-
-        int segments = 16;
-        float angleStep = 360f / segments;
-
-        for (int i = 0; i < segments; i++) {
-            float angle = i * angleStep;
-            float nextAngle = (i + 1) * angleStep;
-            float rad = (float) Math.toRadians(angle);
-            float nextRad = (float) Math.toRadians(nextAngle);
-
-            float x1 = enemyPos.x + (float) Math.cos(rad) * range;
-            float y1 = enemyPos.y + (float) Math.sin(rad) * range;
-            float x2 = enemyPos.x + (float) Math.cos(nextRad) * range;
-            float y2 = enemyPos.y + (float) Math.sin(nextRad) * range;
-
-            drawLine(batch, x1, y1, x2, y2, 2f);
-        }
-
         batch.setColor(1f, 1f, 1f, 0.15f);
         batch.draw(whitePixelTexture, enemyPos.x - range, enemyPos.y - range, range * 2, range * 2);
 
         batch.setColor(1, 1, 1, 1);
+
+        Vector2 bossPos = new Vector2(body.getPosition().x, body.getPosition().y);
+
+        float fillProgress = Math.min(1f, windupTimer / 0.5f);
+
+        int segments = 32;
+        float angleStep = 360f / segments;
+
+        batch.setColor(1f, 0.2f, 0.2f, 0.3f * fillProgress);
+        for (int i = 0; i < segments * fillProgress; i++) {
+            float angle = i * angleStep;
+            float rad = (float) Math.toRadians(angle);
+            float x = bossPos.x + (float) Math.cos(rad) * range;
+            float y = bossPos.y + (float) Math.sin(rad) * range;
+            drawLine(batch, bossPos.x, bossPos.y, x, y, 2f);
+        }
+
+        // Draw circle outline
+        batch.setColor(1f, 0.3f, 0.3f, 0.6f);
+        for (int i = 0; i < segments; i++) {
+            float angle1 = i * angleStep;
+            float angle2 = (i + 1) * angleStep;
+            float rad1 = (float) Math.toRadians(angle1);
+            float rad2 = (float) Math.toRadians(angle2);
+
+            float x1 = bossPos.x + (float) Math.cos(rad1) * range;
+            float y1 = bossPos.y + (float) Math.sin(rad1) * range;
+            float x2 = bossPos.x + (float) Math.cos(rad2) * range;
+            float y2 = bossPos.y + (float) Math.sin(rad2) * range;
+
+            drawLine(batch, x1, y1, x2, y2, 2f);
+        }
+
+        batch.setColor(1f, 1f, 1f, 1f);
     }
 
     private void renderConalIndicator(SpriteBatch batch, Vector2 enemyPos) {

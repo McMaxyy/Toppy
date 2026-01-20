@@ -38,6 +38,9 @@ public class StartScreen {
     private Image titleImage;
     private Image backgroundImage;
 
+    // Track if already disposed
+    private boolean isDisposed = false;
+
     public StartScreen(Viewport gameViewport, Game game, GameScreen gameScreen) {
         this.game = game;
         this.gameScreen = gameScreen;
@@ -97,8 +100,8 @@ public class StartScreen {
         playButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                // Let GameScreen handle the disposal - don't dispose here!
                 gameScreen.switchToNewState(GameScreen.HOME);
-                dispose();
             }
         });
 
@@ -108,7 +111,6 @@ public class StartScreen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 Gdx.app.exit();
-                System.exit(0);
             }
         });
 
@@ -126,6 +128,8 @@ public class StartScreen {
     }
 
     public void render(float delta) {
+        if (isDisposed) return;
+
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -146,21 +150,48 @@ public class StartScreen {
     }
 
     public void resize(int width, int height) {
+        if (isDisposed) return;
+
         viewport.update(width, height, true);
         camera.update();
-        mainTable.invalidateHierarchy();
+        if (mainTable != null) {
+            mainTable.invalidateHierarchy();
+        }
     }
 
     public void dispose() {
-        if (stage != null) {
-            stage.dispose();
+        if (isDisposed) return;
+        isDisposed = true;
+
+        try {
+            // Clear the stage first
+            if (stage != null) {
+                stage.clear();
+                stage.dispose();
+                stage = null;
+            }
+            // Dispose batch after stage (since stage uses the batch)
+            if (batch != null) {
+                batch.dispose();
+                batch = null;
+            }
+        } catch (Exception e) {
+            System.err.println("Error disposing StartScreen: " + e.getMessage());
         }
-        if (batch != null) {
-            batch.dispose();
-        }
+
+        // Clear references
+        mainTable = null;
+        playButton = null;
+        exitButton = null;
+        titleImage = null;
+        backgroundImage = null;
     }
 
     public Stage getStage() {
         return stage;
+    }
+
+    public boolean isDisposed() {
+        return isDisposed;
     }
 }

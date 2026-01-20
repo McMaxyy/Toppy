@@ -221,8 +221,8 @@ public class ItemRegistry {
                 "Health Potion",
                 "Restores 50 health",
                 Item.ItemType.CONSUMABLE,
-                "tiles/coin.png",  // Placeholder
-                "tiles/coin.png"   // Placeholder
+                "icons/items/HealthPotion.png",
+                "icons/items/HealthPotion.png"
         ).setHealthRestore(50).setValue(15));
 
         registerItem(new ItemDefinition(
@@ -230,8 +230,8 @@ public class ItemRegistry {
                 "Small Health Potion",
                 "Restores 25 health",
                 Item.ItemType.CONSUMABLE,
-                "tiles/coin.png",  // Placeholder
-                "tiles/coin.png"   // Placeholder
+                "icons/items/HealthPotion.png",
+                "icons/items/HealthPotion.png"
         ).setHealthRestore(25).setValue(8));
 
         registerItem(new ItemDefinition(
@@ -239,8 +239,8 @@ public class ItemRegistry {
                 "Large Health Potion",
                 "Restores 100 health",
                 Item.ItemType.CONSUMABLE,
-                "tiles/coin.png",  // Placeholder
-                "tiles/coin.png"   // Placeholder
+                "icons/items/HealthPotion.png",
+                "icons/items/HealthPotion.png"
         ).setHealthRestore(100).setValue(30));
 
         // ===== COINS =====
@@ -249,8 +249,8 @@ public class ItemRegistry {
                 "Coin",
                 "Currency",
                 Item.ItemType.COIN,
-                "tiles/coin.png",
-                "tiles/coin.png"
+                "icons/items/coin.png",
+                "icons/items/coin.png"
         ).setValue(1));
 
         registerItem(new ItemDefinition(
@@ -258,8 +258,8 @@ public class ItemRegistry {
                 "Coin Pile",
                 "A pile of coins",
                 Item.ItemType.COIN,
-                "tiles/coin.png",
-                "tiles/coin.png"
+                "icons/items/coin.png",
+                "icons/items/coin.png"
         ).setValue(5));
     }
 

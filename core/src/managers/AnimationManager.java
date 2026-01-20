@@ -142,7 +142,7 @@ public class AnimationManager {
 		for (int i = 0; i < 4; i++) {
 			skeletonAttackingFrame.add(skeletonAttackingFrames[0][i]);
 		}
-		skeletonAttackingAnimation = new Animation<>(0.25f, skeletonAttackingFrame, Animation.PlayMode.NORMAL);
+		skeletonAttackingAnimation = new Animation<>(0.2f, skeletonAttackingFrame, Animation.PlayMode.NORMAL);
 
 		Texture wolfieWalkingTexture = Storage.assetManager.get("enemies/Wolfie/Walking.png", Texture.class);
 		wolfieWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
