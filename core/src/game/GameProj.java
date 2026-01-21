@@ -473,6 +473,11 @@ public class GameProj implements Screen, ContactListener {
         if (settings != null && settings.isOpen()) {
             settings.render(batch, false);
         }
+
+        if (world != null) {
+            Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
+            debugRenderer.render(world.getWorld(), camera.combined);
+        }
     }
 
     private void pauseGame() {
@@ -1313,6 +1318,27 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
             }
+        }
+
+        if ((fixtureA.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0 &&
+                (fixtureB.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0) {
+
+
+            Body enemyBody2 = (categoryA == CollisionFilter.ENEMY_ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
+            Body enemyBody = (categoryA == CollisionFilter.ENEMY_ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
+
+            Vector2 enemyPos2 = enemyBody2.getPosition();
+            Vector2 enemyPos = enemyBody.getPosition();
+            Vector2 pushDirection = new Vector2(enemyPos.x - enemyPos2.x, enemyPos.y - enemyPos2.y).nor();
+
+            float pushForce = 500f;
+            enemyBody.applyLinearImpulse(
+                    pushDirection.x * pushForce,
+                    pushDirection.y * pushForce,
+                    enemyPos.x,
+                    enemyPos.y,
+                    true
+            );
         }
     }
 

@@ -104,7 +104,7 @@ public class Player {
         fixtureDef.friction = 0.3f;
 
         fixtureDef.filter.categoryBits = CollisionFilter.PLAYER;
-        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
+        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY | CollisionFilter.WALL;
         originalMaskBits = fixtureDef.filter.maskBits;
 
         body.createFixture(fixtureDef);

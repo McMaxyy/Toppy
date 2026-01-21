@@ -477,13 +477,26 @@ public class Dungeon {
         fixtureDef.shape = shape;
         fixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
         fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR |
-                CollisionFilter.OBSTACLE | CollisionFilter.ABILITY;
+                CollisionFilter.OBSTACLE | CollisionFilter.ABILITY | CollisionFilter.WALL;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);
         body.setFixedRotation(true);
         shape.dispose();
 
+        PolygonShape enemyCollisionShape = new PolygonShape();
+        enemyCollisionShape.setAsBox(width / 50f, height / 50f);
+
+        FixtureDef enemyFixtureDef = new FixtureDef();
+        enemyFixtureDef.shape = enemyCollisionShape;
+        enemyFixtureDef.density = 0.5f;
+        enemyFixtureDef.friction = 0.1f;
+        enemyFixtureDef.filter.categoryBits = CollisionFilter.ENEMY_ENEMY;
+        enemyFixtureDef.filter.maskBits = CollisionFilter.ENEMY_ENEMY;
+        body.createFixture(enemyFixtureDef);
+        enemyCollisionShape.dispose();
+
+        body.setFixedRotation(true);
         return body;
     }
 

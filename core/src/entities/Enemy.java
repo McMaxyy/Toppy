@@ -259,31 +259,12 @@ public class Enemy {
         updateAttackDirection();
 
         setState(State.ATTACKING);
-
-        handleAttackStart();
     }
 
     private void updateAttackDirection() {
         Vector2 playerPos = player.getPosition();
         Vector2 enemyPos = new Vector2(body.getPosition().x, body.getPosition().y);
         attackDirection.set(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
-    }
-
-    private void handleAttackStart() {
-        switch (stats.getAttackType()) {
-            case CHARGE:
-                startChargeAttack();
-                break;
-        }
-    }
-
-    private void startChargeAttack() {
-        Vector2 playerPosition = player.getPosition();
-        Vector2 enemyPosition = new Vector2(body.getPosition().x, body.getPosition().y);
-        Vector2 direction = new Vector2(playerPosition.x - enemyPosition.x,
-                playerPosition.y - enemyPosition.y).nor();
-
-        body.setLinearVelocity(direction.scl(stats.getChargeSpeed()));
     }
 
     private void createProjectile() {
@@ -302,8 +283,6 @@ public class Enemy {
                 this
         );
         projectiles.add(projectile);
-
-        System.out.println(stats.getEnemyName() + " fired a projectile!");
     }
 
     private void updateProjectiles(float delta) {
@@ -334,17 +313,8 @@ public class Enemy {
 
         // Return to idle state
         setState(State.IDLE);
-
-        handleAttackEnd();
     }
 
-    private void handleAttackEnd() {
-        switch (stats.getAttackType()) {
-            case CHARGE:
-                body.setLinearVelocity(0, 0);
-                break;
-        }
-    }
 
     private boolean isPlayerInAttackRange() {
         Vector2 playerPosition = player.getPosition();

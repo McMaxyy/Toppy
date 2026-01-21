@@ -85,14 +85,12 @@ public class BossKitty {
         }
     }
 
-    // Default constructor with level
     public BossKitty(Rectangle bounds, Body body, Player player,
                      AnimationManager animationManager, int level) {
         this(bounds, body, player, animationManager,
                 EnemyStats.Factory.createBoss(level));
     }
 
-    // Constructor with custom stats
     public BossKitty(Rectangle bounds, Body body, Player player,
                      AnimationManager animationManager, EnemyStats stats) {
         this.animationManager = animationManager;
@@ -104,7 +102,6 @@ public class BossKitty {
         this.healthBarTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
 
-        // Initialize with idle state
         getAnimationManager().setState(State.IDLE, "BossKitty");
     }
 
@@ -113,7 +110,6 @@ public class BossKitty {
             return;
         }
 
-        // Update cooldowns
         if (specialAbilityCooldown > 0) {
             specialAbilityCooldown -= delta;
         }
@@ -124,7 +120,6 @@ public class BossKitty {
             chargeCooldown -= delta;
         }
 
-        // Update trail points
         updateTrailPoints(delta);
 
         isFlipped = body.getPosition().x > player.getBody().getPosition().x;

@@ -34,7 +34,7 @@ class ChargeAbility extends Ability {
                 20,
                 0f,
                 CHARGE_DURATION,
-                30f,
+                60f,
                 AbilityType.CROWD_CONTROL,
                 iconTexture
         );

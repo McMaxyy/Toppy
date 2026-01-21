@@ -27,8 +27,8 @@ public class PlayerStats {
     public PlayerStats() {
         // Default starting stats
         this.level = 1;
-        this.maxHealth = 100;
-        this.currentHealth = 100;
+        this.maxHealth = 10000000;
+        this.currentHealth = 10000000;
         this.baseDamage = 20;
         this.defense = 0;
         this.baseSpeed = 5000f;

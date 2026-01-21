@@ -387,22 +387,34 @@ public class Chunk {
         bodyDef.type = BodyDef.BodyType.DynamicBody;
         bodyDef.position.set(x + width / 2f, y + height / 2f);
 
-        PolygonShape shape = new PolygonShape();
-        shape.setAsBox(width / 3f, height / 3f);
-
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape;
-        fixtureDef.density = 1f;
-        fixtureDef.friction = 0.3f;
-
-        fixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ABILITY;
-
         Body body = world.createBody(bodyDef);
-        body.createFixture(fixtureDef);
-        body.setFixedRotation(true);
 
-        shape.dispose();
+        // Main collision shape (collides with player, spear, abilities)
+        PolygonShape mainShape = new PolygonShape();
+        mainShape.setAsBox(width / 3f, height / 3f);
+
+        FixtureDef mainFixtureDef = new FixtureDef();
+        mainFixtureDef.shape = mainShape;
+        mainFixtureDef.density = 1f;
+        mainFixtureDef.friction = 0.3f;
+        mainFixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
+        mainFixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ABILITY;
+        body.createFixture(mainFixtureDef);
+        mainShape.dispose();
+
+        PolygonShape enemyCollisionShape = new PolygonShape();
+        enemyCollisionShape.setAsBox(width / 5f, height / 5f);
+
+        FixtureDef enemyFixtureDef = new FixtureDef();
+        enemyFixtureDef.shape = enemyCollisionShape;
+        enemyFixtureDef.density = 0.5f;
+        enemyFixtureDef.friction = 0.1f;
+        enemyFixtureDef.filter.categoryBits = CollisionFilter.ENEMY_ENEMY;
+        enemyFixtureDef.filter.maskBits = CollisionFilter.ENEMY_ENEMY;
+        body.createFixture(enemyFixtureDef);
+        enemyCollisionShape.dispose();
+
+        body.setFixedRotation(true);
         return body;
     }
 
