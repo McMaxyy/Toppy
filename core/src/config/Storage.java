@@ -105,6 +105,10 @@ public class Storage {
         assetManager.load("enemies/BossKitty/Dying.png", Texture.class);
         assetManager.load("enemies/BossKitty/Charg.png", Texture.class);
         assetManager.load("enemies/BossKitty/Kitty.png", Texture.class);
+
+        assetManager.load("enemies/Cyclops/Walking.png", Texture.class);
+        assetManager.load("enemies/Cyclops/Idle.png", Texture.class);
+        assetManager.load("enemies/Cyclops/Attacking.png", Texture.class);
         
         assetManager.load("enemy.png", Texture.class);
         assetManager.load("title.png", Texture.class);

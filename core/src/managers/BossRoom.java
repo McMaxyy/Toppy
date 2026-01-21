@@ -2,7 +2,6 @@ package managers;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -17,13 +16,14 @@ import com.badlogic.gdx.physics.box2d.World;
 
 import config.Storage;
 import entities.BossKitty;
+import entities.Cyclops;
 import entities.EnemyStats;
 import entities.Player;
 import entities.Portal;
 
 /**
  * A dedicated boss room that players enter from the dungeon portal.
- * Contains the dungeon boss and spawns an exit portal upon boss defeat.
+ * Contains the dungeon boss (either BossKitty or Cyclops) and spawns an exit portal upon boss defeat.
  */
 public class BossRoom {
     private final int width;
@@ -38,6 +38,7 @@ public class BossRoom {
     private Vector2 spawnPoint;
     private Vector2 exitPoint;
     private BossKitty boss;
+    private Cyclops cyclops;
     private Portal exitPortal;
     private boolean bossDefeated = false;
 
@@ -49,6 +50,13 @@ public class BossRoom {
     private static final int ROOM_WIDTH = 20;
     private static final int ROOM_HEIGHT = 15;
     private static final int WALL_THICKNESS = 2;
+
+    // Boss type enum
+    public enum BossType {
+        BOSS_KITTY,
+        CYCLOPS
+    }
+    private BossType currentBossType;
 
     // Textures
     private Texture wallTexture;
@@ -72,7 +80,13 @@ public class BossRoom {
     private TextureRegion wallEndLTexture;
     private TextureRegion wallEndRTexture;
 
+    // Constructor with default boss (BossKitty)
     public BossRoom(int tileSize, World world, Player player, AnimationManager animationManager) {
+        this(tileSize, world, player, animationManager, BossType.BOSS_KITTY);
+    }
+
+    // Constructor with specified boss type
+    public BossRoom(int tileSize, World world, Player player, AnimationManager animationManager, BossType bossType) {
         this.width = ROOM_WIDTH + (WALL_THICKNESS * 2);
         this.height = ROOM_HEIGHT + (WALL_THICKNESS * 2);
         this.tileSize = tileSize;
@@ -81,6 +95,7 @@ public class BossRoom {
         this.animationManager = animationManager;
         this.tiles = new int[width][height];
         this.walls = new ArrayList<>();
+        this.currentBossType = bossType;
 
         loadTextures();
         generateRoom();
@@ -256,19 +271,35 @@ public class BossRoom {
         float bossY = (height / 2 + 2) * tileSize; // Slightly above center
 
         Body bossBody = createBossBody(bossX, bossY);
-        EnemyStats bossStats = EnemyStats.Factory.createBoss(3);
 
-        boss = new BossKitty(
-                new Rectangle(bossX - 16, bossY - 16, 32, 32),
-                bossBody,
-                player,
-                animationManager,
-                bossStats
-        );
+        switch (currentBossType) {
+            case CYCLOPS:
+                EnemyStats cyclopsStats = EnemyStats.Factory.createCyclops(3);
+                cyclops = new Cyclops(
+                        new Rectangle(bossX - 18, bossY - 18, 36, 36), // Slightly larger than BossKitty
+                        bossBody,
+                        player,
+                        animationManager,
+                        cyclopsStats
+                );
+                bossBody.setUserData(cyclops);
+                System.out.println("Cyclops spawned in boss room at: " + bossX + ", " + bossY);
+                break;
 
-        bossBody.setUserData(boss);
-
-        System.out.println("Boss spawned in boss room at: " + bossX + ", " + bossY);
+            case BOSS_KITTY:
+            default:
+                EnemyStats bossStats = EnemyStats.Factory.createBoss(3);
+                boss = new BossKitty(
+                        new Rectangle(bossX - 16, bossY - 16, 32, 32),
+                        bossBody,
+                        player,
+                        animationManager,
+                        bossStats
+                );
+                bossBody.setUserData(boss);
+                System.out.println("Boss Kitty spawned in boss room at: " + bossX + ", " + bossY);
+                break;
+        }
     }
 
     private Body createBossBody(float x, float y) {
@@ -277,7 +308,9 @@ public class BossRoom {
         bodyDef.position.set(x, y);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(12f, 12f);
+        // Cyclops is slightly larger
+        float boxSize = (currentBossType == BossType.CYCLOPS) ? 14f : 12f;
+        shape.setAsBox(boxSize, boxSize);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
@@ -301,6 +334,7 @@ public class BossRoom {
 
         bossDefeated = true;
         boss = null;
+        cyclops = null;
 
         // Mark exit tile
         int tileX = (int) (exitPoint.x / tileSize);
@@ -345,8 +379,16 @@ public class BossRoom {
 
     public void renderBoss(SpriteBatch batch, float delta) {
         if (boss != null && !boss.isMarkedForRemoval()) {
-            boss.update(delta);
+            if (delta > 0) {
+                boss.update(delta);
+            }
             boss.render(batch);
+        }
+        if (cyclops != null && !cyclops.isMarkedForRemoval()) {
+            if (delta > 0) {
+                cyclops.update(delta);
+            }
+            cyclops.render(batch);
         }
     }
 
@@ -354,6 +396,9 @@ public class BossRoom {
         // Update boss
         if (boss != null) {
             boss.update(delta);
+        }
+        if (cyclops != null) {
+            cyclops.update(delta);
         }
 
         // Update exit portal if it exists
@@ -378,8 +423,12 @@ public class BossRoom {
         return boss;
     }
 
+    public Cyclops getCyclops() {
+        return cyclops;
+    }
+
     public boolean hasBoss() {
-        return boss != null && !bossDefeated;
+        return (boss != null || cyclops != null) && !bossDefeated;
     }
 
     public boolean isBossDefeated() {
@@ -388,6 +437,14 @@ public class BossRoom {
 
     public void setBoss(BossKitty boss) {
         this.boss = boss;
+    }
+
+    public void setCyclops(Cyclops cyclops) {
+        this.cyclops = cyclops;
+    }
+
+    public BossType getCurrentBossType() {
+        return currentBossType;
     }
 
     public Portal getExitPortal() {
@@ -407,6 +464,14 @@ public class BossRoom {
             }
             boss.dispose();
             boss = null;
+        }
+
+        if (cyclops != null) {
+            if (cyclops.getBody() != null) {
+                world.destroyBody(cyclops.getBody());
+            }
+            cyclops.dispose();
+            cyclops = null;
         }
 
         if (exitPortal != null) {

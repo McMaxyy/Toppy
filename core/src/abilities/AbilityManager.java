@@ -165,10 +165,7 @@ public class AbilityManager {
      * Use offhand attack (shield bash if shield equipped)
      */
     private void useOffhandAttack() {
-        if (offhandCooldown > 0) {
-            System.out.println("Offhand attack on cooldown!");
-            return;
-        }
+        if (offhandCooldown > 0) { return; }
 
         Item offhand = player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.OFFHAND);
 
@@ -178,16 +175,12 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Perform shield bash attack
-     */
     private void performShieldBash() {
         player.addAbilityVisual(AbilityVisual.ConalAttack.createWhite(player, gameProj, 0.1f, 30f));
 
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
         float attackRange = 30f;
 
-        // Get mouse direction
         com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(
                 new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
         );
@@ -196,7 +189,6 @@ public class AbilityManager {
                 mousePos.x - playerPos.x, mousePos.y - playerPos.y
         ).nor();
 
-        // Check enemies
         for (managers.Chunk chunk : gameProj.getChunks().values()) {
             for (entities.Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -207,7 +199,6 @@ public class AbilityManager {
 
                     if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(SHIELD_BASH_DAMAGE);
-                        // Apply mini stun
                         StunEffect stun = new StunEffect(enemy, 0.5f);
                         stun.onApply();
                         addStatusEffect(enemy, stun);

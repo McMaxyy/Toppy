@@ -31,7 +31,7 @@ class ChargeAbility extends Ability {
                 "Charge",
                 "Dash forward, dealing damage and stunning enemies on impact",
                 1.0f,
-                50,
+                20,
                 0f,
                 CHARGE_DURATION,
                 30f,
@@ -145,6 +145,19 @@ class ChargeAbility extends Ability {
                     }
                 }
             }
+
+            for (Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
+                if (cyclops.getBody() != null && !hitEnemies.contains(cyclops)) {
+                    float dist = playerPos.dst(cyclops.getBody().getPosition());
+                    if (dist < hitRadius) {
+                        cyclops.takeDamage(damage);
+                        StunEffect stun = new StunEffect(cyclops, STUN_DURATION);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(cyclops, stun);
+                        hitEnemies.add(cyclops);
+                    }
+                }
+            }
         }
 
         // Check dungeon enemies
@@ -163,7 +176,7 @@ class ChargeAbility extends Ability {
             }
         }
 
-        // Check boss room boss
+        // Check boss room bosses
         if (currentGameProj.getCurrentBossRoom() != null) {
             BossKitty bossRoomBoss = currentGameProj.getCurrentBossRoom().getBoss();
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null && !hitEnemies.contains(bossRoomBoss)) {
@@ -174,6 +187,18 @@ class ChargeAbility extends Ability {
                     stun.onApply();
                     currentGameProj.addStatusEffect(bossRoomBoss, stun);
                     hitEnemies.add(bossRoomBoss);
+                }
+            }
+
+            Cyclops cyclopsRoomBoss = currentGameProj.getCurrentBossRoom().getCyclops();
+            if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null && !hitEnemies.contains(cyclopsRoomBoss)) {
+                float dist = playerPos.dst(cyclopsRoomBoss.getBody().getPosition());
+                if (dist < hitRadius) {
+                    cyclopsRoomBoss.takeDamage(damage);
+                    StunEffect stun = new StunEffect(cyclopsRoomBoss, STUN_DURATION);
+                    stun.onApply();
+                    currentGameProj.addStatusEffect(cyclopsRoomBoss, stun);
+                    hitEnemies.add(cyclopsRoomBoss);
                 }
             }
         }
@@ -267,6 +292,17 @@ class DoubleSwingAbility extends Ability {
                     }
                 }
             }
+
+            for (Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
+                if (cyclops.getBody() != null) {
+                    Vector2 enemyPos = cyclops.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+
+                    if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        cyclops.takeDamage(damage);
+                    }
+                }
+            }
         }
 
         // Check dungeon enemies
@@ -283,7 +319,7 @@ class DoubleSwingAbility extends Ability {
             }
         }
 
-        // Check boss room boss
+        // Check boss room bosses
         if (gameProj.getCurrentBossRoom() != null) {
             BossKitty bossRoomBoss = gameProj.getCurrentBossRoom().getBoss();
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
@@ -292,6 +328,16 @@ class DoubleSwingAbility extends Ability {
 
                 if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                     bossRoomBoss.takeDamage(damage);
+                }
+            }
+
+            Cyclops cyclopsRoomBoss = gameProj.getCurrentBossRoom().getCyclops();
+            if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null) {
+                Vector2 enemyPos = cyclopsRoomBoss.getBody().getPosition();
+                Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+
+                if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    cyclopsRoomBoss.takeDamage(damage);
                 }
             }
         }
@@ -418,6 +464,24 @@ class RendAbility extends Ability {
                     }
                 }
             }
+
+            for (Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
+                if (cyclops.getBody() != null) {
+                    Vector2 enemyPos = cyclops.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+                    float dist = toEnemy.len();
+
+                    if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        cyclops.takeDamage(damage);
+
+                        BleedEffect bleed = new BleedEffect(cyclops, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                        bleed.onApply();
+                        gameProj.addStatusEffect(cyclops, bleed);
+
+                        enemiesHit++;
+                    }
+                }
+            }
         }
 
         // Hit ALL enemies in dungeon
@@ -441,7 +505,7 @@ class RendAbility extends Ability {
             }
         }
 
-        // Hit boss room boss
+        // Hit boss room bosses
         if (gameProj.getCurrentBossRoom() != null) {
             BossKitty bossRoomBoss = gameProj.getCurrentBossRoom().getBoss();
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
@@ -455,6 +519,23 @@ class RendAbility extends Ability {
                     BleedEffect bleed = new BleedEffect(bossRoomBoss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
                     bleed.onApply();
                     gameProj.addStatusEffect(bossRoomBoss, bleed);
+
+                    enemiesHit++;
+                }
+            }
+
+            Cyclops cyclopsRoomBoss = gameProj.getCurrentBossRoom().getCyclops();
+            if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null) {
+                Vector2 enemyPos = cyclopsRoomBoss.getBody().getPosition();
+                Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+                float dist = toEnemy.len();
+
+                if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    cyclopsRoomBoss.takeDamage(damage);
+
+                    BleedEffect bleed = new BleedEffect(cyclopsRoomBoss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                    bleed.onApply();
+                    gameProj.addStatusEffect(cyclopsRoomBoss, bleed);
 
                     enemiesHit++;
                 }

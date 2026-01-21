@@ -73,6 +73,9 @@ public class GameProj implements Screen, ContactListener {
     private Vector2 dungeonPlayerPosition;
     private final int NUM_DUNGEONS = 5;
 
+    // Boss progression tracking
+    private boolean bossKittyDefeated = false;
+
     private MapBoundary mapBoundary;
     private Minimap minimap;
     private DungeonMinimap dungeonMinimap;
@@ -317,12 +320,16 @@ public class GameProj implements Screen, ContactListener {
         }
 
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
-        currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager);
+
+        // Determine which boss to spawn based on progression
+        BossRoom.BossType bossType = bossKittyDefeated ? BossRoom.BossType.CYCLOPS : BossRoom.BossType.BOSS_KITTY;
+        currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, bossType);
 
         Vector2 spawnPoint = currentBossRoom.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
-        hudLabel.setText("Defeat the boss!");
+        String bossName = bossKittyDefeated ? "Cyclops" : "Boss Kitty";
+        hudLabel.setText("Defeat the " + bossName + "!");
     }
 
     private void exitBossRoom() {
@@ -420,7 +427,7 @@ public class GameProj implements Screen, ContactListener {
                     minimap.update();
                 }
 
-                if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+                if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
                     minimap.toggleMap();
                 }
 
@@ -432,7 +439,7 @@ public class GameProj implements Screen, ContactListener {
                     dungeonMinimap.update();
                 }
 
-                if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+                if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
                     dungeonMinimap.toggleMap();
                 }
             }
@@ -805,10 +812,24 @@ public class GameProj implements Screen, ContactListener {
             player.getStats().addExperience(boss.getStats().getExpReward());
 
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getBoss() == boss) {
+                // Mark BossKitty as defeated for progression
+                bossKittyDefeated = true;
                 currentBossRoom.onBossDefeated();
-                hudLabel.setText("Boss defeated! Use the portal to return!");
+                hudLabel.setText("Boss Kitty defeated! Use the portal to return!");
             } else {
                 bossSpawned = false;
+            }
+
+        } else if (enemy instanceof Cyclops) {
+            Cyclops cyclopsEnemy = (Cyclops) enemy;
+
+            itemSpawner.spawnBossLoot(enemyPosition);
+
+            player.getStats().addExperience(cyclopsEnemy.getStats().getExpReward());
+
+            if (inBossRoom && currentBossRoom != null && currentBossRoom.getCyclops() == cyclopsEnemy) {
+                currentBossRoom.onBossDefeated();
+                hudLabel.setText("Cyclops defeated! Use the portal to return!");
             }
 
         } else if (enemy instanceof DungeonEnemy) {
@@ -859,14 +880,24 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        // Only check boss room boss when in boss room
+        // Only check boss room bosses when in boss room
         if (inBossRoom && currentBossRoom != null) {
+            // Check BossKitty
             BossKitty bossRoomBoss = currentBossRoom.getBoss();
             if (bossRoomBoss != null && bossRoomBoss.isMarkedForRemoval() && bossRoomBoss.getBody() != null) {
                 handleEnemyDeath(bossRoomBoss, bossRoomBoss.getBody().getPosition(), true);
                 bodiesToDestroy.add(bossRoomBoss.getBody());
                 bossRoomBoss.clearBody();
                 currentBossRoom.setBoss(null);
+            }
+
+            // Check Cyclops
+            Cyclops cyclopsRoomBoss = currentBossRoom.getCyclops();
+            if (cyclopsRoomBoss != null && cyclopsRoomBoss.isMarkedForRemoval() && cyclopsRoomBoss.getBody() != null) {
+                handleEnemyDeath(cyclopsRoomBoss, cyclopsRoomBoss.getBody().getPosition(), true);
+                bodiesToDestroy.add(cyclopsRoomBoss.getBody());
+                cyclopsRoomBoss.clearBody();
+                currentBossRoom.setCyclops(null);
             }
         }
 
@@ -893,6 +924,14 @@ public class GameProj implements Screen, ContactListener {
 
     public boolean isInBossRoom() {
         return inBossRoom;
+    }
+
+    public boolean isBossKittyDefeated() {
+        return bossKittyDefeated;
+    }
+
+    public void setBossKittyDefeated(boolean defeated) {
+        this.bossKittyDefeated = defeated;
     }
 
     @Override
@@ -1052,9 +1091,16 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
             } else if (inBossRoom && currentBossRoom != null) {
+                // Check BossKitty
                 BossKitty boss = currentBossRoom.getBoss();
                 if (boss != null && boss.getBody() == enemyBody) {
                     boss.takeDamage(playerDamage);
+                }
+
+                // Check Cyclops
+                Cyclops cyclops = currentBossRoom.getCyclops();
+                if (cyclops != null && cyclops.getBody() == enemyBody) {
+                    cyclops.takeDamage(playerDamage);
                 }
             }
 
@@ -1115,9 +1161,19 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
             } else if (inBossRoom && currentBossRoom != null) {
+                // Check BossKitty
                 BossKitty boss = currentBossRoom.getBoss();
                 if (boss != null && boss.getBody() == enemyBody && !player.isInvulnerable()) {
                     boss.damagePlayer();
+                    if (player.getStats().isDead()) {
+                        player.playerDie();
+                    }
+                }
+
+                // Check Cyclops
+                Cyclops cyclops = currentBossRoom.getCyclops();
+                if (cyclops != null && cyclops.getBody() == enemyBody && !player.isInvulnerable()) {
+                    cyclops.damagePlayer();
                     if (player.getStats().isDead()) {
                         player.playerDie();
                     }
@@ -1219,6 +1275,14 @@ public class GameProj implements Screen, ContactListener {
                         }
                     }
                 }
+            } else if (inBossRoom && currentBossRoom != null) {
+                // Handle reflected projectiles hitting bosses in boss room
+                // Note: BossKitty and Cyclops don't have projectiles, but this handles
+                // any future projectile-using enemies in boss rooms
+                BossKitty boss = currentBossRoom.getBoss();
+                Cyclops cyclops = currentBossRoom.getCyclops();
+
+                // If we add projectile enemies to boss rooms in the future, handle them here
             }
         }
 

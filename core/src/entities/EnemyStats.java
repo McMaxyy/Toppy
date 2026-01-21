@@ -174,7 +174,7 @@ public class EnemyStats {
                     15 + (level * 10),
                     3 + (level * 2),
                     0 + level,
-                    15 + (level * 8),
+                    10 + (level * 8),
                     level,
                     AttackType.RANGED,
                     "ranged_enemy",
@@ -194,12 +194,12 @@ public class EnemyStats {
                     30 + (level * 20),
                     8 + (level * 4),
                     2 + level,
-                    20 + (level * 10),
+                    10 + (level * 8),
                     level,
                     AttackType.MELEE,
                     "basic_enemy",
                     1.5f,
-                    25f,
+                    35f,
                     1.0f,
                     0f,
                     0f,
@@ -211,10 +211,10 @@ public class EnemyStats {
         public static EnemyStats createSkeletonEnemy(int level) {
             return new EnemyStats(
                     "Skeleton",
-                    30 + (level * 20),
-                    8 + (level * 4),
+                    45 + (level * 20),
+                    10 + (level * 5),
                     2 + level,
-                    20 + (level * 10),
+                    15 + (level * 10),
                     level,
                     AttackType.CONAL,
                     "dungeon_enemy",
@@ -231,7 +231,7 @@ public class EnemyStats {
         public static EnemyStats createBoss(int level) {
             return new EnemyStats(
                     "Boss Kitty",
-                    300 + (level * 75),
+                    500 + (level * 75),
                     15 + (level * 5),
                     5 + (level * 2),
                     150 + (level * 50),
@@ -239,12 +239,32 @@ public class EnemyStats {
                     AttackType.MELEE,
                     "boss",
                     1.5f,
-                    35f,
+                    60f,
                     0.8f,
                     0f,
-                    100f,
+                    150f,
                     0f,
                     250f
+            );
+        }
+
+        public static EnemyStats createCyclops(int level) {
+            return new EnemyStats(
+                    "Cyclops",
+                    650 + (level * 100),
+                    18 + (level * 6),        // Higher base damage
+                    7 + (level * 3),         // Higher defense
+                    200 + (level * 60),      // More exp reward
+                    level,
+                    AttackType.AOE,          // AOE attack type for ground pound
+                    "boss",
+                    1.8f,                    // Slightly slower attack cooldown
+                    60f,                     // Melee range
+                    0.7f,                    // Slower attack speed (big guy)
+                    0f,                      // No cone angle
+                    150f,                    // Large AOE radius for ground pound
+                    0f,                      // No projectile
+                    0f                       // No charge speed
             );
         }
 

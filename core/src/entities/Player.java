@@ -48,6 +48,7 @@ public class Player {
     private Vector2 dashDirection = new Vector2();
     private boolean invulnerable;
     private short originalMaskBits;
+    private short notOriginalMaskBits;
     private boolean dyingAnimationStarted = false;
     private Inventory inventory;
     private ItemSpawner itemSpawner;
@@ -107,12 +108,13 @@ public class Player {
         originalMaskBits = fixtureDef.filter.maskBits;
 
         body.createFixture(fixtureDef);
+
+        fixtureDef.filter.maskBits = CollisionFilter.ENEMY;
+        notOriginalMaskBits = fixtureDef.filter.maskBits;
+
         shape.dispose();
     }
 
-    /**
-     * Initialize ability manager (call after GameProj is fully constructed)
-     */
     public void initializeAbilityManager(GameProj gameProj) {
         this.abilityManager = new AbilityManager(this, gameProj);
     }
@@ -199,8 +201,8 @@ public class Player {
             Fixture fixture = body.getFixtureList().first();
             Filter filter = fixture.getFilterData();
 
-            if (invulnerable && !gameP.isInDungeon()) {
-                filter.maskBits = invulnerable ? (short) 0 : originalMaskBits;
+            if (invulnerable && !gameP.isInDungeon() && !gameP.isInBossRoom()) {
+                filter.maskBits = invulnerable ? notOriginalMaskBits : originalMaskBits;
             } else {
                 filter.maskBits = originalMaskBits;
             }

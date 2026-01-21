@@ -23,12 +23,17 @@ public class AnimationManager {
 	private Animation<TextureRegion> wolfieIdleAnimation;
 	private Animation<TextureRegion> wolfieRunningAnimation;
 	private Animation<TextureRegion> wolfieAttackingAnimation;
+	// Cyclops animations
+	private Animation<TextureRegion> cyclopsIdleAnimation;
+	private Animation<TextureRegion> cyclopsRunningAnimation;
+	private Animation<TextureRegion> cyclopsAttackingAnimation;
 
 	private float playerAnimationTime = 0f;
 	private float mushieAnimationTime = 0f;
 	private float bossKittyAnimationTime = 0f;
 	private float skeletonAnimationTime = 0f;
 	private float wolfieAnimationTime = 0f;
+	private float cyclopsAnimationTime = 0f;
 
 	public enum State {
 		IDLE, RUNNING, ATTACKING, DYING
@@ -39,6 +44,7 @@ public class AnimationManager {
 	private State skeletonCurrentState = State.IDLE;
 	private State wolfieCurrentState = State.IDLE;
 	private State bossKittyCurrentState = State.RUNNING;
+	private State cyclopsCurrentState = State.IDLE;
 
 	public AnimationManager() {
 		loadAnimations();
@@ -170,6 +176,34 @@ public class AnimationManager {
 			wolfieAttackingFrame.add(wolfieAttackingFrames[0][i]);
 		}
 		wolfieAttackingAnimation = new Animation<>(0.25f, wolfieAttackingFrame, Animation.PlayMode.NORMAL);
+
+		// Load Cyclops animations
+		Texture cyclopsWalkingTexture = Storage.assetManager.get("enemies/Cyclops/Walking.png", Texture.class);
+		cyclopsWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		TextureRegion[][] cyclopsWalkFrames = TextureRegion.split(cyclopsWalkingTexture, cyclopsWalkingTexture.getWidth() / 4, cyclopsWalkingTexture.getHeight());
+		Array<TextureRegion> cyclopsWalkingFrames = new Array<>();
+		for (int i = 0; i < 4; i++) {
+			cyclopsWalkingFrames.add(cyclopsWalkFrames[0][i]);
+		}
+		cyclopsRunningAnimation = new Animation<>(0.5f, cyclopsWalkingFrames, Animation.PlayMode.LOOP);
+
+		Texture cyclopsIdleTexture = Storage.assetManager.get("enemies/Cyclops/Idle.png", Texture.class);
+		cyclopsIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		TextureRegion[][] cyclopsIdleFrames = TextureRegion.split(cyclopsIdleTexture, cyclopsIdleTexture.getWidth() / 4, cyclopsIdleTexture.getHeight());
+		Array<TextureRegion> cyclopsIdleFrame = new Array<>();
+		for (int i = 0; i < 4; i++) {
+			cyclopsIdleFrame.add(cyclopsIdleFrames[0][i]);
+		}
+		cyclopsIdleAnimation = new Animation<>(0.5f, cyclopsIdleFrame, Animation.PlayMode.LOOP);
+
+		Texture cyclopsAttackingTexture = Storage.assetManager.get("enemies/Cyclops/Attacking.png", Texture.class);
+		cyclopsAttackingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		TextureRegion[][] cyclopsAttackingFrames = TextureRegion.split(cyclopsAttackingTexture, cyclopsAttackingTexture.getWidth() / 4, cyclopsAttackingTexture.getHeight());
+		Array<TextureRegion> cyclopsAttackingFrame = new Array<>();
+		for (int i = 0; i < 4; i++) {
+			cyclopsAttackingFrame.add(cyclopsAttackingFrames[0][i]);
+		}
+		cyclopsAttackingAnimation = new Animation<>(0.2f, cyclopsAttackingFrame, Animation.PlayMode.NORMAL);
 	}
 
 	public void update(float delta) {
@@ -178,6 +212,7 @@ public class AnimationManager {
 		bossKittyAnimationTime += delta;
 		wolfieAnimationTime += delta;
 		skeletonAnimationTime += delta;
+		cyclopsAnimationTime += delta;
 	}
 
 	/**
@@ -224,6 +259,16 @@ public class AnimationManager {
 					default:
 						return bossKittyRunningAnimation;
 				}
+			case CYCLOPS:
+				switch (state) {
+					case RUNNING:
+						return cyclopsRunningAnimation;
+					case ATTACKING:
+						return cyclopsAttackingAnimation;
+					case IDLE:
+					default:
+						return cyclopsIdleAnimation;
+				}
 			default:
 				return mushieIdleAnimation;
 		}
@@ -261,6 +306,12 @@ public class AnimationManager {
 					wolfieAnimationTime = 0f;
 				}
 				break;
+			case "Cyclops":
+				if (cyclopsCurrentState != newState) {
+					cyclopsCurrentState = newState;
+					cyclopsAnimationTime = 0f;
+				}
+				break;
 		}
 
 	}
@@ -277,6 +328,8 @@ public class AnimationManager {
 				return skeletonCurrentState;
 			case "Wolfie":
 				return wolfieCurrentState;
+			case "Cyclops":
+				return cyclopsCurrentState;
 			default:
 				return null;
 		}
@@ -439,6 +492,39 @@ public class AnimationManager {
 			case IDLE:
 			default:
 				return wolfieIdleAnimation.isAnimationFinished(wolfieAnimationTime);
+		}
+	}
+
+	public TextureRegion getCyclopsCurrentFrame() {
+		Animation<TextureRegion> currentAnimation;
+
+		switch (cyclopsCurrentState) {
+			case RUNNING:
+				currentAnimation = cyclopsRunningAnimation;
+				break;
+			case ATTACKING:
+				currentAnimation = cyclopsAttackingAnimation;
+				break;
+			case IDLE:
+			default:
+				currentAnimation = cyclopsIdleAnimation;
+				break;
+		}
+
+		TextureRegion currentFrame = currentAnimation.getKeyFrame(cyclopsAnimationTime);
+
+		return currentFrame;
+	}
+
+	public boolean isCyclopsAnimationFinished() {
+		switch (cyclopsCurrentState) {
+			case RUNNING:
+				return cyclopsRunningAnimation.isAnimationFinished(cyclopsAnimationTime);
+			case ATTACKING:
+				return cyclopsAttackingAnimation.isAnimationFinished(cyclopsAnimationTime);
+			case IDLE:
+			default:
+				return cyclopsIdleAnimation.isAnimationFinished(cyclopsAnimationTime);
 		}
 	}
 }

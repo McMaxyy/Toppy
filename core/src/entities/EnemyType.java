@@ -7,7 +7,8 @@ public enum EnemyType {
     MUSHIE("Mushie"),
     WOLFIE("Wolfie"),
     SKELETON("Skeleton"),
-    BOSS_KITTY("BossKitty");
+    BOSS_KITTY("BossKitty"),
+    CYCLOPS("Cyclops");
 
     private final String animationKey;
 

@@ -27,6 +27,7 @@ public class Chunk {
     private final List<Enemy> enemies;
     private final List<EnemyInfo> pendingEnemies;
     private final List<BossKitty> bossKitty;
+    private final List<Cyclops> cyclopsList;
 
     private final World world;
     private final Player player;
@@ -45,6 +46,7 @@ public class Chunk {
         this.enemies = new ArrayList<>();
         this.pendingEnemies = new ArrayList<>();
         this.bossKitty = new ArrayList<>();
+        this.cyclopsList = new ArrayList<>();
         this.player = player;
 
         generateObstacles(random);
@@ -130,12 +132,37 @@ public class Chunk {
 
         if (!isOverlapping(bossBounds) && !isOutOfBounds(bossBounds)) {
             Body bossBody = createEnemyBody(world, spawnPosition.x, spawnPosition.y, 32, 32);
-            bossKitty.add(new BossKitty(bossBounds, bossBody, player, getAnimationManager(), 3));
+            BossKitty boss = new BossKitty(bossBounds, bossBody, player, getAnimationManager(), 3);
+            bossBody.setUserData(boss);
+            bossKitty.add(boss);
         } else {
             Vector2 fallbackPosition = getFallbackPosition(playerPosition);
             Body bossBody = createEnemyBody(world, fallbackPosition.x, fallbackPosition.y, 32, 32);
-            bossKitty.add(new BossKitty(new Rectangle(fallbackPosition.x, fallbackPosition.y, 32, 32),
-                    bossBody, player, getAnimationManager(), 3));
+            BossKitty boss = new BossKitty(new Rectangle(fallbackPosition.x, fallbackPosition.y, 32, 32),
+                    bossBody, player, getAnimationManager(), 3);
+            bossBody.setUserData(boss);
+            bossKitty.add(boss);
+        }
+    }
+
+    public void spawnCyclops(float playerRadius) {
+        Vector2 playerPosition = player.getPosition();
+        Vector2 spawnPosition = getRandomPositionWithinRadius(playerPosition, playerRadius);
+
+        Rectangle bossBounds = new Rectangle(spawnPosition.x, spawnPosition.y, 36, 36);
+
+        if (!isOverlapping(bossBounds) && !isOutOfBounds(bossBounds)) {
+            Body bossBody = createEnemyBody(world, spawnPosition.x, spawnPosition.y, 36, 36);
+            Cyclops cyclops = new Cyclops(bossBounds, bossBody, player, getAnimationManager(), 3);
+            bossBody.setUserData(cyclops);
+            cyclopsList.add(cyclops);
+        } else {
+            Vector2 fallbackPosition = getFallbackPosition(playerPosition);
+            Body bossBody = createEnemyBody(world, fallbackPosition.x, fallbackPosition.y, 36, 36);
+            Cyclops cyclops = new Cyclops(new Rectangle(fallbackPosition.x, fallbackPosition.y, 36, 36),
+                    bossBody, player, getAnimationManager(), 3);
+            bossBody.setUserData(cyclops);
+            cyclopsList.add(cyclops);
         }
     }
 
@@ -298,12 +325,32 @@ public class Chunk {
                 enemy.getBody().setActive(false);
             }
         }
+        for (BossKitty boss : bossKitty) {
+            if (boss.getBody() != null) {
+                boss.getBody().setActive(false);
+            }
+        }
+        for (Cyclops cyclops : cyclopsList) {
+            if (cyclops.getBody() != null) {
+                cyclops.getBody().setActive(false);
+            }
+        }
     }
 
     public void enableEnemies() {
         for (Enemy enemy : enemies) {
             if (enemy.getBody() != null) {
                 enemy.getBody().setActive(true);
+            }
+        }
+        for (BossKitty boss : bossKitty) {
+            if (boss.getBody() != null) {
+                boss.getBody().setActive(true);
+            }
+        }
+        for (Cyclops cyclops : cyclopsList) {
+            if (cyclops.getBody() != null) {
+                cyclops.getBody().setActive(true);
             }
         }
     }
@@ -349,8 +396,7 @@ public class Chunk {
         fixtureDef.friction = 0.3f;
 
         fixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR |
-                CollisionFilter.ENEMY | CollisionFilter.ABILITY;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ABILITY;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);
@@ -415,6 +461,13 @@ public class Chunk {
         }
     }
 
+    public void renderCyclops(SpriteBatch batch) {
+        for (Cyclops cyclops : cyclopsList) {
+            cyclops.update(Gdx.graphics.getDeltaTime());
+            cyclops.render(batch);
+        }
+    }
+
     public void dispose() {
         for (Obstacle obstacle : obstacles) {
             world.destroyBody(obstacle.body);
@@ -422,6 +475,14 @@ public class Chunk {
 
         for (Enemy enemy : enemies) {
             enemy.dispose();
+        }
+
+        for (BossKitty boss : bossKitty) {
+            boss.dispose();
+        }
+
+        for (Cyclops cyclops : cyclopsList) {
+            cyclops.dispose();
         }
     }
 
@@ -436,6 +497,13 @@ public class Chunk {
         bossKitty.removeIf(bossKitty -> {
             bossKitty.update(Gdx.graphics.getDeltaTime());
             return bossKitty.isMarkedForRemoval();
+        });
+    }
+
+    public void updateCyclops() {
+        cyclopsList.removeIf(cyclops -> {
+            cyclops.update(Gdx.graphics.getDeltaTime());
+            return cyclops.isMarkedForRemoval();
         });
     }
 
@@ -489,6 +557,10 @@ public class Chunk {
 
     public List<BossKitty> getBossKitty() {
         return bossKitty;
+    }
+
+    public List<Cyclops> getCyclopsList() {
+        return cyclopsList;
     }
 
     public AnimationManager getAnimationManager() {

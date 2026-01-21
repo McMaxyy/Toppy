@@ -21,7 +21,7 @@ public class PlayerStats {
     private int experienceToNextLevel;
 
     // Regeneration
-    private float healthRegenRate; // Health per second
+    private float healthRegenRate;
     private float regenTimer;
 
     public PlayerStats() {
@@ -29,14 +29,14 @@ public class PlayerStats {
         this.level = 1;
         this.maxHealth = 100;
         this.currentHealth = 100;
-        this.baseDamage = 500;
+        this.baseDamage = 20;
         this.defense = 0;
         this.baseSpeed = 5000f;
         this.weaponDamage = 0;
         this.armorDefense = 0;
         this.experience = 0;
         this.experienceToNextLevel = 100;
-        this.healthRegenRate = 1f; // 1 HP per second
+        this.healthRegenRate = 1f;
         this.regenTimer = 0f;
     }
 
