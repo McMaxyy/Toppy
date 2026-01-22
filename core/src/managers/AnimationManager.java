@@ -7,11 +7,20 @@ import com.badlogic.gdx.utils.Array;
 
 import config.Storage;
 import entities.EnemyType;
+import entities.PlayerClass;
 
 public class AnimationManager {
+	// Mercenary (default) animations
 	private Animation<TextureRegion> playerIdleAnimation;
 	private Animation<TextureRegion> playerRunningAnimation;
 	private Animation<TextureRegion> playerDyingAnimation;
+
+	// Paladin animations
+	private Animation<TextureRegion> paladinIdleAnimation;
+	private Animation<TextureRegion> paladinRunningAnimation;
+	private Animation<TextureRegion> paladinDyingAnimation;
+
+	// Enemy animations
 	private Animation<TextureRegion> mushieIdleAnimation;
 	private Animation<TextureRegion> mushieRunningAnimation;
 	private Animation<TextureRegion> mushieAttackingAnimation;
@@ -23,7 +32,6 @@ public class AnimationManager {
 	private Animation<TextureRegion> wolfieIdleAnimation;
 	private Animation<TextureRegion> wolfieRunningAnimation;
 	private Animation<TextureRegion> wolfieAttackingAnimation;
-	// Cyclops animations
 	private Animation<TextureRegion> cyclopsIdleAnimation;
 	private Animation<TextureRegion> cyclopsRunningAnimation;
 	private Animation<TextureRegion> cyclopsAttackingAnimation;
@@ -34,6 +42,8 @@ public class AnimationManager {
 	private float skeletonAnimationTime = 0f;
 	private float wolfieAnimationTime = 0f;
 	private float cyclopsAnimationTime = 0f;
+
+	private PlayerClass currentPlayerClass = PlayerClass.MERCENARY;
 
 	public enum State {
 		IDLE, RUNNING, ATTACKING, DYING
@@ -50,7 +60,21 @@ public class AnimationManager {
 		loadAnimations();
 	}
 
+	public void setPlayerClass(PlayerClass playerClass) {
+		this.currentPlayerClass = playerClass;
+	}
+
+	public PlayerClass getPlayerClass() {
+		return currentPlayerClass;
+	}
+
 	private void loadAnimations() {
+		loadMercenaryAnimations();
+		loadPaladinAnimations();
+		loadEnemyAnimations();
+	}
+
+	private void loadMercenaryAnimations() {
 		Texture playerWalkingTexture = Storage.assetManager.get("character/Walking.png", Texture.class);
 		playerWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 		TextureRegion[][] playerWalkFrames = TextureRegion.split(playerWalkingTexture, playerWalkingTexture.getWidth() / 4, playerWalkingTexture.getHeight());
@@ -77,7 +101,45 @@ public class AnimationManager {
 			playerDyingFrame.add(playerDyingFrames[0][i]);
 		}
 		playerDyingAnimation = new Animation<>(0.6f, playerDyingFrame, Animation.PlayMode.NORMAL);
+	}
 
+	private void loadPaladinAnimations() {
+		try {
+			Texture paladinWalkingTexture = Storage.assetManager.get("character/Paladin/Walking.png", Texture.class);
+			paladinWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] paladinWalkFrames = TextureRegion.split(paladinWalkingTexture, paladinWalkingTexture.getWidth() / 4, paladinWalkingTexture.getHeight());
+			Array<TextureRegion> paladinWalkingFrames = new Array<>();
+			for (int i = 0; i < 4; i++) {
+				paladinWalkingFrames.add(paladinWalkFrames[0][i]);
+			}
+			paladinRunningAnimation = new Animation<>(0.5f, paladinWalkingFrames, Animation.PlayMode.LOOP);
+
+			Texture paladinIdleTexture = Storage.assetManager.get("character/Paladin/Idle.png", Texture.class);
+			paladinIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] paladinIdleFrames = TextureRegion.split(paladinIdleTexture, paladinIdleTexture.getWidth() / 4, paladinIdleTexture.getHeight());
+			Array<TextureRegion> paladinIdleFrame = new Array<>();
+			for (int i = 0; i < 4; i++) {
+				paladinIdleFrame.add(paladinIdleFrames[0][i]);
+			}
+			paladinIdleAnimation = new Animation<>(1.3f, paladinIdleFrame, Animation.PlayMode.LOOP);
+
+			Texture paladinDyingTexture = Storage.assetManager.get("character/Paladin/Dying.png", Texture.class);
+			paladinDyingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] paladinDyingFrames = TextureRegion.split(paladinDyingTexture, paladinDyingTexture.getWidth() / 4, paladinDyingTexture.getHeight());
+			Array<TextureRegion> paladinDyingFrame = new Array<>();
+			for (int i = 0; i < 4; i++) {
+				paladinDyingFrame.add(paladinDyingFrames[0][i]);
+			}
+			paladinDyingAnimation = new Animation<>(0.6f, paladinDyingFrame, Animation.PlayMode.NORMAL);
+		} catch (Exception e) {
+			System.err.println("Failed to load Paladin animations, using Mercenary as fallback: " + e.getMessage());
+			paladinIdleAnimation = playerIdleAnimation;
+			paladinRunningAnimation = playerRunningAnimation;
+			paladinDyingAnimation = playerDyingAnimation;
+		}
+	}
+
+	private void loadEnemyAnimations() {
 		Texture mushieWalkingTexture = Storage.assetManager.get("enemies/Mushie/Walking.png", Texture.class);
 		mushieWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 		TextureRegion[][] mushieWalkFrames = TextureRegion.split(mushieWalkingTexture, mushieWalkingTexture.getWidth() / 4, mushieWalkingTexture.getHeight());
@@ -177,7 +239,6 @@ public class AnimationManager {
 		}
 		wolfieAttackingAnimation = new Animation<>(0.25f, wolfieAttackingFrame, Animation.PlayMode.NORMAL);
 
-		// Load Cyclops animations
 		Texture cyclopsWalkingTexture = Storage.assetManager.get("enemies/Cyclops/Walking.png", Texture.class);
 		cyclopsWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 		TextureRegion[][] cyclopsWalkFrames = TextureRegion.split(cyclopsWalkingTexture, cyclopsWalkingTexture.getWidth() / 4, cyclopsWalkingTexture.getHeight());
@@ -215,10 +276,6 @@ public class AnimationManager {
 		cyclopsAnimationTime += delta;
 	}
 
-	/**
-	 * Get the Animation object for a specific enemy type and state.
-	 * This allows each enemy instance to track its own animation time.
-	 */
 	public Animation<TextureRegion> getAnimationForState(EnemyType enemyType, State state) {
 		switch (enemyType) {
 			case MUSHIE:
@@ -313,7 +370,6 @@ public class AnimationManager {
 				}
 				break;
 		}
-
 	}
 
 	public State getState(String entity) {
@@ -338,39 +394,75 @@ public class AnimationManager {
 	public TextureRegion getCurrentFrame() {
 		Animation<TextureRegion> currentAnimation;
 
-		switch (playerCurrentState) {
-			case RUNNING:
-				currentAnimation = playerRunningAnimation;
-				break;
-			case DYING:
-				currentAnimation = playerDyingAnimation;
-				break;
-			case IDLE:
-			default:
-				currentAnimation = playerIdleAnimation;
-				break;
+		// Select animation based on player class
+		if (currentPlayerClass == PlayerClass.PALADIN) {
+			switch (playerCurrentState) {
+				case RUNNING:
+					currentAnimation = paladinRunningAnimation;
+					break;
+				case DYING:
+					currentAnimation = paladinDyingAnimation;
+					break;
+				case IDLE:
+				default:
+					currentAnimation = paladinIdleAnimation;
+					break;
+			}
+		} else {
+			// Default to Mercenary
+			switch (playerCurrentState) {
+				case RUNNING:
+					currentAnimation = playerRunningAnimation;
+					break;
+				case DYING:
+					currentAnimation = playerDyingAnimation;
+					break;
+				case IDLE:
+				default:
+					currentAnimation = playerIdleAnimation;
+					break;
+			}
 		}
 
-		TextureRegion currentFrame = currentAnimation.getKeyFrame(playerAnimationTime);
-
-		return currentFrame;
+		return currentAnimation.getKeyFrame(playerAnimationTime);
 	}
 
 	public boolean isAnimationFinished() {
-		switch (playerCurrentState) {
-			case RUNNING:
-				return playerRunningAnimation.isAnimationFinished(playerAnimationTime);
-			case DYING:
-				return playerDyingAnimation.isAnimationFinished(playerAnimationTime);
-			case IDLE:
-			default:
-				return playerIdleAnimation.isAnimationFinished(playerAnimationTime);
+		Animation<TextureRegion> currentAnimation;
+
+		if (currentPlayerClass == PlayerClass.PALADIN) {
+			switch (playerCurrentState) {
+				case RUNNING:
+					currentAnimation = paladinRunningAnimation;
+					break;
+				case DYING:
+					currentAnimation = paladinDyingAnimation;
+					break;
+				case IDLE:
+				default:
+					currentAnimation = paladinIdleAnimation;
+					break;
+			}
+		} else {
+			switch (playerCurrentState) {
+				case RUNNING:
+					currentAnimation = playerRunningAnimation;
+					break;
+				case DYING:
+					currentAnimation = playerDyingAnimation;
+					break;
+				case IDLE:
+				default:
+					currentAnimation = playerIdleAnimation;
+					break;
+			}
 		}
+
+		return currentAnimation.isAnimationFinished(playerAnimationTime);
 	}
 
 	public TextureRegion getMushieCurrentFrame() {
 		Animation<TextureRegion> currentAnimation;
-
 		switch (mushieCurrentState) {
 			case RUNNING:
 				currentAnimation = mushieRunningAnimation;
@@ -383,10 +475,7 @@ public class AnimationManager {
 				currentAnimation = mushieIdleAnimation;
 				break;
 		}
-
-		TextureRegion currentFrame = currentAnimation.getKeyFrame(mushieAnimationTime);
-
-		return currentFrame;
+		return currentAnimation.getKeyFrame(mushieAnimationTime);
 	}
 
 	public boolean isMushieAnimationFinished() {
@@ -403,7 +492,6 @@ public class AnimationManager {
 
 	public TextureRegion getBossKittyCurrentFrame() {
 		Animation<TextureRegion> currentAnimation;
-
 		switch (bossKittyCurrentState) {
 			case DYING:
 				currentAnimation = bossKittyDyingAnimation;
@@ -413,10 +501,7 @@ public class AnimationManager {
 				currentAnimation = bossKittyRunningAnimation;
 				break;
 		}
-
-		TextureRegion currentFrame = currentAnimation.getKeyFrame(bossKittyAnimationTime);
-
-		return currentFrame;
+		return currentAnimation.getKeyFrame(bossKittyAnimationTime);
 	}
 
 	public boolean isBossKittyAnimationFinished() {
@@ -431,7 +516,6 @@ public class AnimationManager {
 
 	public TextureRegion getSkeletonCurrentFrame() {
 		Animation<TextureRegion> currentAnimation;
-
 		switch (skeletonCurrentState) {
 			case RUNNING:
 				currentAnimation = skeletonRunningAnimation;
@@ -444,10 +528,7 @@ public class AnimationManager {
 				currentAnimation = skeletonIdleAnimation;
 				break;
 		}
-
-		TextureRegion currentFrame = currentAnimation.getKeyFrame(skeletonAnimationTime);
-
-		return currentFrame;
+		return currentAnimation.getKeyFrame(skeletonAnimationTime);
 	}
 
 	public boolean isSkeletonAnimationFinished() {
@@ -464,7 +545,6 @@ public class AnimationManager {
 
 	public TextureRegion getWolfieCurrentFrame() {
 		Animation<TextureRegion> currentAnimation;
-
 		switch (wolfieCurrentState) {
 			case RUNNING:
 				currentAnimation = wolfieRunningAnimation;
@@ -477,10 +557,7 @@ public class AnimationManager {
 				currentAnimation = wolfieIdleAnimation;
 				break;
 		}
-
-		TextureRegion currentFrame = currentAnimation.getKeyFrame(wolfieAnimationTime);
-
-		return currentFrame;
+		return currentAnimation.getKeyFrame(wolfieAnimationTime);
 	}
 
 	public boolean isWolfieAnimationFinished() {
@@ -497,7 +574,6 @@ public class AnimationManager {
 
 	public TextureRegion getCyclopsCurrentFrame() {
 		Animation<TextureRegion> currentAnimation;
-
 		switch (cyclopsCurrentState) {
 			case RUNNING:
 				currentAnimation = cyclopsRunningAnimation;
@@ -510,10 +586,7 @@ public class AnimationManager {
 				currentAnimation = cyclopsIdleAnimation;
 				break;
 		}
-
-		TextureRegion currentFrame = currentAnimation.getKeyFrame(cyclopsAnimationTime);
-
-		return currentFrame;
+		return currentAnimation.getKeyFrame(cyclopsAnimationTime);
 	}
 
 	public boolean isCyclopsAnimationFinished() {

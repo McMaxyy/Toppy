@@ -33,8 +33,8 @@ public class GameScreen implements Screen {
 		viewport = new FitViewport(SELECTED_WIDTH, SELECTED_HEIGHT);
 
 		Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
-		Gdx.graphics.setUndecorated(true);
-		Gdx.graphics.setWindowedMode(displayMode.width, displayMode.height);
+		Gdx.graphics.setUndecorated(false);
+		Gdx.graphics.setWindowedMode(1280, 720);
 
 		setCurrentState(START);
 	}

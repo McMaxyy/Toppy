@@ -245,6 +245,13 @@ public abstract class AbilityVisual {
             return new ConalAttack(player, gameProj, duration, range, new Color(1f, 0.2f, 0.2f, 1f));
         }
 
+        /**
+         * Create golden indicator for Paladin sword attacks
+         */
+        public static ConalAttack createGolden(Player player, GameProj gameProj, float duration, float range) {
+            return new ConalAttack(player, gameProj, duration, range, new Color(1f, 0.85f, 0.2f, 1f));
+        }
+
         @Override
         protected void onUpdate(float delta) {
             super.onUpdate(delta);
@@ -655,6 +662,214 @@ public abstract class AbilityVisual {
 
         public boolean hasTrailPoints() {
             return trailPoints.size > 0;
+        }
+    }
+
+    // =========================================================================
+    // PULL CIRCLE VISUAL - Shrinking circle for Pull ability
+    // =========================================================================
+    public static class PullCircle extends AbilityVisual {
+        private Player player;
+        private float maxRadius;
+        private float currentRadius;
+
+        private static final int CIRCLE_SEGMENTS = 32;
+        private static final Color PULL_COLOR = new Color(0.6f, 0.3f, 1f, 1f); // Purple/divine color
+
+        public PullCircle(Player player, float radius, float duration) {
+            super(duration);
+            this.player = player;
+            this.maxRadius = radius;
+            this.currentRadius = radius;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            // Shrink the circle over time
+            float progress = timer / duration;
+            currentRadius = maxRadius * (1f - progress);
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+            float progress = timer / duration;
+            float alpha = 0.6f * (1f - progress * 0.5f);
+
+            // Draw outer circle (shrinking)
+            renderCircle(batch, pos, currentRadius, alpha, PULL_COLOR);
+
+            // Draw inner glow
+            if (currentRadius > 10f) {
+                renderFilledCircle(batch, pos, currentRadius * 0.3f, alpha * 0.3f, PULL_COLOR);
+            }
+
+            // Draw radial lines (pull effect)
+            renderPullLines(batch, pos, currentRadius, alpha);
+        }
+
+        private void renderCircle(SpriteBatch batch, Vector2 center, float radius, float alpha, Color color) {
+            batch.setColor(color.r, color.g, color.b, alpha);
+
+            float angleStep = 360f / CIRCLE_SEGMENTS;
+
+            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
+                float angle = i * angleStep;
+                float nextAngle = (i + 1) * angleStep;
+                float rad = (float) Math.toRadians(angle);
+                float nextRad = (float) Math.toRadians(nextAngle);
+
+                float x1 = center.x + (float) Math.cos(rad) * radius;
+                float y1 = center.y + (float) Math.sin(rad) * radius;
+                float x2 = center.x + (float) Math.cos(nextRad) * radius;
+                float y2 = center.y + (float) Math.sin(nextRad) * radius;
+
+                drawLine(batch, x1, y1, x2, y2, 3f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderFilledCircle(SpriteBatch batch, Vector2 center, float radius, float alpha, Color color) {
+            batch.setColor(color.r, color.g, color.b, alpha);
+
+            float angleStep = 360f / CIRCLE_SEGMENTS;
+
+            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
+                float angle = i * angleStep;
+                float rad = (float) Math.toRadians(angle);
+
+                float x = center.x + (float) Math.cos(rad) * radius;
+                float y = center.y + (float) Math.sin(rad) * radius;
+
+                drawLine(batch, center.x, center.y, x, y, 2f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderPullLines(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(PULL_COLOR.r, PULL_COLOR.g, PULL_COLOR.b, alpha * 0.5f);
+
+            int numLines = 8;
+            float angleStep = 360f / numLines;
+
+            for (int i = 0; i < numLines; i++) {
+                float angle = i * angleStep + (timer * 180f); // Rotate over time
+                float rad = (float) Math.toRadians(angle);
+
+                float innerRadius = radius * 0.2f;
+                float x1 = center.x + (float) Math.cos(rad) * innerRadius;
+                float y1 = center.y + (float) Math.sin(rad) * innerRadius;
+                float x2 = center.x + (float) Math.cos(rad) * radius;
+                float y2 = center.y + (float) Math.sin(rad) * radius;
+
+                drawLine(batch, x1, y1, x2, y2, 2f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // SMITE VISUAL - Divine AOE damage circle
+    // =========================================================================
+    public static class Smite extends AbilityVisual {
+        private Player player;
+        private Texture texture;
+        private float radius;
+        private float flashTimer = 0f;
+
+        private static final Color SMITE_COLOR = new Color(1f, 0.9f, 0.4f, 1f); // Golden divine color
+        private static final float FLASH_SPEED = 15f;
+
+        public Smite(Player player, float radius, float duration) {
+            super(duration);
+            this.player = player;
+            this.radius = radius;
+
+            // Try to load the smite texture
+            try {
+                this.texture = Storage.assetManager.get("character/abilities/Smite.png", Texture.class);
+            } catch (Exception e) {
+                this.texture = null;
+            }
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            flashTimer += delta * FLASH_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+            float progress = timer / duration;
+
+            // Calculate alpha with flash effect
+            float baseAlpha = 0.7f * (1f - progress);
+            float flashAlpha = baseAlpha + 0.2f * (float) Math.sin(flashTimer);
+
+            if (texture != null) {
+                // Render texture
+                batch.setColor(1f, 1f, 1f, flashAlpha);
+                float size = radius * 2f;
+                batch.draw(texture, pos.x - size / 2f, pos.y - size / 2f, size, size);
+                batch.setColor(1f, 1f, 1f, 1f);
+            } else {
+                // Fallback: render circle effect
+                renderSmiteCircle(batch, pos, radius, flashAlpha);
+            }
+
+            // Always render the golden ring
+            renderSmiteRing(batch, pos, radius, baseAlpha);
+        }
+
+        private void renderSmiteCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(SMITE_COLOR.r, SMITE_COLOR.g, SMITE_COLOR.b, alpha * 0.5f);
+
+            int segments = 32;
+            float angleStep = 360f / segments;
+
+            // Draw filled circle using lines from center
+            for (int i = 0; i < segments; i++) {
+                float angle = i * angleStep;
+                float rad = (float) Math.toRadians(angle);
+
+                float x = center.x + (float) Math.cos(rad) * radius;
+                float y = center.y + (float) Math.sin(rad) * radius;
+
+                drawLine(batch, center.x, center.y, x, y, 3f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderSmiteRing(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(SMITE_COLOR.r, SMITE_COLOR.g, SMITE_COLOR.b, alpha);
+
+            int segments = 32;
+            float angleStep = 360f / segments;
+
+            for (int i = 0; i < segments; i++) {
+                float angle = i * angleStep;
+                float nextAngle = (i + 1) * angleStep;
+                float rad = (float) Math.toRadians(angle);
+                float nextRad = (float) Math.toRadians(nextAngle);
+
+                float x1 = center.x + (float) Math.cos(rad) * radius;
+                float y1 = center.y + (float) Math.sin(rad) * radius;
+                float x2 = center.x + (float) Math.cos(nextRad) * radius;
+                float y2 = center.y + (float) Math.sin(nextRad) * radius;
+
+                drawLine(batch, x1, y1, x2, y2, 4f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
         }
     }
 }

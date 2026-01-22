@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import config.Storage;
 import entities.Player;
+import entities.PlayerClass;
 import game.GameProj;
 import items.Item;
 import managers.Equipment;
@@ -27,6 +28,7 @@ public class AbilityManager {
     private Ability[] abilities;
     private Player player;
     private GameProj gameProj;
+    private PlayerClass playerClass;
 
     // Status effects tracking
     private Map<Object, List<StatusEffect>> activeEffects;
@@ -48,9 +50,15 @@ public class AbilityManager {
     private static final float OFFHAND_COOLDOWN_TIME = 2.0f;
     private static final int SHIELD_BASH_DAMAGE = 40;
 
-    public AbilityManager(Player player, GameProj gameProj) {
+    // Sword attack cooldown (for Paladin)
+    private float swordCooldown = 0f;
+    private static final float SWORD_COOLDOWN_TIME = 0.5f;
+    private static final float SWORD_ATTACK_RANGE = 35f;
+
+    public AbilityManager(Player player, GameProj gameProj, PlayerClass playerClass) {
         this.player = player;
         this.gameProj = gameProj;
+        this.playerClass = playerClass;
         this.abilities = new Ability[NUM_ABILITY_SLOTS];
         this.activeEffects = new HashMap<>();
         this.shapeRenderer = new ShapeRenderer();
@@ -58,7 +66,17 @@ public class AbilityManager {
 
         this.activeVisuals = new ArrayList<>();
 
-        initializeMercenaryAbilities();
+        // Initialize abilities based on player class
+        if (playerClass == PlayerClass.PALADIN) {
+            initializePaladinAbilities();
+        } else {
+            initializeMercenaryAbilities();
+        }
+    }
+
+    // Legacy constructor for backward compatibility
+    public AbilityManager(Player player, GameProj gameProj) {
+        this(player, gameProj, PlayerClass.MERCENARY);
     }
 
     /**
@@ -70,6 +88,17 @@ public class AbilityManager {
         abilities[2] = new BubbleAbility(Storage.assetManager.get("icons/abilities/Bubble.png", Texture.class));
         abilities[3] = new RendAbility(Storage.assetManager.get("icons/abilities/Rend.png", Texture.class));
         abilities[4] = new PrayerAbility(Storage.assetManager.get("icons/abilities/Prayer.png", Texture.class));
+    }
+
+    /**
+     * Initialize the 5 Paladin abilities
+     */
+    private void initializePaladinAbilities() {
+        abilities[0] = new PaladinBlinkAbility(Storage.assetManager.get("icons/abilities/Blink.png", Texture.class));
+        abilities[1] = new PaladinBubbleAbility(Storage.assetManager.get("icons/abilities/Bubble.png", Texture.class));
+        abilities[2] = new PullAbility(Storage.assetManager.get("icons/abilities/Pull.png", Texture.class));
+        abilities[3] = new SmiteAbility(Storage.assetManager.get("icons/abilities/Smite.png", Texture.class));
+        abilities[4] = new PaladinPrayerAbility(Storage.assetManager.get("icons/abilities/Prayer.png", Texture.class));
     }
 
     /**
@@ -86,6 +115,11 @@ public class AbilityManager {
         // Update offhand cooldown
         if (offhandCooldown > 0) {
             offhandCooldown -= delta;
+        }
+
+        // Update sword cooldown (for Paladin)
+        if (swordCooldown > 0) {
+            swordCooldown -= delta;
         }
 
         // Update all status effects
@@ -128,7 +162,7 @@ public class AbilityManager {
     }
 
     /**
-     * Handle ability input (keys 1-5, RMB)
+     * Handle ability input (keys 1-5, RMB, LMB for Paladin)
      */
     public void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
@@ -146,6 +180,13 @@ public class AbilityManager {
         // Check RMB for offhand attack
         if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
             useOffhandAttack();
+        }
+
+        // For Paladin: Check LMB for sword attack
+        if (playerClass == PlayerClass.PALADIN && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            if (!gameProj.isPaused() && !player.getInventory().isOpen()) {
+                performSwordAttack();
+            }
         }
     }
 
@@ -173,6 +214,114 @@ public class AbilityManager {
             performShieldBash();
             offhandCooldown = OFFHAND_COOLDOWN_TIME;
         }
+    }
+
+    /**
+     * Perform sword attack (for Paladin class)
+     */
+    private void performSwordAttack() {
+        if (swordCooldown > 0) { return; }
+
+        // Create golden conal visual
+        player.addAbilityVisual(AbilityVisual.ConalAttack.createGolden(player, gameProj, 0.15f, SWORD_ATTACK_RANGE));
+
+        com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
+        int playerDamage = player.getStats().getTotalDamage();
+
+        com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(
+                new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
+        );
+        com.badlogic.gdx.math.Vector2 mousePos = new com.badlogic.gdx.math.Vector2(mousePos3D.x, mousePos3D.y);
+        com.badlogic.gdx.math.Vector2 attackDir = new com.badlogic.gdx.math.Vector2(
+                mousePos.x - playerPos.x, mousePos.y - playerPos.y
+        ).nor();
+
+        // Check overworld enemies
+        for (managers.Chunk chunk : gameProj.getChunks().values()) {
+            for (entities.Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        enemy.takeDamage(playerDamage);
+                    }
+                }
+            }
+
+            for (entities.BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
+                if (boss.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = boss.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        boss.takeDamage(playerDamage);
+                    }
+                }
+            }
+
+            for (entities.Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
+                if (cyclops.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = cyclops.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        cyclops.takeDamage(playerDamage);
+                    }
+                }
+            }
+        }
+
+        // Check dungeon enemies
+        if (gameProj.getCurrentDungeon() != null) {
+            for (entities.DungeonEnemy enemy : new ArrayList<>(gameProj.getCurrentDungeon().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        enemy.takeDamage(playerDamage);
+                    }
+                }
+            }
+        }
+
+        // Check boss room
+        if (gameProj.getCurrentBossRoom() != null) {
+            entities.BossKitty boss = gameProj.getCurrentBossRoom().getBoss();
+            if (boss != null && boss.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = boss.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    boss.takeDamage(playerDamage);
+                }
+            }
+
+            entities.Cyclops cyclops = gameProj.getCurrentBossRoom().getCyclops();
+            if (cyclops != null && cyclops.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = cyclops.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    cyclops.takeDamage(playerDamage);
+                }
+            }
+        }
+
+        swordCooldown = SWORD_COOLDOWN_TIME;
     }
 
     private void performShieldBash() {
@@ -270,6 +419,13 @@ public class AbilityManager {
     }
 
     /**
+     * Get the player class
+     */
+    public PlayerClass getPlayerClass() {
+        return playerClass;
+    }
+
+    /**
      * Render the skill bar UI
      */
     public void renderSkillBar(SpriteBatch batch) {
@@ -339,6 +495,11 @@ public class AbilityManager {
             weapon.renderIcon(batch, attackStartX + 3, startY + 3, SLOT_SIZE - 6);
         }
 
+        // Render sword cooldown for Paladin
+        if (playerClass == PlayerClass.PALADIN && swordCooldown > 0) {
+            renderCooldownOverlay(batch, attackStartX, startY, swordCooldown / SWORD_COOLDOWN_TIME);
+        }
+
         Item offhand = player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.OFFHAND);
         if (offhand != null) {
             offhand.renderIcon(batch, attackStartX + SLOT_SIZE + SLOT_PADDING + 3, startY + 3, SLOT_SIZE - 6);
@@ -394,6 +555,8 @@ public class AbilityManager {
     private void renderAttackSlot(float x, float y, String label, Item equippedItem) {
         // Background
         if (label.equals("RMB") && offhandCooldown > 0) {
+            shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f); // Dark when on cooldown
+        } else if (label.equals("LMB") && playerClass == PlayerClass.PALADIN && swordCooldown > 0) {
             shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f); // Dark when on cooldown
         } else {
             shapeRenderer.setColor(0.35f, 0.3f, 0.3f, 0.8f);

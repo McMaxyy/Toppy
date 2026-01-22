@@ -471,9 +471,6 @@ public class DungeonEnemy {
 
     public void render(SpriteBatch batch) {
         if (!markForRemoval) {
-            if (showAttackIndicator && isAttacking) {
-                renderAttackIndicator(batch);
-            }
 
             TextureRegion currentFrame = getCurrentFrame();
             if (currentFrame != null) {
@@ -488,117 +485,6 @@ public class DungeonEnemy {
 
             renderHealthBar(batch);
         }
-    }
-
-    private void renderAttackIndicator(SpriteBatch batch) {
-        Vector2 enemyPos = new Vector2(body.getPosition().x, body.getPosition().y);
-
-        switch (stats.getAttackType()) {
-            case CONAL:
-                renderConalIndicator(batch, enemyPos);
-                break;
-            case MELEE:
-                renderMeleeIndicator(batch, enemyPos);
-                break;
-            case AOE:
-                renderAoeIndicator(batch, enemyPos);
-                break;
-        }
-    }
-
-    private void renderConalIndicator(SpriteBatch batch, Vector2 enemyPos) {
-        float range = stats.getAttackRange();
-        float coneAngle = stats.getAttackConeAngle();
-
-        batch.setColor(1f, 1f, 1f, 0.3f);
-
-        float facingAngle = isFlipped ? 180f : 0f;
-        int segments = 12;
-        float halfCone = coneAngle / 2f;
-        float angleStep = coneAngle / segments;
-
-        for (int i = 0; i < segments; i++) {
-            float angle1 = facingAngle - halfCone + (i * angleStep);
-            float angle2 = facingAngle - halfCone + ((i + 1) * angleStep);
-
-            float rad1 = (float) Math.toRadians(angle1);
-            float rad2 = (float) Math.toRadians(angle2);
-
-            float x1 = enemyPos.x + (float) Math.cos(rad1) * range;
-            float y1 = enemyPos.y + (float) Math.sin(rad1) * range;
-            float x2 = enemyPos.x + (float) Math.cos(rad2) * range;
-            float y2 = enemyPos.y + (float) Math.sin(rad2) * range;
-
-            drawLine(batch, enemyPos.x, enemyPos.y, x1, y1, 2f);
-
-            batch.setColor(1f, 1f, 1f, 0.2f);
-            drawLine(batch, x1, y1, x2, y2, 2f);
-            batch.setColor(1f, 1f, 1f, 0.3f);
-        }
-
-        float finalAngle = facingAngle + halfCone;
-        float finalRad = (float) Math.toRadians(finalAngle);
-        float finalX = enemyPos.x + (float) Math.cos(finalRad) * range;
-        float finalY = enemyPos.y + (float) Math.sin(finalRad) * range;
-        drawLine(batch, enemyPos.x, enemyPos.y, finalX, finalY, 2f);
-
-        batch.setColor(1, 1, 1, 1);
-    }
-
-    private void renderMeleeIndicator(SpriteBatch batch, Vector2 enemyPos) {
-        float range = stats.getAttackRange();
-
-        batch.setColor(1f, 1f, 1f, 0.3f);
-
-        int segments = 16;
-        float angleStep = 360f / segments;
-
-        for (int i = 0; i < segments; i++) {
-            float angle = i * angleStep;
-            float nextAngle = (i + 1) * angleStep;
-            float rad = (float) Math.toRadians(angle);
-            float nextRad = (float) Math.toRadians(nextAngle);
-
-            float x1 = enemyPos.x + (float) Math.cos(rad) * range;
-            float y1 = enemyPos.y + (float) Math.sin(rad) * range;
-            float x2 = enemyPos.x + (float) Math.cos(nextRad) * range;
-            float y2 = enemyPos.y + (float) Math.sin(nextRad) * range;
-
-            drawLine(batch, x1, y1, x2, y2, 2f);
-        }
-
-        batch.setColor(1f, 1f, 1f, 0.15f);
-        batch.draw(whitePixelTexture, enemyPos.x - range, enemyPos.y - range, range * 2, range * 2);
-
-        batch.setColor(1, 1, 1, 1);
-    }
-
-    private void renderAoeIndicator(SpriteBatch batch, Vector2 enemyPos) {
-        float radius = stats.getAoeRadius();
-
-        batch.setColor(1f, 1f, 1f, 0.3f);
-
-        int segments = 24;
-        float angleStep = 360f / segments;
-
-        for (int i = 0; i < segments; i++) {
-            float angle = i * angleStep;
-            float nextAngle = (i + 1) * angleStep;
-            float rad = (float) Math.toRadians(angle);
-            float nextRad = (float) Math.toRadians(nextAngle);
-
-            float x1 = enemyPos.x + (float) Math.cos(rad) * radius;
-            float y1 = enemyPos.y + (float) Math.sin(rad) * radius;
-            float x2 = enemyPos.x + (float) Math.cos(nextRad) * radius;
-            float y2 = enemyPos.y + (float) Math.sin(nextRad) * radius;
-
-            drawLine(batch, x1, y1, x2, y2, 2f);
-        }
-
-        batch.setColor(1f, 1f, 1f, 0.15f);
-        batch.draw(whitePixelTexture, enemyPos.x - radius, enemyPos.y - radius, radius * 2, radius * 2);
-
-        batch.setColor(1, 1, 1, 1);
     }
 
     private void drawLine(SpriteBatch batch, float x1, float y1, float x2, float y2, float thickness) {

@@ -54,12 +54,15 @@ public class Player {
     private ItemSpawner itemSpawner;
     private PlayerStats stats;
     private Texture healthBarBgTexture;
-    private AbilityManager abilityManager; // NEW: Ability system
-    private boolean isPaused = false; // NEW: Pause state
+    private AbilityManager abilityManager;
+    private boolean isPaused = false;
     private boolean isCharging = false;
     private float chargeTimer = 0f;
     private Vector2 chargeVelocity = new Vector2();
     private java.util.Set<Object> chargeHitEnemies;
+
+    // Player class for animations and abilities
+    private PlayerClass playerClass = PlayerClass.MERCENARY;
 
     private class Trail {
         Vector2 position;
@@ -77,6 +80,10 @@ public class Player {
     private float trailLifetime = 0.5f;
 
     public Player(Box2DWorld world, AnimationManager animationManager, int size, GameProj gameP, GameScreen gameScreen) {
+        this(world, animationManager, size, gameP, gameScreen, PlayerClass.MERCENARY);
+    }
+
+    public Player(Box2DWorld world, AnimationManager animationManager, int size, GameProj gameP, GameScreen gameScreen, PlayerClass playerClass) {
         this.animationManager = animationManager;
         this.speed = 5000f;
         this.gameP = gameP;
@@ -85,8 +92,11 @@ public class Player {
         this.inventory = new Inventory();
         this.stats = new PlayerStats();
         this.healthBarBgTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
+        this.playerClass = playerClass;
         whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
-        // Note: abilityManager will be initialized after gameP is fully set up
+
+        // Set the player class on the animation manager
+        animationManager.setPlayerClass(playerClass);
 
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
@@ -116,22 +126,23 @@ public class Player {
     }
 
     public void initializeAbilityManager(GameProj gameProj) {
-        this.abilityManager = new AbilityManager(this, gameProj);
+        this.abilityManager = new AbilityManager(this, gameProj, playerClass);
     }
 
     public void setItemSpawner(ItemSpawner itemSpawner) {
         this.itemSpawner = itemSpawner;
     }
 
-    /**
-     * Set paused state (disables input when paused)
-     */
     public void setPaused(boolean paused) {
         this.isPaused = paused;
     }
 
     public boolean isPaused() {
         return isPaused;
+    }
+
+    public PlayerClass getPlayerClass() {
+        return playerClass;
     }
 
     public void update(float delta) {
@@ -141,16 +152,13 @@ public class Player {
 
         stats.update(delta);
 
-        // Update ability manager
         if (abilityManager != null) {
             abilityManager.update(delta);
-            // Handle ability input only when inventory is closed and not paused
             if (!inventory.isOpen() && !isPaused) {
                 abilityManager.handleInput();
             }
         }
 
-        // Only process input if not paused
         if (!isPaused) {
             input(delta);
         }
@@ -185,7 +193,6 @@ public class Player {
 
         inventory.update(delta, this, gameP);
 
-        // Only allow dropping items if not paused
         if (inventory.isOpen() && !isPaused) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
                 Item droppedItem = inventory.dropItem(inventory.getSelectedSlot());
@@ -221,7 +228,6 @@ public class Player {
     public void updateBounds() {}
 
     public void input(float delta) {
-        // Don't process input if paused
         if (isPaused) {
             body.setLinearVelocity(0, 0);
             return;
@@ -254,14 +260,6 @@ public class Player {
             if (Gdx.input.isKeyPressed(Input.Keys.A)) moveX -= 1;
             if (Gdx.input.isKeyPressed(Input.Keys.D)) moveX += 1;
 
-//            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && dashCooldownTimer <= 0) {
-//                setInvulnerable(true);
-//                isDashing = true;
-//                dashTimer = dashDuration;
-//                dashDirection.set(moveX, moveY).nor();
-//                dashCooldownTimer = dashCooldown;
-//            }
-
             move(moveX, moveY, delta);
         } else {
             if (isDashing) {
@@ -282,11 +280,15 @@ public class Player {
             }
         }
 
-        if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0
-                && !gameP.isPaused() && !inventory.isOpen()) {
-            createSpear();
-            spearCooldown = 0.5f;
+        // Only Mercenary uses spears for LMB attack
+        if (playerClass == PlayerClass.MERCENARY) {
+            if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0
+                    && !gameP.isPaused() && !inventory.isOpen()) {
+                createSpear();
+                spearCooldown = 0.5f;
+            }
         }
+        // Paladin LMB is handled in AbilityManager
 
         if (dashCooldownTimer > 0) {
             dashCooldownTimer -= delta;
@@ -493,27 +495,30 @@ public class Player {
                 position.y - TILE_SIZE / 4f,
                 TILE_SIZE / 2f, TILE_SIZE / 2f);
 
-        for (int i = 0; i < spearBodies.size; i++) {
-            Body spearBody = spearBodies.get(i);
+        // Only render spears for Mercenary
+        if (playerClass == PlayerClass.MERCENARY) {
+            for (int i = 0; i < spearBodies.size; i++) {
+                Body spearBody = spearBodies.get(i);
 
-            if (spearBody != null) {
-                Texture spearTexture = Storage.assetManager.get("icons/gear/ironSpear.png");
-                TextureRegion spearRegion = new TextureRegion(spearTexture);
+                if (spearBody != null) {
+                    Texture spearTexture = Storage.assetManager.get("icons/gear/ironSpear.png");
+                    TextureRegion spearRegion = new TextureRegion(spearTexture);
 
-                float rotationAngle = (float) Math.toDegrees(spearBody.getAngle());
-                float posX = spearBody.getPosition().x - spearTexture.getWidth() / 8f;
-                float posY = spearBody.getPosition().y - spearTexture.getHeight() / 8f;
+                    float rotationAngle = (float) Math.toDegrees(spearBody.getAngle());
+                    float posX = spearBody.getPosition().x - spearTexture.getWidth() / 8f;
+                    float posY = spearBody.getPosition().y - spearTexture.getHeight() / 8f;
 
-                batch.draw(spearRegion,
-                        posX, posY,
-                        spearTexture.getWidth() / 8f, spearTexture.getHeight() / 8f,
-                        spearTexture.getWidth() / 6f, spearTexture.getHeight() / 6f,
-                        1, 1,
-                        rotationAngle - 45);
+                    batch.draw(spearRegion,
+                            posX, posY,
+                            spearTexture.getWidth() / 8f, spearTexture.getHeight() / 8f,
+                            spearTexture.getWidth() / 6f, spearTexture.getHeight() / 6f,
+                            1, 1,
+                            rotationAngle - 45);
+                }
             }
-        }
 
-        renderCooldownBar(batch, TILE_SIZE);
+            renderCooldownBar(batch, TILE_SIZE);
+        }
 
         if (abilityManager != null) {
             abilityManager.renderAbilityEffects(batch);
@@ -532,9 +537,6 @@ public class Player {
         renderPlayerHealthBar(batch, TILE_SIZE);
     }
 
-    /**
-     * Render skill bar UI (called from GameProj after camera setup)
-     */
     public void renderSkillBar(SpriteBatch batch) {
         if (abilityManager != null) {
             abilityManager.renderSkillBar(batch);
@@ -546,23 +548,19 @@ public class Player {
         float barHeight = 4f;
         Vector2 position = body.getPosition();
         float barX = position.x - TILE_SIZE / 4f;
-        float barY = position.y + TILE_SIZE / 4f + 5f; // Above player
+        float barY = position.y + TILE_SIZE / 4f + 5f;
 
-        // Background (dark red)
         batch.setColor(0.3f, 0.0f, 0.0f, 0.8f);
         batch.draw(healthBarBgTexture, barX, barY, barWidth, barHeight);
 
-        // Foreground (current health)
         float healthPercent = stats.getHealthPercentage();
         float healthWidth = barWidth * healthPercent;
 
-        // Color gradient from green to red
         float red = 1.0f - healthPercent;
         float green = healthPercent;
         batch.setColor(red, green, 0.1f, 1f);
         batch.draw(healthBarBgTexture, barX, barY, healthWidth, barHeight);
 
-        // Reset color
         batch.setColor(1, 1, 1, 1);
     }
 

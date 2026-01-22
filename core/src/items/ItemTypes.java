@@ -17,20 +17,19 @@ public abstract class ItemTypes {
 
         @Override
         public void use(entities.Player player) {
-            // Armor is equipped, not used directly
             equip(player);
         }
 
         @Override
         public void equip(entities.Player player) {
-            // Apply armor stats to player through equipment system
-            player.getStats().setArmorDefense(defense);
+            int currentDefense = player.getStats().getArmorDefense();
+            player.getStats().setArmorDefense(currentDefense + defense);
         }
 
         @Override
         public void unequip(entities.Player player) {
-            // Remove armor stats from player
-            player.getStats().setArmorDefense(0);
+            int currentDefense = player.getStats().getArmorDefense();
+            player.getStats().setArmorDefense(Math.max(0, currentDefense - defense));
         }
 
         @Override
@@ -52,17 +51,14 @@ public abstract class ItemTypes {
 
         @Override
         public void use(entities.Player player) {
-            // Coins are automatically added to currency count
         }
 
         @Override
         public void equip(entities.Player player) {
-            // Coins cannot be equipped
         }
 
         @Override
         public void unequip(entities.Player player) {
-            // Coins cannot be unequipped
         }
 
         @Override
@@ -93,12 +89,10 @@ public abstract class ItemTypes {
 
         @Override
         public void equip(entities.Player player) {
-            // Consumables cannot be equipped
         }
 
         @Override
         public void unequip(entities.Player player) {
-            // Consumables cannot be unequipped
         }
 
         @Override
@@ -126,12 +120,14 @@ public abstract class ItemTypes {
 
         @Override
         public void equip(entities.Player player) {
-            player.getStats().setWeaponDamage(damage);
+            int currentDamage = player.getStats().getWeaponDamage();
+            player.getStats().setWeaponDamage(currentDamage + damage);
         }
 
         @Override
         public void unequip(entities.Player player) {
-            player.getStats().setWeaponDamage(0);
+            int currentDamage = player.getStats().getWeaponDamage();
+            player.getStats().setWeaponDamage(Math.max(0, currentDamage - damage));
         }
 
         @Override

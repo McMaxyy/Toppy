@@ -31,46 +31,31 @@ public class Equipment {
         }
     }
 
-    /**
-     * Equip an item to the appropriate slot
-     * @return The previously equipped item (or null)
-     */
     public Item equipItem(Item item, entities.Player player) {
         if (item == null) return null;
 
         EquipmentSlot slot = getSlotForItem(item);
         if (slot == null) {
-            System.out.println("Cannot equip this item type");
             return null;
         }
 
-        // Get the currently equipped item in this slot
         Item previousItem = equippedItems.get(slot);
 
-        // Unequip the old item if there is one
         if (previousItem != null) {
             previousItem.unequip(player);
         }
 
-        // Equip the new item
         equippedItems.put(slot, item);
         item.equip(player);
-
-        System.out.println("Equipped " + item.getName() + " in " + slot + " slot");
 
         return previousItem;
     }
 
-    /**
-     * Unequip an item from a slot
-     * @return The unequipped item (or null)
-     */
     public Item unequipItem(EquipmentSlot slot, entities.Player player) {
         Item item = equippedItems.get(slot);
         if (item != null) {
             item.unequip(player);
             equippedItems.put(slot, null);
-            System.out.println("Unequipped " + item.getName() + " from " + slot + " slot");
         }
         return item;
     }

@@ -127,8 +127,7 @@ public class GameProj implements Screen, ContactListener {
     private void createComponents() {
         groundTexture = Storage.assetManager.get("tiles/grass.png", Texture.class);
 
-        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen);
-        batch = new SpriteBatch();
+        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen, Storage.getSelectedPlayerClass());        batch = new SpriteBatch();
 
         hudStage = new Stage(hudViewport, batch);
 
@@ -476,7 +475,7 @@ public class GameProj implements Screen, ContactListener {
 
         if (world != null) {
             Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-            debugRenderer.render(world.getWorld(), camera.combined);
+//            debugRenderer.render(world.getWorld(), camera.combined);
         }
     }
 
@@ -607,7 +606,10 @@ public class GameProj implements Screen, ContactListener {
 
         if (batch != null) {
             batch.setProjectionMatrix(hudCamera.combined);
-            player.getInventory().render(batch, false);
+
+            if (player.getInventory().isOpen()) {
+                player.getInventory().render(batch, false);
+            }
 
             batch.begin();
             player.renderSkillBar(batch);
@@ -671,7 +673,10 @@ public class GameProj implements Screen, ContactListener {
             }
 
             batch.setProjectionMatrix(hudCamera.combined);
-            player.getInventory().render(batch, false);
+
+            if (player.getInventory().isOpen()) {
+                player.getInventory().render(batch, false);
+            }
 
             batch.begin();
             player.renderSkillBar(batch);
@@ -735,7 +740,10 @@ public class GameProj implements Screen, ContactListener {
             }
 
             batch.setProjectionMatrix(hudCamera.combined);
-            player.getInventory().render(batch, false);
+
+            if (player.getInventory().isOpen()) {
+                player.getInventory().render(batch, false);
+            }
 
             batch.begin();
             player.renderSkillBar(batch);

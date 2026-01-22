@@ -270,7 +270,6 @@ public class Inventory {
             }
         }
 
-        // 2. Check Equipment Slots
         checkEquipmentMouseHover(mouseX, mouseY, panelX, panelY, panelHeight, player, gameP);
 
         // Keep your TAB/Arrow key logic below if you want hybrid controls,
@@ -375,16 +374,16 @@ public class Inventory {
 
         // Title
         font.setColor(Color.WHITE);
-        font.getData().setScale(1.2f);
-        font.draw(batch, "Character & Inventory", panelX + UI_PADDING,
-                panelY + panelHeight - UI_PADDING);
+        font.getData().setScale(1f);
+        font.draw(batch, "Inventory", panelX + UI_PADDING,
+                panelY + panelHeight - UI_PADDING / 2);
 
         // Coin count
-        batch.draw(coinIconTexture, panelX + panelWidth - UI_PADDING - 100,
-                panelY + panelHeight - UI_PADDING - 30, 20, 20);
+        batch.draw(coinIconTexture, panelX + panelWidth - UI_PADDING - 120,
+                panelY + panelHeight - UI_PADDING - 30, 40, 40);
         font.getData().setScale(1.0f);
-        font.draw(batch, "x " + coins, panelX + panelWidth - UI_PADDING - 75,
-                panelY + panelHeight - UI_PADDING - 15);
+        font.draw(batch, "" + coins, panelX + panelWidth - UI_PADDING - 70,
+                panelY + panelHeight - UI_PADDING);
 
         // Draw equipped items in equipment slots
         renderEquippedItems(batch, panelX, panelY, panelHeight);
@@ -415,7 +414,7 @@ public class Inventory {
         // Draw character sprite in center
         float charSize = 120;
         float charX = equipmentX + (equipmentPanelWidth - charSize) / 2f;
-        float charY = equipmentY + (panelHeight - 100 - charSize) / 2f;
+        float charY = equipmentY + (panelHeight) / 2f;
 
         batch.begin();
         batch.draw(characterSprite, charX, charY, charSize, charSize);
@@ -423,7 +422,7 @@ public class Inventory {
 
         // Draw armor slots (left side of character)
         float leftSlotStartX = equipmentX + 10;
-        float leftSlotStartY = equipmentY + panelHeight - 250;
+        float leftSlotStartY = equipmentY + panelHeight - 150;
 
         EquipmentSlot[] leftSlots = {
                 EquipmentSlot.HELMET,
@@ -434,7 +433,7 @@ public class Inventory {
 
         // Draw weapon slots (right side of character)
         float rightSlotStartX = equipmentX + equipmentPanelWidth - EQUIPMENT_SLOT_SIZE - 10;
-        float rightSlotStartY = equipmentY + panelHeight - 250;
+        float rightSlotStartY = equipmentY + panelHeight - 150;
 
         EquipmentSlot[] rightSlots = {
                 EquipmentSlot.WEAPON,
@@ -494,29 +493,6 @@ public class Inventory {
         }
 
         shapeRenderer.end();
-
-        // Draw slot labels
-        batch.begin();
-        font.getData().setScale(0.6f);
-        font.setColor(Color.LIGHT_GRAY);
-
-        // Left slot labels
-        for (int i = 0; i < leftSlots.length; i++) {
-            float slotY = leftSlotStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
-            String slotName = getShortSlotName(leftSlots[i]);
-            font.draw(batch, slotName, leftSlotStartX + EQUIPMENT_SLOT_SIZE + 5, slotY + EQUIPMENT_SLOT_SIZE / 2 + 5);
-        }
-
-        // Right slot labels (align to the left of the slots)
-        for (int i = 0; i < rightSlots.length; i++) {
-            float slotY = rightSlotStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
-            String slotName = getShortSlotName(rightSlots[i]);
-            float textWidth = font.getSpaceXadvance() * slotName.length() * 0.6f;
-            font.draw(batch, slotName, rightSlotStartX - textWidth - 5, slotY + EQUIPMENT_SLOT_SIZE / 2 + 5);
-        }
-
-        font.getData().setScale(1.0f);
-        batch.end();
     }
 
     private void renderEquippedItems(SpriteBatch batch, float panelX, float panelY, float panelHeight) {
@@ -526,7 +502,7 @@ public class Inventory {
 
         // Left slots (armor)
         float leftSlotStartX = equipmentX + 10;
-        float leftSlotStartY = equipmentY + panelHeight - 250;
+        float leftSlotStartY = equipmentY + panelHeight - 150;
 
         EquipmentSlot[] leftSlots = {
                 EquipmentSlot.HELMET,
@@ -545,7 +521,7 @@ public class Inventory {
 
         // Right slots (weapons)
         float rightSlotStartX = equipmentX + equipmentPanelWidth - EQUIPMENT_SLOT_SIZE - 10;
-        float rightSlotStartY = equipmentY + panelHeight - 250;
+        float rightSlotStartY = equipmentY + panelHeight - 150;
 
         EquipmentSlot[] rightSlots = {
                 EquipmentSlot.WEAPON,
@@ -638,13 +614,12 @@ public class Inventory {
 
             font.setColor(Color.LIGHT_GRAY);
             font.getData().setScale(0.7f);
-            font.draw(batch, displayItem.getDescription(), infoX, infoY - 20);
 
             if (displayItem.getDamage() > 0) {
                 font.draw(batch, "Damage: " + displayItem.getDamage(), infoX, infoY - 35);
             }
             if (displayItem.getDefense() > 0) {
-                font.draw(batch, "Defense: " + displayItem.getDefense(), infoX + 100, infoY - 35);
+                font.draw(batch, "Defense: " + displayItem.getDefense(), infoX, infoY - 35);
             }
             if (displayItem.getHealthRestore() > 0) {
                 font.draw(batch, "Heals: " + displayItem.getHealthRestore(), infoX, infoY - 35);

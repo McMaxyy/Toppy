@@ -1,7 +1,6 @@
 package managers;
 
 public class CollisionFilter {
-    // CORRECT: Each value should be a different power of 2
     public static final short PLAYER = 0x0001;
     public static final short OBSTACLE = 0x0002;
     public static final short SPEAR = 0x0004;
@@ -11,4 +10,5 @@ public class CollisionFilter {
     public static final short ABILITY = 0x0040;
     public static final short REFLECT = 0x0080;
     public static final short ENEMY_ENEMY = 0x0100;
+    public static final short SWORD = 0x0200;
 }

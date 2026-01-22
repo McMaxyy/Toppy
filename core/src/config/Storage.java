@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
+import entities.PlayerClass;
 
 public class Storage {
     private static Storage instance = null;
@@ -23,6 +24,7 @@ public class Storage {
     public static AssetManager assetManager = new AssetManager();
     private static boolean newLoad = true; 
     private static boolean stageClear, bossAlive;
+    private static PlayerClass selectedPlayerClass = PlayerClass.MERCENARY;
     
     public static synchronized Storage getInstance()  {
         if (instance == null) {
@@ -76,8 +78,13 @@ public class Storage {
         assetManager.load("icons/abilities/Prayer.png", Texture.class);
         assetManager.load("icons/abilities/Bubble.png", Texture.class);
         assetManager.load("icons/abilities/Rend.png", Texture.class);
+        assetManager.load("icons/abilities/Smite.png", Texture.class);
+        assetManager.load("icons/abilities/Pull.png", Texture.class);
 
         assetManager.load("icons/abilities/Cone.png", Texture.class);
+
+        assetManager.load("ui/plus_icon.png", Texture.class);
+        assetManager.load("ui/reset_icon.png", Texture.class);
 
         assetManager.load("character/Walking.png", Texture.class);
         assetManager.load("character/Idle2.png", Texture.class);
@@ -85,8 +92,13 @@ public class Storage {
         assetManager.load("character/Dying.png", Texture.class);
         assetManager.load("character/Sprite-0002.png", Texture.class);
 
+        assetManager.load("character/Paladin/Walking.png", Texture.class);
+        assetManager.load("character/Paladin/Idle.png", Texture.class);
+        assetManager.load("character/Paladin/Dying.png", Texture.class);
+
         assetManager.load("character/abilities/Bubble.png", Texture.class);
         assetManager.load("character/abilities/Prayer.png", Texture.class);
+        assetManager.load("character/abilities/Smite.png", Texture.class);
         
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
@@ -155,4 +167,12 @@ public class Storage {
 	public static void setBossAlive(boolean bossAlive) {
 		Storage.bossAlive = bossAlive;
 	}
+
+    public static void setSelectedPlayerClass(PlayerClass playerClass) {
+        selectedPlayerClass = playerClass;
+    }
+
+    public static PlayerClass getSelectedPlayerClass() {
+        return selectedPlayerClass;
+    }
 }
