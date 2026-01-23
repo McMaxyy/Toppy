@@ -231,7 +231,7 @@ public class EnemyStats {
         public static EnemyStats createBoss(int level) {
             return new EnemyStats(
                     "Boss Kitty",
-                    500 + (level * 75),
+                    500 + (level * 50),
                     15 + (level * 10),
                     5 + (level * 3),
                     150 + (level * 50),
@@ -251,7 +251,7 @@ public class EnemyStats {
         public static EnemyStats createCyclops(int level) {
             return new EnemyStats(
                     "Cyclops",
-                    650 + (level * 100),
+                    600 + (level * 50),
                     18 + (level * 6),
                     7 + (level * 3),
                     200 + (level * 60),
@@ -262,7 +262,7 @@ public class EnemyStats {
                     60f,
                     0.8f,
                     0f,
-                    150f,
+                    120f,
                     0f,
                     0f
             );

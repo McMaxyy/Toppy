@@ -412,22 +412,16 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Get the player class
-     */
     public PlayerClass getPlayerClass() {
         return playerClass;
     }
 
-    /**
-     * Render the skill bar UI
-     */
     public void renderSkillBar(SpriteBatch batch) {
         int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
 
         // Calculate total width: 5 abilities + space + 3 inventory + space + 2 attacks
-        int totalSlots = 10;
+        int totalSlots = 7;
         int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (2 * SEPARATOR_SPACE);
 
         float startX = (screenWidth - totalWidth) / 2f;
@@ -447,14 +441,8 @@ public class AbilityManager {
         // Separator space
         float inventoryStartX = startX + (NUM_ABILITY_SLOTS * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
 
-        // Render inventory quick slots (6-8)
-        for (int i = 0; i < 3; i++) {
-            float slotX = inventoryStartX + i * (SLOT_SIZE + SLOT_PADDING);
-            renderInventorySlot(slotX, startY, i);
-        }
-
         // Separator space
-        float attackStartX = inventoryStartX + (3 * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
+        float attackStartX = inventoryStartX;
 
         // Render LMB and RMB slots
         renderAttackSlot(attackStartX, startY, "LMB", player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.WEAPON));
@@ -471,15 +459,6 @@ public class AbilityManager {
             if (abilities[i] != null) {
                 float slotX = startX + i * (SLOT_SIZE + SLOT_PADDING);
                 renderAbilityIcon(batch, slotX, startY, abilities[i], i + 1);
-            }
-        }
-
-        // Render inventory item icons
-        for (int i = 0; i < 3; i++) {
-            Item item = player.getInventory().getItem(i);
-            if (item != null) {
-                float slotX = inventoryStartX + i * (SLOT_SIZE + SLOT_PADDING);
-                item.renderIcon(batch, slotX + 3, startY + 3, SLOT_SIZE - 6);
             }
         }
 
@@ -524,22 +503,6 @@ public class AbilityManager {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         Gdx.gl.glLineWidth(2);
         shapeRenderer.setColor(0.6f, 0.6f, 0.7f, 1f);
-        shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE);
-        shapeRenderer.end();
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        Gdx.gl.glLineWidth(1);
-    }
-
-    private void renderInventorySlot(float x, float y, int index) {
-        // Background
-        shapeRenderer.setColor(0.25f, 0.25f, 0.35f, 0.8f);
-        shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE);
-
-        // Border
-        shapeRenderer.end();
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        Gdx.gl.glLineWidth(2);
-        shapeRenderer.setColor(0.5f, 0.5f, 0.6f, 1f);
         shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE);
         shapeRenderer.end();
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);

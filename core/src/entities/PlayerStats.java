@@ -8,11 +8,15 @@ public class PlayerStats {
     private int defense;
     private float baseSpeed;
 
-    private static final int BASE_MAX_HEALTH = 1000;
+    // Base stats as points (what's displayed)
+    private static final int BASE_VIT = 100;  // Starting VIT points
+    private static final int BASE_DEX = 50;   // Starting DEX points
     private static final int BASE_DAMAGE = 20;
     private static final int BASE_DEFENSE = 1;
-    private static final float BASE_SPEED = 5000f;
-    private static final float SPEED_PER_DEX_POINT = 100f;
+
+    // Conversion rates
+    private static final int HEALTH_PER_VIT = 10;      // 1 VIT = 10 health
+    private static final float SPEED_PER_DEX = 100f;   // 1 DEX = 100 speed
 
     private int allocatedHealthPoints;
     private int allocatedAttackPoints;
@@ -20,12 +24,14 @@ public class PlayerStats {
     private int allocatedDexPoints;
     private int availableStatPoints;
     private static final int STAT_POINTS_PER_LEVEL = 5;
-    private static final int HEALTH_PER_POINT = 10;
     private static final int ATTACK_PER_POINT = 2;
     private static final int DEFENSE_PER_POINT = 1;
 
-    private int weaponDamage;
-    private int armorDefense;
+    // Gear bonuses (unified for all equipment)
+    private int gearDamage;
+    private int gearDefense;
+    private int gearVitality;  // This is in VIT points
+    private int gearDex;     // This is in DEX points
 
     private int level;
     private int experience;
@@ -41,26 +47,28 @@ public class PlayerStats {
     }
 
     public PlayerStats() {
-        // Default starting stats
         this.level = 1;
-        this.maxHealth = BASE_MAX_HEALTH;
-        this.currentHealth = BASE_MAX_HEALTH;
         this.baseDamage = BASE_DAMAGE;
         this.defense = BASE_DEFENSE;
-        this.baseSpeed = BASE_SPEED;
-        this.weaponDamage = 0;
-        this.armorDefense = 0;
+        this.gearDamage = 0;
+        this.gearDefense = 0;
+        this.gearVitality = 0;
+        this.gearDex = 0;
         this.experience = 0;
         this.experienceToNextLevel = 1000;
         this.healthRegenRate = 1f;
         this.regenTimer = 0f;
 
-        // Stat allocation
         this.allocatedDexPoints = 0;
         this.allocatedHealthPoints = 0;
         this.allocatedAttackPoints = 0;
         this.allocatedDefensePoints = 0;
         this.availableStatPoints = 0;
+
+        // Calculate initial health and speed from base stats
+        this.maxHealth = getTotalVit() * HEALTH_PER_VIT;
+        this.currentHealth = maxHealth;
+        this.baseSpeed = getTotalDex() * SPEED_PER_DEX;
     }
 
     public void setSpeedChangeListener(SpeedChangeListener listener) {
@@ -127,17 +135,22 @@ public class PlayerStats {
     }
 
     private void recalculateStats() {
-        int levelBonus = (level - 1) * 5;
-
         int oldMaxHealth = maxHealth;
-        maxHealth = BASE_MAX_HEALTH + levelBonus + (allocatedHealthPoints * HEALTH_PER_POINT);
+
+        // Calculate max health from total VIT
+        maxHealth = getTotalVit() * HEALTH_PER_VIT;
+
+        // Calculate damage
         baseDamage = BASE_DAMAGE + (level - 1) + (allocatedAttackPoints * ATTACK_PER_POINT);
+
+        // Calculate defense
         defense = BASE_DEFENSE + (allocatedDefensePoints * DEFENSE_PER_POINT);
 
-        // Calculate speed based on DEX points
+        // Calculate speed from total DEX
         float oldSpeed = baseSpeed;
-        baseSpeed = BASE_SPEED + (allocatedDexPoints * SPEED_PER_DEX_POINT);
+        baseSpeed = getTotalDex() * SPEED_PER_DEX;
 
+        // Maintain health percentage when max health changes
         if (oldMaxHealth > 0 && maxHealth != oldMaxHealth) {
             float healthPercent = (float) currentHealth / oldMaxHealth;
             currentHealth = Math.max(1, (int) (maxHealth * healthPercent));
@@ -151,12 +164,22 @@ public class PlayerStats {
         }
     }
 
+    // Get total VIT points (base + allocated + gear)
+    public int getTotalVit() {
+        return BASE_VIT + allocatedHealthPoints + gearVitality + ((level - 1) * 5);
+    }
+
+    // Get total DEX points (base + allocated + gear)
+    public int getTotalDex() {
+        return BASE_DEX + allocatedDexPoints + gearDex;
+    }
+
     public int getTotalDamage() {
-        return baseDamage + weaponDamage;
+        return baseDamage + gearDamage;
     }
 
     public int getTotalDefense() {
-        return defense + armorDefense;
+        return defense + gearDefense;
     }
 
     public void takeDamage(int damage) {
@@ -167,15 +190,11 @@ public class PlayerStats {
     public void heal(int amount) {
         int oldHealth = currentHealth;
         currentHealth = Math.min(maxHealth, currentHealth + amount);
-        int actualHeal = currentHealth - oldHealth;
-        if (actualHeal > 0) {
-        }
     }
 
     public void fullHeal() {
         currentHealth = maxHealth;
     }
-
 
     public boolean addExperience(int exp) {
         experience += exp;
@@ -203,12 +222,41 @@ public class PlayerStats {
         return currentHealth <= 0;
     }
 
-    public void setWeaponDamage(int damage) {
-        this.weaponDamage = damage;
+    // Gear stat modifiers
+    public void addGearDamage(int amount) {
+        this.gearDamage += amount;
     }
 
-    public void setArmorDefense(int defense) {
-        this.armorDefense = defense;
+    public void removeGearDamage(int amount) {
+        this.gearDamage = Math.max(0, this.gearDamage - amount);
+    }
+
+    public void addGearDefense(int amount) {
+        this.gearDefense += amount;
+    }
+
+    public void removeGearDefense(int amount) {
+        this.gearDefense = Math.max(0, this.gearDefense - amount);
+    }
+
+    public void addGearVitality(int amount) {
+        this.gearVitality += amount;
+        recalculateStats();
+    }
+
+    public void removeGearVitality(int amount) {
+        this.gearVitality = Math.max(0, this.gearVitality - amount);
+        recalculateStats();
+    }
+
+    public void addGearDex(int amount) {
+        this.gearDex += amount;
+        recalculateStats();
+    }
+
+    public void removeGearDex(int amount) {
+        this.gearDex = Math.max(0, this.gearDex - amount);
+        recalculateStats();
     }
 
     public float getHealthPercentage() {
@@ -221,8 +269,10 @@ public class PlayerStats {
     public int getBaseDamage() { return baseDamage; }
     public int getDefense() { return defense; }
     public float getBaseSpeed() { return baseSpeed; }
-    public int getWeaponDamage() { return weaponDamage; }
-    public int getArmorDefense() { return armorDefense; }
+    public int getGearDamage() { return gearDamage; }
+    public int getGearDefense() { return gearDefense; }
+    public int getGearVitality() { return gearVitality; }
+    public int getGearDex() { return gearDex; }
     public int getLevel() { return level; }
     public int getExperience() { return experience; }
     public int getExperienceToNextLevel() { return experienceToNextLevel; }
@@ -236,6 +286,7 @@ public class PlayerStats {
     public void setCurrentHealth(int health) {
         this.currentHealth = Math.max(0, Math.min(maxHealth, health));
     }
+
     public void setMaxHealth(int maxHealth) {
         this.maxHealth = maxHealth;
         this.currentHealth = Math.min(currentHealth, maxHealth);

@@ -539,7 +539,7 @@ public class Inventory {
         shapeRenderer.rect(equipmentX, equipmentY, equipmentPanelWidth, panelHeight - 100);
         shapeRenderer.end();
 
-        // Draw character sprite in center (moved up to make room for stats)
+        // Draw character sprite in center
         float charSize = 100;
         float charX = equipmentX + (equipmentPanelWidth - charSize) / 2f;
         float charY = equipmentY + (panelHeight) / 2f + 20;
@@ -575,7 +575,6 @@ public class Inventory {
             EquipmentSlot slot = leftSlots[i];
             float slotY = leftSlotStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
 
-            // Highlight selected equipment slot
             if (selectingEquipmentSlot && selectedEquipmentSlot == slot) {
                 shapeRenderer.setColor(EQUIPMENT_SELECTED_COLOR);
             } else {
@@ -584,11 +583,18 @@ public class Inventory {
 
             shapeRenderer.rect(leftSlotStartX, slotY, EQUIPMENT_SLOT_SIZE, EQUIPMENT_SLOT_SIZE);
 
-            // Border
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            Gdx.gl.glLineWidth(selectingEquipmentSlot && selectedEquipmentSlot == slot ? 3 : 2);
-            shapeRenderer.setColor(SLOT_BORDER_COLOR);
+
+            // Get border color from equipped item
+            Color borderColor = SLOT_BORDER_COLOR;
+            Item equippedItem = equipment.getEquippedItem(slot);
+            if (equippedItem != null && equippedItem.getGearType() != null) {
+                borderColor = getGearTypeColor(equippedItem.getGearType());
+            }
+
+            Gdx.gl.glLineWidth(selectingEquipmentSlot && selectedEquipmentSlot == slot ? 4 : 3);
+            shapeRenderer.setColor(borderColor);
             shapeRenderer.rect(leftSlotStartX, slotY, EQUIPMENT_SLOT_SIZE, EQUIPMENT_SLOT_SIZE);
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -600,7 +606,6 @@ public class Inventory {
             EquipmentSlot slot = rightSlots[i];
             float slotY = rightSlotStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
 
-            // Highlight selected equipment slot
             if (selectingEquipmentSlot && selectedEquipmentSlot == slot) {
                 shapeRenderer.setColor(EQUIPMENT_SELECTED_COLOR);
             } else {
@@ -609,11 +614,18 @@ public class Inventory {
 
             shapeRenderer.rect(rightSlotStartX, slotY, EQUIPMENT_SLOT_SIZE, EQUIPMENT_SLOT_SIZE);
 
-            // Border
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            Gdx.gl.glLineWidth(selectingEquipmentSlot && selectedEquipmentSlot == slot ? 3 : 2);
-            shapeRenderer.setColor(SLOT_BORDER_COLOR);
+
+            // Get border color from equipped item
+            Color borderColor = SLOT_BORDER_COLOR;
+            Item equippedItem = equipment.getEquippedItem(slot);
+            if (equippedItem != null && equippedItem.getGearType() != null) {
+                borderColor = getGearTypeColor(equippedItem.getGearType());
+            }
+
+            Gdx.gl.glLineWidth(selectingEquipmentSlot && selectedEquipmentSlot == slot ? 4 : 3);
+            shapeRenderer.setColor(borderColor);
             shapeRenderer.rect(rightSlotStartX, slotY, EQUIPMENT_SLOT_SIZE, EQUIPMENT_SLOT_SIZE);
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -713,11 +725,10 @@ public class Inventory {
         // Available points
         font.draw(batch, "Available points: " + stats.getAvailableStatPoints(), equipmentX + 10, statsStartY + 30);
 
-        // Calculate total stats (base + allocated + equipment)
-        int totalVit = stats.getMaxHealth();
+        int totalVit = stats.getTotalVit();
         int totalAP = stats.getTotalDamage();
         int totalDP = stats.getTotalDefense();
-        int totalDex = (int) stats.getBaseSpeed();
+        int totalDex = stats.getTotalDex();
 
         font.setColor(Color.RED);
         font.draw(batch, "VIT: " + totalVit, equipmentX + 10, statsStartY - 10);
@@ -789,6 +800,25 @@ public class Inventory {
         }
     }
 
+    private Color getGearTypeColor(String gearType) {
+        if (gearType == null) return SLOT_BORDER_COLOR;
+
+        switch (gearType) {
+            case ItemRegistry.VALKYRIE:
+                return new Color(1f, 0.85f, 0f, 1f); // Yellow
+            case ItemRegistry.PROTECTOR:
+                return new Color(1f, 1f, 1f, 1f); // White
+            case ItemRegistry.BARBARIAN:
+                return new Color(0.6f, 0.4f, 0.2f, 1f); // Brown
+            case ItemRegistry.BERSERKER:
+                return new Color(0.9f, 0.2f, 0.2f, 1f); // Red
+            case ItemRegistry.DECEPTOR:
+                return new Color(0.7f, 0.3f, 0.9f, 1f); // Purple
+            default:
+                return SLOT_BORDER_COLOR;
+        }
+    }
+
     private void renderInventorySlots(SpriteBatch batch, float panelX, float panelY, float panelWidth, float panelHeight) {
         float inventoryStartX = panelX + 280;
         float inventoryStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
@@ -812,8 +842,15 @@ public class Inventory {
 
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            Gdx.gl.glLineWidth(!selectingEquipmentSlot && i == selectedSlot ? 3 : 2);
-            shapeRenderer.setColor(SLOT_BORDER_COLOR);
+
+            // Get border color based on item's gear type
+            Color borderColor = SLOT_BORDER_COLOR;
+            if (items[i] != null && items[i].getGearType() != null) {
+                borderColor = getGearTypeColor(items[i].getGearType());
+            }
+
+            Gdx.gl.glLineWidth(!selectingEquipmentSlot && i == selectedSlot ? 4 : 3);
+            shapeRenderer.setColor(borderColor);
             shapeRenderer.rect(slotX, slotY, SLOT_SIZE, SLOT_SIZE);
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -857,25 +894,48 @@ public class Inventory {
         }
 
         if (displayItem != null) {
-            font.setColor(Color.CYAN);
-            font.getData().setScale(0.9f);
+            font.setColor(Color.WHITE);
+            font.getData().setScale(0.8f);
 
-            float infoY = panelY + UI_PADDING + 70;
+            float infoY = panelY + UI_PADDING + 150;
             float infoX = panelX + 280;
             font.draw(batch, displayItem.getName(), infoX, infoY);
 
-            font.setColor(Color.LIGHT_GRAY);
-            font.getData().setScale(0.7f);
+            font.getData().setScale(0.6f);
+
+            int lineOffset = 0;
+            float lineSpacing = 20f;
 
             if (displayItem.getDamage() > 0) {
-                font.draw(batch, "Damage: " + displayItem.getDamage(), infoX, infoY - 35);
+                font.setColor(Color.ORANGE);
+                font.draw(batch, "Damage: " + displayItem.getDamage(), infoX, infoY - 25 - (lineOffset * lineSpacing));
+                lineOffset++;
             }
+
             if (displayItem.getDefense() > 0) {
-                font.draw(batch, "Defense: " + displayItem.getDefense(), infoX, infoY - 35);
+                font.setColor(Color.CYAN);
+                font.draw(batch, "Defense: " + displayItem.getDefense(), infoX, infoY - 25 - (lineOffset * lineSpacing));
+                lineOffset++;
             }
-            if (displayItem.getHealthRestore() > 0) {
-                font.draw(batch, "Heals: " + displayItem.getHealthRestore(), infoX, infoY - 35);
+
+            if (displayItem.getBonusVitality() > 0) {
+                font.setColor(Color.RED);
+                font.draw(batch, "Vitality: " + displayItem.getBonusVitality(), infoX, infoY - 25 - (lineOffset * lineSpacing));
+                lineOffset++;
+            } else if (displayItem.getHealthRestore() > 0) {
+                font.setColor(Color.RED);
+                font.draw(batch, "Health: " + displayItem.getHealthRestore(), infoX, infoY - 25 - (lineOffset * lineSpacing));
+                lineOffset++;
             }
+
+            if (displayItem.getBonusDex() > 0) {
+                font.setColor(Color.GREEN);
+                font.draw(batch, "Dexterity: " + displayItem.getBonusDex(), infoX, infoY - 25 - (lineOffset * lineSpacing));
+                lineOffset++;
+            }
+
+            // Reset font color
+            font.setColor(Color.WHITE);
         }
     }
 

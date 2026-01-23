@@ -24,7 +24,11 @@ public abstract class Item {
     protected int damage;
     protected int defense;
     protected int healthRestore;
-    protected int value; // Coin value when sold
+    protected int value;
+    protected int bonusHealth;
+    protected int bonusDex;
+    protected int bonusVitality;
+    protected String gearType;
 
     public enum ItemType {
         WEAPON,
@@ -135,4 +139,9 @@ public abstract class Item {
     public int getValue() { return value; }
     public Texture getTexture() { return texture; }
     public Texture getIconTexture() { return iconTexture; }
+    public int getBonusHealth() { return bonusHealth; }
+    public int getBonusDex() { return bonusDex; }
+    public String getGearType() { return gearType; }
+    public void setGearType(String gearType) { this.gearType = gearType; }
+    public int getBonusVitality() { return bonusVitality; }
 }

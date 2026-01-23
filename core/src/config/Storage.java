@@ -71,6 +71,7 @@ public class Storage {
         assetManager.load("icons/gear/ironBoots.png", Texture.class);
         assetManager.load("icons/gear/ironSpear.png", Texture.class);
         assetManager.load("icons/gear/ironShield.png", Texture.class);
+        assetManager.load("icons/gear/ironSword.png", Texture.class);
 
         assetManager.load("icons/abilities/Blink.png", Texture.class);
         assetManager.load("icons/abilities/Charge.png", Texture.class);

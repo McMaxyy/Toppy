@@ -6,9 +6,6 @@ import java.util.Map;
 import items.ItemTypes;
 import items.Item;
 
-/**
- * Manages equipped items for the player
- */
 public class Equipment {
 
     public enum EquipmentSlot {
@@ -60,23 +57,14 @@ public class Equipment {
         return item;
     }
 
-    /**
-     * Get the item in a specific slot
-     */
     public Item getEquippedItem(EquipmentSlot slot) {
         return equippedItems.get(slot);
     }
 
-    /**
-     * Check if a slot is empty
-     */
     public boolean isSlotEmpty(EquipmentSlot slot) {
         return equippedItems.get(slot) == null;
     }
 
-    /**
-     * Determine which slot an item belongs to based on its type and name
-     */
     private EquipmentSlot getSlotForItem(Item item) {
         if (item instanceof ItemTypes.WeaponItem) {
             return EquipmentSlot.WEAPON;
@@ -110,16 +98,10 @@ public class Equipment {
         return null;
     }
 
-    /**
-     * Get all equipped items
-     */
     public Map<EquipmentSlot, Item> getAllEquippedItems() {
         return equippedItems;
     }
 
-    /**
-     * Calculate total defense from all equipped armor
-     */
     public int getTotalDefense() {
         int totalDefense = 0;
         for (Item item : equippedItems.values()) {
@@ -130,9 +112,6 @@ public class Equipment {
         return totalDefense;
     }
 
-    /**
-     * Get total damage from equipped weapon
-     */
     public int getTotalDamage() {
         Item weapon = equippedItems.get(EquipmentSlot.WEAPON);
         return weapon != null ? weapon.getDamage() : 0;

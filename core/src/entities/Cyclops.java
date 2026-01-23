@@ -159,6 +159,8 @@ public class Cyclops {
     }
 
     private void startGroundPound() {
+        Vector2 targetPosition = new Vector2(player.getPosition().x + 10, player.getPosition().y + 10);
+        body.setTransform(targetPosition, 1f);
         groundPoundPhase = GroundPoundPhase.CHARGING;
         groundPoundTimer = 0f;
         firstPulseDamageDealt = false;
@@ -275,7 +277,6 @@ public class Cyclops {
         showMeleeIndicator = false;
 
         getAnimationManager().setState(State.RUNNING, "Cyclops");
-        System.out.println("Cyclops MELEE attack ended!");
     }
 
     private void startSpecialAbility() {
@@ -291,6 +292,9 @@ public class Cyclops {
 
     private void updateSpecialAbility(float delta) {
         specialAbilityTimer += delta;
+        Vector2 bodyVel = new Vector2(0, 0);
+        if (body.getLinearVelocity() != bodyVel)
+            body.setLinearVelocity(0, 0);
 
         if (specialAbilityTimer >= 1.5f) {
             endSpecialAbility();

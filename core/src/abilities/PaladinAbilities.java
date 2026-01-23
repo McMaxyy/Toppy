@@ -22,7 +22,7 @@ class PaladinBlinkAbility extends Ability {
         super(
                 "Blink",
                 "Teleport a distance towards the mouse position",
-                1.0f,
+                2.0f,
                 0,
                 0f,
                 0f,
@@ -59,7 +59,7 @@ class PaladinBubbleAbility extends Ability {
         super(
                 "Bubble",
                 "Gain a shield that blocks all damage for 2 seconds",
-                12.0f,
+                6.0f,
                 0,
                 0f,
                 2f,
@@ -111,7 +111,7 @@ class PullAbility extends Ability {
         super(
                 "Pull",
                 "Create a divine vortex that pulls all nearby enemies toward you",
-                10.0f,
+                4.0f,
                 0,
                 0f,
                 PULL_DURATION,
@@ -299,7 +299,7 @@ class SmiteAbility extends Ability {
         super(
                 "Smite",
                 "Call down divine judgment, damaging all enemies around you",
-                8.0f,
+                4.0f,
                 SMITE_DAMAGE,
                 0f,
                 0.5f,
@@ -390,13 +390,13 @@ class SmiteAbility extends Ability {
 class PaladinPrayerAbility extends Ability {
     private Player targetPlayer;
     private AbilityVisual.Prayer prayerVisual;
-    private static final int HEAL_AMOUNT = 80;
+    private static int HEAL_AMOUNT = 80;
 
     public PaladinPrayerAbility(Texture iconTexture) {
         super(
                 "Prayer",
                 "Channel divine energy to restore 80 health",
-                15.0f,
+                10.0f,
                 0,
                 1.0f,
                 0f,
@@ -410,6 +410,7 @@ class PaladinPrayerAbility extends Ability {
     protected void onCastStart(Player player, GameProj gameProj) {
         super.onCastStart(player, gameProj);
         this.targetPlayer = player;
+        HEAL_AMOUNT += (targetPlayer.getLevel() * 5);
 
         prayerVisual = new AbilityVisual.Prayer(player, castTime);
         player.addAbilityVisual(prayerVisual);

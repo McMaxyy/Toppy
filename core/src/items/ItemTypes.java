@@ -9,10 +9,20 @@ public abstract class ItemTypes {
     public static class ArmorItem extends Item {
 
         public ArmorItem(String name, String description, Texture texture,
-                         Texture iconTexture, Vector2 position, int defense, int value) {
+                         Texture iconTexture, Vector2 position, int defense, int damage,
+                         int vitality, int dex, int value) {
             super(name, description, ItemType.ARMOR, texture, iconTexture, position);
             this.defense = defense;
+            this.damage = damage;
+            this.bonusVitality = vitality;
+            this.bonusDex = dex;
             this.value = value;
+        }
+
+        // Convenience constructor for backward compatibility
+        public ArmorItem(String name, String description, Texture texture,
+                         Texture iconTexture, Vector2 position, int defense, int value) {
+            this(name, description, texture, iconTexture, position, defense, 0, 0, 0, value);
         }
 
         @Override
@@ -22,20 +32,26 @@ public abstract class ItemTypes {
 
         @Override
         public void equip(entities.Player player) {
-            int currentDefense = player.getStats().getArmorDefense();
-            player.getStats().setArmorDefense(currentDefense + defense);
+            if (defense > 0) player.getStats().addGearDefense(defense);
+            if (damage > 0) player.getStats().addGearDamage(damage);
+            if (bonusVitality > 0) player.getStats().addGearVitality(bonusVitality);
+            if (bonusDex > 0) player.getStats().addGearDex(bonusDex);
         }
 
         @Override
         public void unequip(entities.Player player) {
-            int currentDefense = player.getStats().getArmorDefense();
-            player.getStats().setArmorDefense(Math.max(0, currentDefense - defense));
+            if (defense > 0) player.getStats().removeGearDefense(defense);
+            if (damage > 0) player.getStats().removeGearDamage(damage);
+            if (bonusVitality > 0) player.getStats().removeGearVitality(bonusVitality);
+            if (bonusDex > 0) player.getStats().removeGearDex(bonusDex);
         }
 
         @Override
         public Item copy() {
-            return new ArmorItem(name, description, texture, iconTexture,
-                    new Vector2(bounds.x, bounds.y), defense, value);
+            ArmorItem copy = new ArmorItem(name, description, texture, iconTexture,
+                    new Vector2(bounds.x, bounds.y), defense, damage, bonusVitality, bonusDex, value);
+            copy.setGearType(gearType);
+            return copy;
         }
     }
 
@@ -106,11 +122,21 @@ public abstract class ItemTypes {
         private int attackSpeed;
 
         public WeaponItem(String name, String description, Texture texture,
-                          Texture iconTexture, Vector2 position, int damage, int value) {
+                          Texture iconTexture, Vector2 position, int damage, int defense,
+                          int vitality, int dex, int value) {
             super(name, description, ItemType.WEAPON, texture, iconTexture, position);
             this.damage = damage;
+            this.defense = defense;
+            this.bonusVitality = vitality;
+            this.bonusDex = dex;
             this.value = value;
             this.attackSpeed = 100;
+        }
+
+        // Convenience constructor for backward compatibility
+        public WeaponItem(String name, String description, Texture texture,
+                          Texture iconTexture, Vector2 position, int damage, int value) {
+            this(name, description, texture, iconTexture, position, damage, 0, 0, 0, value);
         }
 
         @Override
@@ -120,20 +146,26 @@ public abstract class ItemTypes {
 
         @Override
         public void equip(entities.Player player) {
-            int currentDamage = player.getStats().getWeaponDamage();
-            player.getStats().setWeaponDamage(currentDamage + damage);
+            if (damage > 0) player.getStats().addGearDamage(damage);
+            if (defense > 0) player.getStats().addGearDefense(defense);
+            if (bonusVitality > 0) player.getStats().addGearVitality(bonusVitality);
+            if (bonusDex > 0) player.getStats().addGearDex(bonusDex);
         }
 
         @Override
         public void unequip(entities.Player player) {
-            int currentDamage = player.getStats().getWeaponDamage();
-            player.getStats().setWeaponDamage(Math.max(0, currentDamage - damage));
+            if (damage > 0) player.getStats().removeGearDamage(damage);
+            if (defense > 0) player.getStats().removeGearDefense(defense);
+            if (bonusVitality > 0) player.getStats().removeGearVitality(bonusVitality);
+            if (bonusDex > 0) player.getStats().removeGearDex(bonusDex);
         }
 
         @Override
         public Item copy() {
-            return new WeaponItem(name, description, texture, iconTexture,
-                    new Vector2(bounds.x, bounds.y), damage, value);
+            WeaponItem copy = new WeaponItem(name, description, texture, iconTexture,
+                    new Vector2(bounds.x, bounds.y), damage, defense, bonusVitality, bonusDex, value);
+            copy.setGearType(gearType);
+            return copy;
         }
 
         public int getAttackSpeed() { return attackSpeed; }

@@ -119,12 +119,12 @@ public class GameProj implements Screen, ContactListener {
         chunkGenerator = Executors.newFixedThreadPool(2);
 
         createComponents();
-        itemSpawner.spawnItem("iron_helmet", player.getPosition());
-        itemSpawner.spawnItem("iron_armor", player.getPosition());
-        itemSpawner.spawnItem("iron_gloves", player.getPosition());
-        itemSpawner.spawnItem("iron_boots", player.getPosition());
-        itemSpawner.spawnItem("iron_spear", player.getPosition());
-        itemSpawner.spawnItem("iron_shield", player.getPosition());
+        itemSpawner.spawnItem("valkyries_iron_helmet", player.getPosition());
+        itemSpawner.spawnItem("berserkers_iron_sword", player.getPosition());
+        itemSpawner.spawnItem("deceptors_iron_boots", player.getPosition());
+        itemSpawner.spawnItem("protectors_iron_armor", player.getPosition());
+        itemSpawner.spawnItem("barbarians_iron_shield", player.getPosition());
+        itemSpawner.spawnItem("deceptors_iron_gloves", player.getPosition());
     }
 
     private void createComponents() {
@@ -324,7 +324,7 @@ public class GameProj implements Screen, ContactListener {
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
 
         // Determine which boss to spawn based on progression
-        BossRoom.BossType bossType = bossKittyDefeated ? BossRoom.BossType.CYCLOPS : BossRoom.BossType.BOSS_KITTY;
+        BossRoom.BossType bossType = bossKittyDefeated ? BossRoom.BossType.CYCLOPS : BossRoom.BossType.CYCLOPS;
         currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, bossType);
 
         Vector2 spawnPoint = currentBossRoom.getSpawnPoint();

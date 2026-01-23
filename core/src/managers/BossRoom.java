@@ -316,7 +316,7 @@ public class BossRoom {
         fixtureDef.shape = shape;
         fixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
         fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR |
-                CollisionFilter.OBSTACLE | CollisionFilter.ENEMY | CollisionFilter.ABILITY;
+                CollisionFilter.OBSTACLE | CollisionFilter.ENEMY | CollisionFilter.ABILITY | CollisionFilter.WALL;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);
