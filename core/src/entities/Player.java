@@ -23,7 +23,7 @@ import items.Item;
 import managers.*;
 import abilities.AbilityManager;
 
-public class Player {
+public class Player implements PlayerStats.SpeedChangeListener {
     private Body body;
     private Array<Body> spearBodies = new Array<>();
     private Array<Vector2> spearVelocities = new Array<>();
@@ -85,7 +85,6 @@ public class Player {
 
     public Player(Box2DWorld world, AnimationManager animationManager, int size, GameProj gameP, GameScreen gameScreen, PlayerClass playerClass) {
         this.animationManager = animationManager;
-        this.speed = 5000f;
         this.gameP = gameP;
         this.world = world;
         this.gameScreen = gameScreen;
@@ -94,6 +93,10 @@ public class Player {
         this.healthBarBgTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.playerClass = playerClass;
         whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
+
+        // Set initial speed from stats and register for speed changes
+        this.speed = stats.getBaseSpeed();
+        stats.setSpeedChangeListener(this);
 
         // Set the player class on the animation manager
         animationManager.setPlayerClass(playerClass);
@@ -123,6 +126,11 @@ public class Player {
         notOriginalMaskBits = fixtureDef.filter.maskBits;
 
         shape.dispose();
+    }
+
+    @Override
+    public void onSpeedChanged(float newSpeed) {
+        this.speed = newSpeed;
     }
 
     public void initializeAbilityManager(GameProj gameProj) {
@@ -280,7 +288,6 @@ public class Player {
             }
         }
 
-        // Only Mercenary uses spears for LMB attack
         if (playerClass == PlayerClass.MERCENARY) {
             if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0
                     && !gameP.isPaused() && !inventory.isOpen()) {
@@ -340,6 +347,7 @@ public class Player {
             }
         }
 
+        // Use speed from stats (which includes DEX bonuses)
         float velocityX = dx * speed * delta;
         float velocityY = dy * speed * delta;
 
@@ -633,5 +641,8 @@ public class Player {
 
     public AbilityManager getAbilityManager() {
         return abilityManager;
+    }
+    public int getLevel() {
+        return stats.getLevel();
     }
 }

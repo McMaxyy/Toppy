@@ -42,8 +42,8 @@ public class BossKitty {
     private BossAttackMode currentAttackMode = BossAttackMode.MELEE;
 
     // Charge attack settings
-    private final float CHARGE_DISTANCE_THRESHOLD = 100f; // Distance at which boss will charge
-    private final float CHARGE_SPEED = 300f;
+    private final float CHARGE_DISTANCE_THRESHOLD = 100f;
+    private float CHARGE_SPEED;
     private final float CHARGE_DURATION = 1f;
     private final float CHARGE_COOLDOWN = 4.0f;
     private float chargeCooldown = 0f;
@@ -51,7 +51,6 @@ public class BossKitty {
     private Vector2 chargeDirection = new Vector2();
     private Vector2 chargeStartPosition = new Vector2();
 
-    // Charge trail visual
     private Array<TrailPoint> chargeTrailPoints = new Array<>();
     private float trailSpawnTimer = 0f;
     private final float TRAIL_SPAWN_INTERVAL = 0.02f;
@@ -59,9 +58,9 @@ public class BossKitty {
     private final float TRAIL_ALPHA = 0.6f;
 
     // Melee attack settings
-    private final float MELEE_RANGE = 35f;
+    private float MELEE_RANGE;
     private final float MELEE_ATTACK_DURATION = 0.8f;
-    private final float MELEE_COOLDOWN = 1.5f;
+    private float MELEE_COOLDOWN;
     private float meleeWindupTimer = 0f;
     private final float MELEE_WINDUP_TIME = 0.4f;
     private boolean showMeleeIndicator = false;
@@ -98,6 +97,10 @@ public class BossKitty {
         this.body = body;
         this.player = player;
         this.stats = stats;
+
+        MELEE_RANGE = stats.getAttackRange();
+        MELEE_COOLDOWN = stats.getAttackCooldown();
+        CHARGE_SPEED = stats.getChargeSpeed();
 
         this.healthBarTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
@@ -249,10 +252,7 @@ public class BossKitty {
         showMeleeIndicator = true;
         body.setLinearVelocity(0, 0);
 
-        // Play attack animation
         getAnimationManager().setState(State.DYING, "BossKitty");
-
-        System.out.println("Boss started MELEE attack!");
     }
 
     private void updateMeleeAttack(float delta) {
@@ -265,7 +265,6 @@ public class BossKitty {
             if (isPlayerInMeleeRange()) {
                 damagePlayer(stats.getDamage());
                 hasDealtDamage = true;
-                System.out.println("Boss MELEE hit player!");
             }
             showMeleeIndicator = false;
         }
@@ -290,7 +289,6 @@ public class BossKitty {
         showMeleeIndicator = false;
 
         getAnimationManager().setState(State.RUNNING, "BossKitty");
-        System.out.println("Boss MELEE attack ended!");
     }
 
     private void startSpecialAbility() {
@@ -311,7 +309,7 @@ public class BossKitty {
             endSpecialAbility();
         } else if (specialAbilityTimer >= 1f) {
             if (!hasDealtDamage) {
-                if (getDistanceToPlayer() <= 100f) {
+                if (getDistanceToPlayer() <= stats.getAoeRadius()) {
                     damagePlayer(stats.getDamage() * 3);
                     hasDealtDamage = true;
                 }
@@ -328,9 +326,6 @@ public class BossKitty {
         getAnimationManager().setState(State.RUNNING, "BossKitty");
     }
 
-    // =========================================================================
-    // RENDERING
-    // =========================================================================
     public void render(SpriteBatch batch) {
         if (markForRemoval) return;
 
@@ -374,14 +369,11 @@ public class BossKitty {
     private void renderMeleeIndicator(SpriteBatch batch) {
         Vector2 bossPos = new Vector2(body.getPosition().x, body.getPosition().y);
 
-        // Calculate fill progress based on windup
         float fillProgress = Math.min(1f, meleeWindupTimer / MELEE_WINDUP_TIME);
 
-        // Draw circular attack zone indicator
         int segments = 32;
         float angleStep = 360f / segments;
 
-        // Draw filled portion (danger zone filling up)
         batch.setColor(1f, 0.2f, 0.2f, 0.3f * fillProgress);
         for (int i = 0; i < segments * fillProgress; i++) {
             float angle = i * angleStep;

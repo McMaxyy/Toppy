@@ -12,9 +12,6 @@ import managers.Chunk;
 
 import java.util.ArrayList;
 
-/**
- * All Mercenary class abilities in one file.
- */
 public abstract class MercenaryAbilities {}
 
 class ChargeAbility extends Ability {
@@ -269,7 +266,6 @@ class DoubleSwingAbility extends Ability {
         Vector2 mousePos = new Vector2(mousePos3D.x, mousePos3D.y);
         Vector2 attackDir = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
 
-        // Check overworld enemies
         for (Chunk chunk : gameProj.getChunks().values()) {
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -277,29 +273,7 @@ class DoubleSwingAbility extends Ability {
                     Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
 
                     if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        enemy.takeDamage(damage);
-                    }
-                }
-            }
-
-            for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
-                if (boss.getBody() != null) {
-                    Vector2 enemyPos = boss.getBody().getPosition();
-                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
-
-                    if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        boss.takeDamage(damage);
-                    }
-                }
-            }
-
-            for (Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
-                if (cyclops.getBody() != null) {
-                    Vector2 enemyPos = cyclops.getBody().getPosition();
-                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
-
-                    if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        cyclops.takeDamage(damage);
+                        enemy.takeDamage(damage + (player.getLevel() * 5));
                     }
                 }
             }
@@ -313,7 +287,7 @@ class DoubleSwingAbility extends Ability {
                     Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
 
                     if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        enemy.takeDamage(damage);
+                        enemy.takeDamage(damage + (player.getLevel() * 5));
                     }
                 }
             }
@@ -327,7 +301,7 @@ class DoubleSwingAbility extends Ability {
                 Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
 
                 if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
-                    bossRoomBoss.takeDamage(damage);
+                    bossRoomBoss.takeDamage(damage + (player.getLevel() * 5));
                 }
             }
 
@@ -337,17 +311,13 @@ class DoubleSwingAbility extends Ability {
                 Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
 
                 if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
-                    cyclopsRoomBoss.takeDamage(damage);
+                    cyclopsRoomBoss.takeDamage(damage + (player.getLevel() * 5));
                 }
             }
         }
     }
 }
 
-/**
- * Bubble - Protective shield that blocks all damage
- * Visual: Bubble texture overlay with physics body
- */
 class BubbleAbility extends Ability {
 
     public BubbleAbility(Texture iconTexture) {
@@ -438,7 +408,7 @@ class RendAbility extends Ability {
                     if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(damage);
 
-                        BleedEffect bleed = new BleedEffect(enemy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                        BleedEffect bleed = new BleedEffect(enemy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
                         bleed.onApply();
                         gameProj.addStatusEffect(enemy, bleed);
 
@@ -456,7 +426,7 @@ class RendAbility extends Ability {
                     if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         boss.takeDamage(damage);
 
-                        BleedEffect bleed = new BleedEffect(boss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                        BleedEffect bleed = new BleedEffect(boss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
                         bleed.onApply();
                         gameProj.addStatusEffect(boss, bleed);
 
@@ -474,7 +444,7 @@ class RendAbility extends Ability {
                     if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         cyclops.takeDamage(damage);
 
-                        BleedEffect bleed = new BleedEffect(cyclops, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                        BleedEffect bleed = new BleedEffect(cyclops, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
                         bleed.onApply();
                         gameProj.addStatusEffect(cyclops, bleed);
 
@@ -495,7 +465,7 @@ class RendAbility extends Ability {
                     if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(damage);
 
-                        BleedEffect bleed = new BleedEffect(enemy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                        BleedEffect bleed = new BleedEffect(enemy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
                         bleed.onApply();
                         gameProj.addStatusEffect(enemy, bleed);
 
@@ -516,7 +486,7 @@ class RendAbility extends Ability {
                 if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                     bossRoomBoss.takeDamage(damage);
 
-                    BleedEffect bleed = new BleedEffect(bossRoomBoss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                    BleedEffect bleed = new BleedEffect(bossRoomBoss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
                     bleed.onApply();
                     gameProj.addStatusEffect(bossRoomBoss, bleed);
 
@@ -533,7 +503,7 @@ class RendAbility extends Ability {
                 if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
                     cyclopsRoomBoss.takeDamage(damage);
 
-                    BleedEffect bleed = new BleedEffect(cyclopsRoomBoss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK);
+                    BleedEffect bleed = new BleedEffect(cyclopsRoomBoss, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
                     bleed.onApply();
                     gameProj.addStatusEffect(cyclopsRoomBoss, bleed);
 
@@ -541,19 +511,9 @@ class RendAbility extends Ability {
                 }
             }
         }
-
-        if (enemiesHit > 0) {
-            System.out.println("Rend applied to " + enemiesHit + " enemies! Bleeding for " + BLEED_DURATION + " seconds");
-        } else {
-            System.out.println("Rend missed!");
-        }
     }
 }
 
-/**
- * Prayer - Heal the player after a cast time
- * Visual: Prayer texture overlay during cast
- */
 class PrayerAbility extends Ability {
     private Player targetPlayer;
     private AbilityVisual.Prayer prayerVisual;
@@ -580,8 +540,6 @@ class PrayerAbility extends Ability {
 
         prayerVisual = new AbilityVisual.Prayer(player, castTime);
         player.addAbilityVisual(prayerVisual);
-
-        System.out.println("Praying for healing...");
     }
 
     @Override
@@ -611,10 +569,6 @@ class PrayerAbility extends Ability {
     }
 }
 
-/**
- * Blink - Teleport to mouse position
- * Visual: White dissipating circle at destination
- */
 class BlinkAbility extends Ability {
 
     public BlinkAbility(Texture iconTexture) {
@@ -643,6 +597,5 @@ class BlinkAbility extends Ability {
         AbilityVisual.Blink blinkVisual = new AbilityVisual.Blink(mousePosition);
         player.addAbilityVisual(blinkVisual);
 
-        System.out.println("Blink activated!");
     }
 }

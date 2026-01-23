@@ -8,27 +8,21 @@ import config.Storage;
 import entities.*;
 import game.GameProj;
 import managers.Chunk;
+import managers.Dungeon;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * All Paladin class abilities in one file.
- */
-public abstract class PaladinAbilities {}
+public abstract class PaladinAbilities { }
 
-/**
- * Blink - Teleport to mouse position (copied from MercenaryAbilities)
- * Visual: White dissipating circle at destination
- */
 class PaladinBlinkAbility extends Ability {
 
     public PaladinBlinkAbility(Texture iconTexture) {
         super(
                 "Blink",
                 "Teleport a distance towards the mouse position",
-                15.0f,
+                1.0f,
                 0,
                 0f,
                 0f,
@@ -45,6 +39,13 @@ class PaladinBlinkAbility extends Ability {
         );
         Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
 
+        if (gameProj.getCurrentDungeon() != null) {
+            if (!gameProj.getCurrentDungeon().isWalkableWorld(mousePosition.x, mousePosition.y)) {
+                return;
+            }
+        }
+
+        // Valid position - teleport
         player.getBody().setTransform(mousePosition, 0f);
 
         AbilityVisual.Blink blinkVisual = new AbilityVisual.Blink(mousePosition);
@@ -52,10 +53,6 @@ class PaladinBlinkAbility extends Ability {
     }
 }
 
-/**
- * Bubble - Protective shield that blocks all damage (copied from MercenaryAbilities)
- * Visual: Bubble texture overlay with physics body
- */
 class PaladinBubbleAbility extends Ability {
 
     public PaladinBubbleAbility(Texture iconTexture) {
@@ -99,10 +96,6 @@ class PaladinBubbleAbility extends Ability {
     }
 }
 
-/**
- * Pull - Creates a visual circle that shrinks, pulling enemies toward the player
- * Visual: Expanding then contracting circle
- */
 class PullAbility extends Ability {
     private static final float PULL_RADIUS = 100f;
     private static final float PULL_DURATION = 0.5f;
@@ -119,7 +112,7 @@ class PullAbility extends Ability {
                 "Pull",
                 "Create a divine vortex that pulls all nearby enemies toward you",
                 10.0f,
-                20,
+                0,
                 0f,
                 PULL_DURATION,
                 PULL_RADIUS,
@@ -165,10 +158,8 @@ class PullAbility extends Ability {
 
         Vector2 playerPos = pullingPlayer.getPosition();
 
-        // Calculate progress (0 to 1)
         float progress = pullTimer / PULL_DURATION;
 
-        // Pull overworld enemies
         for (Chunk chunk : currentGameProj.getChunks().values()) {
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -176,16 +167,13 @@ class PullAbility extends Ability {
                     float dist = playerPos.dst(enemyPos);
 
                     if (dist < PULL_RADIUS) {
-                        // Calculate direction from enemy to player
                         Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
 
-                        // Calculate target position (player pos + 10 units away)
                         Vector2 targetPos = new Vector2(
                                 playerPos.x - direction.x * 10f,
                                 playerPos.y - direction.y * 10f
                         );
 
-                        // Lerp enemy position toward target based on progress
                         Vector2 newPos = new Vector2(
                                 enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.1f,
                                 enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.1f
@@ -197,62 +185,6 @@ class PullAbility extends Ability {
                         if (!affectedEnemies.contains(enemy)) {
                             enemy.takeDamage(damage);
                             affectedEnemies.add(enemy);
-                        }
-                    }
-                }
-            }
-
-            for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
-                if (boss.getBody() != null) {
-                    Vector2 enemyPos = boss.getBody().getPosition();
-                    float dist = playerPos.dst(enemyPos);
-
-                    if (dist < PULL_RADIUS) {
-                        Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
-                        Vector2 targetPos = new Vector2(
-                                playerPos.x - direction.x * 15f,
-                                playerPos.y - direction.y * 15f
-                        );
-
-                        Vector2 newPos = new Vector2(
-                                enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.05f,
-                                enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.05f
-                        );
-
-                        boss.getBody().setTransform(newPos, boss.getBody().getAngle());
-                        boss.getBody().setLinearVelocity(0, 0);
-
-                        if (!affectedEnemies.contains(boss)) {
-                            boss.takeDamage(damage);
-                            affectedEnemies.add(boss);
-                        }
-                    }
-                }
-            }
-
-            for (Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
-                if (cyclops.getBody() != null) {
-                    Vector2 enemyPos = cyclops.getBody().getPosition();
-                    float dist = playerPos.dst(enemyPos);
-
-                    if (dist < PULL_RADIUS) {
-                        Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
-                        Vector2 targetPos = new Vector2(
-                                playerPos.x - direction.x * 20f,
-                                playerPos.y - direction.y * 20f
-                        );
-
-                        Vector2 newPos = new Vector2(
-                                enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.03f,
-                                enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.03f
-                        );
-
-                        cyclops.getBody().setTransform(newPos, cyclops.getBody().getAngle());
-                        cyclops.getBody().setLinearVelocity(0, 0);
-
-                        if (!affectedEnemies.contains(cyclops)) {
-                            cyclops.takeDamage(damage);
-                            affectedEnemies.add(cyclops);
                         }
                     }
                 }
@@ -277,6 +209,12 @@ class PullAbility extends Ability {
                                 enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.1f,
                                 enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.1f
                         );
+
+                        if (currentGameProj.getCurrentDungeon() != null) {
+                            if (!currentGameProj.getCurrentDungeon().isWalkableWorld(newPos.x, newPos.y)) {
+                                return;
+                            }
+                        }
 
                         enemy.getBody().setTransform(newPos, enemy.getBody().getAngle());
                         enemy.getBody().setLinearVelocity(0, 0);
@@ -353,10 +291,6 @@ class PullAbility extends Ability {
     }
 }
 
-/**
- * Smite - AOE damage circle around the player
- * Visual: Smite texture overlay
- */
 class SmiteAbility extends Ability {
     private static final float SMITE_RADIUS = 50f;
     private static final int SMITE_DAMAGE = 80;
@@ -385,13 +319,12 @@ class SmiteAbility extends Ability {
 
         int enemiesHit = 0;
 
-        // Damage overworld enemies
         for (Chunk chunk : gameProj.getChunks().values()) {
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
                     if (dist < SMITE_RADIUS) {
-                        enemy.takeDamage(damage);
+                        enemy.takeDamage(damage + (player.getLevel() * 5));
                         enemiesHit++;
                     }
                 }
@@ -401,7 +334,7 @@ class SmiteAbility extends Ability {
                 if (boss.getBody() != null) {
                     float dist = playerPos.dst(boss.getBody().getPosition());
                     if (dist < SMITE_RADIUS) {
-                        boss.takeDamage(damage);
+                        boss.takeDamage(damage + (player.getLevel() * 5));
                         enemiesHit++;
                     }
                 }
@@ -411,7 +344,7 @@ class SmiteAbility extends Ability {
                 if (cyclops.getBody() != null) {
                     float dist = playerPos.dst(cyclops.getBody().getPosition());
                     if (dist < SMITE_RADIUS) {
-                        cyclops.takeDamage(damage);
+                        cyclops.takeDamage(damage + (player.getLevel() * 5));
                         enemiesHit++;
                     }
                 }
@@ -424,7 +357,7 @@ class SmiteAbility extends Ability {
                 if (enemy.getBody() != null) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
                     if (dist < SMITE_RADIUS) {
-                        enemy.takeDamage(damage);
+                        enemy.takeDamage(damage + (player.getLevel() * 5));
                         enemiesHit++;
                     }
                 }
@@ -437,7 +370,7 @@ class SmiteAbility extends Ability {
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
                 float dist = playerPos.dst(bossRoomBoss.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
-                    bossRoomBoss.takeDamage(damage);
+                    bossRoomBoss.takeDamage(damage + (player.getLevel() * 5));
                     enemiesHit++;
                 }
             }
@@ -446,24 +379,14 @@ class SmiteAbility extends Ability {
             if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null) {
                 float dist = playerPos.dst(cyclopsRoomBoss.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
-                    cyclopsRoomBoss.takeDamage(damage);
+                    cyclopsRoomBoss.takeDamage(damage + (player.getLevel() * 5));
                     enemiesHit++;
                 }
             }
         }
-
-        if (enemiesHit > 0) {
-            System.out.println("Smite hit " + enemiesHit + " enemies for " + damage + " damage!");
-        } else {
-            System.out.println("Smite activated but no enemies in range!");
-        }
     }
 }
 
-/**
- * Prayer - Heal the player after a cast time (copied from MercenaryAbilities)
- * Visual: Prayer texture overlay during cast
- */
 class PaladinPrayerAbility extends Ability {
     private Player targetPlayer;
     private AbilityVisual.Prayer prayerVisual;
@@ -490,8 +413,6 @@ class PaladinPrayerAbility extends Ability {
 
         prayerVisual = new AbilityVisual.Prayer(player, castTime);
         player.addAbilityVisual(prayerVisual);
-
-        System.out.println("Praying for healing...");
     }
 
     @Override

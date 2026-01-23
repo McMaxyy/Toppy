@@ -126,7 +126,6 @@ public class Dungeon {
             }
         }
 
-        // Generate rooms
         List<Room> rooms = new ArrayList<>();
         int numRooms = 15 + random.nextInt(6);
         int attempts = 0;
@@ -135,8 +134,8 @@ public class Dungeon {
         while (rooms.size() < numRooms && attempts < maxAttempts) {
             attempts++;
 
-            int roomWidth = 7 + random.nextInt(10);
-            int roomHeight = 7 + random.nextInt(10);
+            int roomWidth = 12 + random.nextInt(10);
+            int roomHeight = 12 + random.nextInt(10);
 
             int roomX = 2 + random.nextInt(width - roomWidth - 4);
             int roomY = 2 + random.nextInt(height - roomHeight - 4);
@@ -164,43 +163,34 @@ public class Dungeon {
             }
         }
 
-        // Set spawn point in first room
         if (!rooms.isEmpty()) {
             Room firstRoom = rooms.get(0);
             spawnPoint = new Vector2(firstRoom.centerX() * tileSize, firstRoom.centerY() * tileSize);
         }
 
-        // Find furthest room and place the boss portal there
         if (rooms.size() > 1) {
             Room furthestRoom = findFurthestRoom(rooms);
             placeBossPortal(furthestRoom);
         }
     }
 
-    /**
-     * Places the boss room portal in the furthest room
-     */
     private void placeBossPortal(Room room) {
         bossPortalRoom = room;
         bossPortalPoint = new Vector2(room.centerX() * tileSize, room.centerY() * tileSize);
 
-        // Mark the tile as boss portal location
         int tileX = room.centerX();
         int tileY = room.centerY();
         if (tileX >= 0 && tileX < width && tileY >= 0 && tileY < height) {
             tiles[tileX][tileY] = BOSS_PORTAL;
         }
 
-        // Create the portal entity (not cleared - leads to boss room)
         bossRoomPortal = new Portal(
                 bossPortalPoint.x - 16,
                 bossPortalPoint.y - 16,
                 32,
                 world,
-                false // Not cleared - this portal leads to the boss room
+                false
         );
-
-        System.out.println("Boss room portal placed at: " + bossPortalPoint.x + ", " + bossPortalPoint.y);
     }
 
     private Room findFurthestRoom(List<Room> rooms) {
@@ -563,6 +553,12 @@ public class Dungeon {
         return tiles[x][y] != WALL;
     }
 
+    public boolean isWalkableWorld(float worldX, float worldY) {
+        int tileX = (int) (worldX / tileSize);
+        int tileY = (int) (worldY / tileSize);
+        return isWalkable(tileX, tileY);
+    }
+
     private float heuristic(int x1, int y1, int x2, int y2) {
         return Math.abs(x1 - x2) + Math.abs(y1 - y2);
     }
@@ -600,19 +596,21 @@ public class Dungeon {
     }
 
     public void render(SpriteBatch batch) {
-        // Render floor
+        Texture pixel = Storage.assetManager.get("white_pixel.png", Texture.class);
+        batch.setColor(0, 0, 0, 1);
+        batch.draw(pixel, 0, 0, width * tileSize, height * tileSize);
+        batch.setColor(1, 1, 1, 1);
+
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (tiles[x][y] == FLOOR) {
                     batch.draw(floorTexture, x * tileSize, y * tileSize, tileSize, tileSize);
                 } else if (tiles[x][y] == BOSS_PORTAL) {
                     batch.draw(floorTexture, x * tileSize, y * tileSize, tileSize, tileSize);
-                    // Portal will be rendered separately
                 }
             }
         }
 
-        // Render walls
         for (Wall wall : walls) {
             if (wall.textureRegion != null) {
                 batch.draw(wall.textureRegion, wall.bounds.x, wall.bounds.y, wall.bounds.width, wall.bounds.height);
@@ -737,5 +735,12 @@ public class Dungeon {
                     y < other.y + other.height + 2 &&
                     y + height + 2 > other.y;
         }
+    }
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 }

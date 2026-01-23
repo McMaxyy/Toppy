@@ -16,13 +16,11 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import config.Storage;
+import entities.PlayerStats;
 import game.GameProj;
 import items.Item;
 import managers.Equipment.EquipmentSlot;
 
-/**
- * Enhanced inventory system with equipment screen
- */
 public class Inventory {
     private static final int MAX_SLOTS = 28;
     private static final int ITEMS_PER_ROW = 7;
@@ -56,7 +54,14 @@ public class Inventory {
     private final Color SLOT_BORDER_COLOR = new Color(0.6f, 0.6f, 0.7f, 1f);
     private final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.15f, 0.95f);
 
-    // Item counts for stacking
+    // Stats panel settings
+    private final int STAT_BUTTON_SIZE = 24;
+    private final int RESET_BUTTON_WIDTH = 100;
+    private final int RESET_BUTTON_HEIGHT = 30;
+    private final Color BUTTON_COLOR = new Color(0.3f, 0.3f, 0.4f, 0.9f);
+    private final Color BUTTON_HOVER_COLOR = new Color(0.4f, 0.4f, 0.5f, 0.9f);
+    private final Color RESET_BUTTON_COLOR = new Color(0.4f, 0.2f, 0.2f, 0.9f);
+
     private Map<Integer, Integer> itemCounts;
 
     public Inventory() {
@@ -133,9 +138,6 @@ public class Inventory {
         return itemCounts.getOrDefault(slot, 0);
     }
 
-    /**
-     * Equip item from inventory to equipment slot
-     */
     public void equipItemFromInventory(int inventorySlot, entities.Player player) {
         Item item = items[inventorySlot];
         if (item == null) return;
@@ -272,8 +274,58 @@ public class Inventory {
 
         checkEquipmentMouseHover(mouseX, mouseY, panelX, panelY, panelHeight, player, gameP);
 
-        // Keep your TAB/Arrow key logic below if you want hybrid controls,
-        // otherwise, you can remove the Arrow Key blocks entirely.
+        // Check stats panel buttons
+        checkStatButtonClicks(mouseX, mouseY, panelX, panelY, panelHeight, player);
+    }
+
+    private void checkStatButtonClicks(float mx, float my, float px, float py, float ph, entities.Player player) {
+        if (!Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) return;
+
+        PlayerStats stats = player.getStats();
+        float equipmentX = px + UI_PADDING;
+        float statsStartY = py + UI_PADDING + 180;
+
+        // Button X position (right side of stats text area)
+        float buttonX = equipmentX + 180;
+
+        // Check VIT + button
+        float vitY = statsStartY - 25;
+        if (isPointInRect(mx, my, buttonX, vitY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+            stats.allocateHealthPoint();
+            return;
+        }
+
+        // Check AP + button
+        float apY = statsStartY - 55;
+        if (isPointInRect(mx, my, buttonX, apY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+            stats.allocateAttackPoint();
+            return;
+        }
+
+        // Check DP + button
+        float dpY = statsStartY - 85;
+        if (isPointInRect(mx, my, buttonX, dpY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+            stats.allocateDefensePoint();
+            return;
+        }
+
+        // Check DEX + button
+        float dexY = statsStartY - 115;
+        if (isPointInRect(mx, my, buttonX, dexY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+            stats.allocateDexPoint();
+            return;
+        }
+
+        // Check Reset button
+        float resetX = equipmentX + 10;
+        float resetY = py + UI_PADDING;
+        if (isPointInRect(mx, my, resetX, resetY, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT)) {
+            stats.resetStatPoints();
+        }
+    }
+
+    private boolean isPointInRect(float px, float py, float rx, float ry, float rw, float rh) {
+        return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
     }
 
     private void checkEquipmentMouseHover(float mx, float my, float px, float py, float ph, entities.Player player, GameProj gameP) {
@@ -398,6 +450,82 @@ public class Inventory {
         font.getData().setScale(1.0f);
 
         batch.end();
+
+        // Store player reference for stats panel - need to pass it through
+        // Stats panel is rendered separately via renderWithPlayer
+    }
+
+    /**
+     * Render inventory with player reference for stats panel
+     */
+    public void render(SpriteBatch batch, boolean batchIsActive, entities.Player player) {
+        if (!inventoryOpen) return;
+
+        int screenWidth = Gdx.graphics.getWidth();
+        int screenHeight = Gdx.graphics.getHeight();
+
+        int panelWidth = 700;
+        int panelHeight = 500;
+
+        float panelX = (screenWidth - panelWidth) / 2f;
+        float panelY = (screenHeight - panelHeight) / 2f;
+
+        if (batchIsActive) {
+            batch.end();
+        }
+
+        // Draw background
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(BACKGROUND_COLOR);
+        shapeRenderer.rect(panelX, panelY, panelWidth, panelHeight);
+        shapeRenderer.end();
+
+        // Draw border
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        Gdx.gl.glLineWidth(2);
+        shapeRenderer.setColor(SLOT_BORDER_COLOR);
+        shapeRenderer.rect(panelX, panelY, panelWidth, panelHeight);
+        shapeRenderer.end();
+        Gdx.gl.glLineWidth(1);
+
+        // Render equipment slots and character
+        renderEquipmentPanel(batch, panelX, panelY, panelHeight);
+
+        // Render inventory slots
+        renderInventorySlots(batch, panelX, panelY, panelWidth, panelHeight);
+
+        // Draw UI text and items
+        batch.begin();
+
+        // Title
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1f);
+        font.draw(batch, "Inventory", panelX + UI_PADDING,
+                panelY + panelHeight - UI_PADDING / 2);
+
+        // Coin count
+        batch.draw(coinIconTexture, panelX + panelWidth - UI_PADDING - 120,
+                panelY + panelHeight - UI_PADDING - 30, 40, 40);
+        font.getData().setScale(1.0f);
+        font.draw(batch, "" + coins, panelX + panelWidth - UI_PADDING - 70,
+                panelY + panelHeight - UI_PADDING);
+
+        // Draw equipped items in equipment slots
+        renderEquippedItems(batch, panelX, panelY, panelHeight);
+
+        // Draw items in inventory slots
+        renderInventoryItems(batch, panelX, panelY, panelWidth, panelHeight);
+
+        // Draw selected item info
+        renderItemInfo(batch, panelX, panelY, panelWidth);
+
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1.0f);
+
+        // Render stats panel (this handles its own batch begin/end)
+        renderStatsPanel(batch, panelX, panelY, panelHeight, player);
+
+        batch.end();
     }
 
     private void renderEquipmentPanel(SpriteBatch batch, float panelX, float panelY, float panelHeight) {
@@ -411,10 +539,10 @@ public class Inventory {
         shapeRenderer.rect(equipmentX, equipmentY, equipmentPanelWidth, panelHeight - 100);
         shapeRenderer.end();
 
-        // Draw character sprite in center
-        float charSize = 120;
+        // Draw character sprite in center (moved up to make room for stats)
+        float charSize = 100;
         float charX = equipmentX + (equipmentPanelWidth - charSize) / 2f;
-        float charY = equipmentY + (panelHeight) / 2f;
+        float charY = equipmentY + (panelHeight) / 2f + 20;
 
         batch.begin();
         batch.draw(characterSprite, charX, charY, charSize, charSize);
@@ -495,12 +623,137 @@ public class Inventory {
         shapeRenderer.end();
     }
 
+    public void renderStatsPanel(SpriteBatch batch, float panelX, float panelY, float panelHeight, entities.Player player) {
+        PlayerStats stats = player.getStats();
+        float equipmentX = panelX + UI_PADDING;
+        float statsStartY = panelY + UI_PADDING + 180;
+
+        int screenHeight = Gdx.graphics.getHeight();
+        float mouseX = Gdx.input.getX();
+        float mouseY = screenHeight - Gdx.input.getY();
+
+        boolean hasPoints = stats.getAvailableStatPoints() > 0;
+        float buttonX = equipmentX + 180;
+
+        batch.end();
+
+        float vitY = statsStartY - 25;
+        float apY = statsStartY - 55;
+        float dpY = statsStartY - 85;
+        float dexY = statsStartY - 115;
+        float resetX = equipmentX + 20;
+        float resetY = panelY + UI_PADDING;
+
+        if (stats.getAvailableStatPoints() > 0) {
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+            if (hasPoints && isPointInRect(mouseX, mouseY, buttonX, vitY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+                shapeRenderer.setColor(BUTTON_HOVER_COLOR);
+            } else {
+                shapeRenderer.setColor(hasPoints ? BUTTON_COLOR : new Color(0.2f, 0.2f, 0.2f, 0.5f));
+            }
+            shapeRenderer.rect(buttonX, vitY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+
+            if (hasPoints && isPointInRect(mouseX, mouseY, buttonX, apY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+                shapeRenderer.setColor(BUTTON_HOVER_COLOR);
+            } else {
+                shapeRenderer.setColor(hasPoints ? BUTTON_COLOR : new Color(0.2f, 0.2f, 0.2f, 0.5f));
+            }
+            shapeRenderer.rect(buttonX, apY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+
+            if (hasPoints && isPointInRect(mouseX, mouseY, buttonX, dpY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+                shapeRenderer.setColor(BUTTON_HOVER_COLOR);
+            } else {
+                shapeRenderer.setColor(hasPoints ? BUTTON_COLOR : new Color(0.2f, 0.2f, 0.2f, 0.5f));
+            }
+            shapeRenderer.rect(buttonX, dpY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+
+            if (hasPoints && isPointInRect(mouseX, mouseY, buttonX, dexY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
+                shapeRenderer.setColor(BUTTON_HOVER_COLOR);
+            } else {
+                shapeRenderer.setColor(hasPoints ? BUTTON_COLOR : new Color(0.2f, 0.2f, 0.2f, 0.5f));
+            }
+            shapeRenderer.rect(buttonX, dexY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+
+            shapeRenderer.end();
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.setColor(SLOT_BORDER_COLOR);
+            shapeRenderer.rect(buttonX, vitY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+            shapeRenderer.rect(buttonX, apY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+            shapeRenderer.rect(buttonX, dpY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+            shapeRenderer.rect(buttonX, dexY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE);
+            shapeRenderer.end();
+        }
+
+        if (stats.getAvailableStatPoints() == 0 && stats.getLevel() > 1) {
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+            if (isPointInRect(mouseX, mouseY, resetX, resetY, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT)) {
+                shapeRenderer.setColor(new Color(0.5f, 0.3f, 0.3f, 0.9f));
+            } else {
+                shapeRenderer.setColor(RESET_BUTTON_COLOR);
+            }
+            shapeRenderer.rect(resetX, resetY, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT);
+            shapeRenderer.end();
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.rect(resetX, resetY, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT);
+            shapeRenderer.end();
+
+        }
+
+        batch.begin();
+
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.6f);
+
+        font.draw(batch, "Level " + stats.getLevel(), equipmentX + 85, statsStartY + 250);
+
+        // Available points
+        font.draw(batch, "Available points: " + stats.getAvailableStatPoints(), equipmentX + 10, statsStartY + 30);
+
+        // Calculate total stats (base + allocated + equipment)
+        int totalVit = stats.getMaxHealth();
+        int totalAP = stats.getTotalDamage();
+        int totalDP = stats.getTotalDefense();
+        int totalDex = (int) stats.getBaseSpeed();
+
+        font.setColor(Color.RED);
+        font.draw(batch, "VIT: " + totalVit, equipmentX + 10, statsStartY - 10);
+
+        font.setColor(Color.ORANGE);
+        font.draw(batch, "AP: " + totalAP, equipmentX + 10, statsStartY - 40);
+
+        font.setColor(Color.CYAN);
+        font.draw(batch, "DP: " + totalDP, equipmentX + 10, statsStartY - 70);
+
+        font.setColor(Color.GREEN);
+        font.draw(batch, "DEX: " + totalDex, equipmentX + 10, statsStartY - 100);
+
+        if (stats.getAvailableStatPoints() > 0) {
+            font.setColor(hasPoints ? Color.WHITE : Color.GRAY);
+            font.getData().setScale(1.0f);
+            font.draw(batch, "+", buttonX + 6, vitY + 20);
+            font.draw(batch, "+", buttonX + 6, apY + 20);
+            font.draw(batch, "+", buttonX + 6, dpY + 20);
+            font.draw(batch, "+", buttonX + 6, dexY + 20);
+        }
+
+        if (stats.getAvailableStatPoints() == 0 && stats.getLevel() > 1) {
+            font.setColor(Color.WHITE);
+            font.getData().setScale(0.7f);
+            font.draw(batch, "Reset", resetX + 15, resetY + 22);
+        }
+
+        font.getData().setScale(1.0f);
+    }
+
     private void renderEquippedItems(SpriteBatch batch, float panelX, float panelY, float panelHeight) {
         float equipmentX = panelX + UI_PADDING;
         float equipmentY = panelY + UI_PADDING + 40;
         float equipmentPanelWidth = 250;
 
-        // Left slots (armor)
         float leftSlotStartX = equipmentX + 10;
         float leftSlotStartY = equipmentY + panelHeight - 150;
 
@@ -519,7 +772,6 @@ public class Inventory {
             }
         }
 
-        // Right slots (weapons)
         float rightSlotStartX = equipmentX + equipmentPanelWidth - EQUIPMENT_SLOT_SIZE - 10;
         float rightSlotStartY = equipmentY + panelHeight - 150;
 

@@ -34,9 +34,9 @@ public class Cyclops {
     private boolean hasDealtDamage = false;
 
     // Melee attack settings
-    private final float MELEE_RANGE = 40f;
+    private float MELEE_RANGE;
     private final float MELEE_ATTACK_DURATION = 1.0f;
-    private final float MELEE_COOLDOWN = 1.8f;
+    private float MELEE_COOLDOWN;
     private float meleeWindupTimer = 0f;
     private final float MELEE_WINDUP_TIME = 0.5f;
     private boolean showMeleeIndicator = false;
@@ -47,28 +47,25 @@ public class Cyclops {
         CHARGING,
         FIRST_PULSE,
         SECOND_PULSE,
-        COOLDOWN
     }
     private GroundPoundPhase groundPoundPhase = GroundPoundPhase.NONE;
     private final float GROUND_POUND_COOLDOWN = 5.0f;
     private float groundPoundCooldown = 0f;
     private float groundPoundTimer = 0f;
     private final float GROUND_POUND_CHARGE_TIME = 1.2f;
-    private final float FIRST_PULSE_RADIUS = 60f;
-    private final float SECOND_PULSE_RADIUS = 120f;
+    private final float FIRST_PULSE_RADIUS = 75f;
+    private float SECOND_PULSE_RADIUS;
     private final float PULSE_DURATION = 0.3f;
     private float currentPulseRadius = 0f;
     private boolean firstPulseDamageDealt = false;
     private boolean secondPulseDamageDealt = false;
-    private final float GROUND_POUND_DISTANCE_THRESHOLD = 80f;
+    private final float GROUND_POUND_DISTANCE_THRESHOLD = 75f;
 
-    // Boss special abilities (teleport at 50% HP)
     private float specialAbilityCooldown = 0f;
     private float specialAbilityTimer = 0f;
     private boolean isUsingSpecialAbility = false;
     private final float SPECIAL_ABILITY_COOLDOWN = 10f;
 
-    // Default constructor with level
     public Cyclops(Rectangle bounds, Body body, Player player,
                    AnimationManager animationManager, int level) {
         this(bounds, body, player, animationManager,
@@ -84,10 +81,13 @@ public class Cyclops {
         this.player = player;
         this.stats = stats;
 
+        MELEE_RANGE = stats.getAttackRange();
+        MELEE_COOLDOWN = stats.getAttackCooldown();
+        SECOND_PULSE_RADIUS = stats.getAoeRadius();
+
         this.healthBarTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
 
-        // Initialize with idle state
         getAnimationManager().setState(State.IDLE, "Cyclops");
     }
 
@@ -134,7 +134,6 @@ public class Cyclops {
         if (isPlayerInRadius()) {
             float distanceToPlayer = getDistanceToPlayer();
 
-            // Use ground pound when at medium range
             if (distanceToPlayer > GROUND_POUND_DISTANCE_THRESHOLD &&
                     distanceToPlayer <= detectionRadius * 0.6f &&
                     groundPoundCooldown <= 0 && attackCooldown <= 0) {
@@ -159,9 +158,6 @@ public class Cyclops {
         }
     }
 
-    // =========================================================================
-    // GROUND POUND ATTACK (Two-pulse AOE)
-    // =========================================================================
     private void startGroundPound() {
         groundPoundPhase = GroundPoundPhase.CHARGING;
         groundPoundTimer = 0f;
@@ -171,7 +167,6 @@ public class Cyclops {
         body.setLinearVelocity(0, 0);
 
         getAnimationManager().setState(State.ATTACKING, "Cyclops");
-        System.out.println("Cyclops started GROUND POUND attack!");
     }
 
     private void updateGroundPound(float delta) {
@@ -180,37 +175,30 @@ public class Cyclops {
 
         switch (groundPoundPhase) {
             case CHARGING:
-                // Charging up the attack
                 if (groundPoundTimer >= GROUND_POUND_CHARGE_TIME) {
                     groundPoundPhase = GroundPoundPhase.FIRST_PULSE;
                     groundPoundTimer = 0f;
                     currentPulseRadius = FIRST_PULSE_RADIUS;
-                    System.out.println("Cyclops FIRST PULSE!");
                 }
                 break;
 
             case FIRST_PULSE:
-                // First smaller pulse
                 if (!firstPulseDamageDealt && isPlayerInPulseRange(FIRST_PULSE_RADIUS)) {
                     damagePlayer(stats.getDamage());
                     firstPulseDamageDealt = true;
-                    System.out.println("Cyclops first pulse hit player!");
                 }
 
                 if (groundPoundTimer >= PULSE_DURATION) {
                     groundPoundPhase = GroundPoundPhase.SECOND_PULSE;
                     groundPoundTimer = 0f;
                     currentPulseRadius = SECOND_PULSE_RADIUS;
-                    System.out.println("Cyclops SECOND PULSE!");
                 }
                 break;
 
             case SECOND_PULSE:
-                // Second larger pulse
                 if (!secondPulseDamageDealt && isPlayerInPulseRange(SECOND_PULSE_RADIUS)) {
                     damagePlayer((int)(stats.getDamage() * 1.5f));
                     secondPulseDamageDealt = true;
-                    System.out.println("Cyclops second pulse hit player!");
                 }
 
                 if (groundPoundTimer >= PULSE_DURATION) {
@@ -240,12 +228,8 @@ public class Cyclops {
         secondPulseDamageDealt = false;
 
         getAnimationManager().setState(State.RUNNING, "Cyclops");
-        System.out.println("Cyclops GROUND POUND ended!");
     }
 
-    // =========================================================================
-    // MELEE ATTACK
-    // =========================================================================
     private void startMeleeAttack() {
         isAttacking = true;
         attackTimer = 0f;
@@ -255,7 +239,6 @@ public class Cyclops {
         body.setLinearVelocity(0, 0);
 
         getAnimationManager().setState(State.ATTACKING, "Cyclops");
-        System.out.println("Cyclops started MELEE attack!");
     }
 
     private void updateMeleeAttack(float delta) {
@@ -268,7 +251,6 @@ public class Cyclops {
             if (isPlayerInMeleeRange()) {
                 damagePlayer(stats.getDamage());
                 hasDealtDamage = true;
-                System.out.println("Cyclops MELEE hit player!");
             }
             showMeleeIndicator = false;
         }
@@ -296,9 +278,6 @@ public class Cyclops {
         System.out.println("Cyclops MELEE attack ended!");
     }
 
-    // =========================================================================
-    // SPECIAL ABILITY (Teleport - same as BossKitty)
-    // =========================================================================
     private void startSpecialAbility() {
         Vector2 targetPosition = new Vector2(player.getPosition().x + 10, player.getPosition().y + 10);
         body.setTransform(targetPosition, 1f);
@@ -317,7 +296,7 @@ public class Cyclops {
             endSpecialAbility();
         } else if (specialAbilityTimer >= 1f) {
             if (!hasDealtDamage) {
-                if (getDistanceToPlayer() <= 100f) {
+                if (getDistanceToPlayer() <= stats.getAoeRadius()) {
                     damagePlayer(stats.getDamage() * 3);
                     hasDealtDamage = true;
                 }
@@ -334,9 +313,6 @@ public class Cyclops {
         getAnimationManager().setState(State.RUNNING, "Cyclops");
     }
 
-    // =========================================================================
-    // RENDERING
-    // =========================================================================
     public void render(SpriteBatch batch) {
         if (markForRemoval) return;
 
@@ -471,7 +447,7 @@ public class Cyclops {
 
     private void renderSpecialAbilityIndicator(SpriteBatch batch) {
         Vector2 bossPos = new Vector2(body.getPosition().x, body.getPosition().y);
-        float specialRadius = 80f;
+        float specialRadius = stats.getAoeRadius();
 
         float pulse = (float) Math.sin(specialAbilityTimer * 8f) * 0.3f + 0.5f;
 
@@ -536,9 +512,6 @@ public class Cyclops {
                 false, false);
     }
 
-    // =========================================================================
-    // UTILITY METHODS
-    // =========================================================================
     private float getDistanceToPlayer() {
         Vector2 playerPosition = player.getPosition();
         Vector2 bossPosition = new Vector2(body.getPosition().x, body.getPosition().y);

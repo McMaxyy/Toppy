@@ -84,7 +84,7 @@ public class MapBoundary {
         body.createFixture(fixtureDef);
         shape.dispose();
 
-        boundaryBodies.add(body); // Store body reference for enable/disable
+        boundaryBodies.add(body);
     }
 
     public void disable() {

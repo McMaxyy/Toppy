@@ -1,8 +1,5 @@
 package entities;
 
-/**
- * Player statistics and attributes
- */
 public class PlayerStats {
     // Core stats
     private int maxHealth;
@@ -11,33 +8,37 @@ public class PlayerStats {
     private int defense;
     private float baseSpeed;
 
-    // Base values (for reset)
     private static final int BASE_MAX_HEALTH = 1000;
     private static final int BASE_DAMAGE = 20;
-    private static final int BASE_DEFENSE = 0;
+    private static final int BASE_DEFENSE = 1;
+    private static final float BASE_SPEED = 5000f;
+    private static final float SPEED_PER_DEX_POINT = 100f;
 
-    // Stat point allocation
     private int allocatedHealthPoints;
     private int allocatedAttackPoints;
     private int allocatedDefensePoints;
+    private int allocatedDexPoints;
     private int availableStatPoints;
     private static final int STAT_POINTS_PER_LEVEL = 5;
     private static final int HEALTH_PER_POINT = 10;
     private static final int ATTACK_PER_POINT = 2;
     private static final int DEFENSE_PER_POINT = 1;
 
-    // Equipment bonuses
     private int weaponDamage;
     private int armorDefense;
 
-    // Level and progression
     private int level;
     private int experience;
     private int experienceToNextLevel;
 
-    // Regeneration
     private float healthRegenRate;
     private float regenTimer;
+
+    private SpeedChangeListener speedChangeListener;
+
+    public interface SpeedChangeListener {
+        void onSpeedChanged(float newSpeed);
+    }
 
     public PlayerStats() {
         // Default starting stats
@@ -46,26 +47,27 @@ public class PlayerStats {
         this.currentHealth = BASE_MAX_HEALTH;
         this.baseDamage = BASE_DAMAGE;
         this.defense = BASE_DEFENSE;
-        this.baseSpeed = 5000f;
+        this.baseSpeed = BASE_SPEED;
         this.weaponDamage = 0;
         this.armorDefense = 0;
         this.experience = 0;
-        this.experienceToNextLevel = 100;
+        this.experienceToNextLevel = 1000;
         this.healthRegenRate = 1f;
         this.regenTimer = 0f;
 
         // Stat allocation
+        this.allocatedDexPoints = 0;
         this.allocatedHealthPoints = 0;
         this.allocatedAttackPoints = 0;
         this.allocatedDefensePoints = 0;
         this.availableStatPoints = 0;
     }
 
-    /**
-     * Update stats (for regeneration, etc.)
-     */
+    public void setSpeedChangeListener(SpeedChangeListener listener) {
+        this.speedChangeListener = listener;
+    }
+
     public void update(float delta) {
-        // Health regeneration
         if (currentHealth < maxHealth) {
             regenTimer += delta;
             if (regenTimer >= 1f) {
@@ -75,9 +77,6 @@ public class PlayerStats {
         }
     }
 
-    /**
-     * Allocate a stat point to health
-     */
     public boolean allocateHealthPoint() {
         if (availableStatPoints > 0) {
             availableStatPoints--;
@@ -88,9 +87,6 @@ public class PlayerStats {
         return false;
     }
 
-    /**
-     * Allocate a stat point to attack
-     */
     public boolean allocateAttackPoint() {
         if (availableStatPoints > 0) {
             availableStatPoints--;
@@ -101,9 +97,6 @@ public class PlayerStats {
         return false;
     }
 
-    /**
-     * Allocate a stat point to defense
-     */
     public boolean allocateDefensePoint() {
         if (availableStatPoints > 0) {
             availableStatPoints--;
@@ -114,126 +107,78 @@ public class PlayerStats {
         return false;
     }
 
-    /**
-     * Deallocate a stat point from health
-     */
-    public boolean deallocateHealthPoint() {
-        if (allocatedHealthPoints > 0) {
-            allocatedHealthPoints--;
-            availableStatPoints++;
+    public boolean allocateDexPoint() {
+        if (availableStatPoints > 0) {
+            availableStatPoints--;
+            allocatedDexPoints++;
             recalculateStats();
             return true;
         }
         return false;
     }
 
-    /**
-     * Deallocate a stat point from attack
-     */
-    public boolean deallocateAttackPoint() {
-        if (allocatedAttackPoints > 0) {
-            allocatedAttackPoints--;
-            availableStatPoints++;
-            recalculateStats();
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Deallocate a stat point from defense
-     */
-    public boolean deallocateDefensePoint() {
-        if (allocatedDefensePoints > 0) {
-            allocatedDefensePoints--;
-            availableStatPoints++;
-            recalculateStats();
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Reset all allocated stat points
-     */
     public void resetStatPoints() {
-        availableStatPoints += allocatedHealthPoints + allocatedAttackPoints + allocatedDefensePoints;
+        availableStatPoints += allocatedHealthPoints + allocatedAttackPoints + allocatedDefensePoints + allocatedDexPoints;
         allocatedHealthPoints = 0;
         allocatedAttackPoints = 0;
         allocatedDefensePoints = 0;
+        allocatedDexPoints = 0;
         recalculateStats();
     }
 
-    /**
-     * Recalculate stats based on level and allocated points
-     */
     private void recalculateStats() {
-        // Base stats + level bonuses + allocated points
-        int levelBonus = (level - 1) * 5; // Small bonus per level
+        int levelBonus = (level - 1) * 5;
 
         int oldMaxHealth = maxHealth;
         maxHealth = BASE_MAX_HEALTH + levelBonus + (allocatedHealthPoints * HEALTH_PER_POINT);
         baseDamage = BASE_DAMAGE + (level - 1) + (allocatedAttackPoints * ATTACK_PER_POINT);
         defense = BASE_DEFENSE + (allocatedDefensePoints * DEFENSE_PER_POINT);
 
-        // Adjust current health proportionally if max health changed
+        // Calculate speed based on DEX points
+        float oldSpeed = baseSpeed;
+        baseSpeed = BASE_SPEED + (allocatedDexPoints * SPEED_PER_DEX_POINT);
+
         if (oldMaxHealth > 0 && maxHealth != oldMaxHealth) {
             float healthPercent = (float) currentHealth / oldMaxHealth;
             currentHealth = Math.max(1, (int) (maxHealth * healthPercent));
         }
 
-        // Cap current health at max
         currentHealth = Math.min(currentHealth, maxHealth);
+
+        // Notify listener of speed change
+        if (speedChangeListener != null && oldSpeed != baseSpeed) {
+            speedChangeListener.onSpeedChanged(baseSpeed);
+        }
     }
 
-    /**
-     * Get total damage (base + weapon)
-     */
     public int getTotalDamage() {
         return baseDamage + weaponDamage;
     }
 
-    /**
-     * Get total defense (base + armor)
-     */
     public int getTotalDefense() {
         return defense + armorDefense;
     }
 
-    /**
-     * Take damage with defense reduction
-     */
     public void takeDamage(int damage) {
         int actualDamage = Math.max(1, damage - getTotalDefense());
         currentHealth = Math.max(0, currentHealth - actualDamage);
-        System.out.println("Player took " + actualDamage + " damage! Health: " + currentHealth + "/" + maxHealth);
     }
 
-    /**
-     * Heal the player
-     */
     public void heal(int amount) {
         int oldHealth = currentHealth;
         currentHealth = Math.min(maxHealth, currentHealth + amount);
         int actualHeal = currentHealth - oldHealth;
         if (actualHeal > 0) {
-            System.out.println("Player healed " + actualHeal + " HP! Health: " + currentHealth + "/" + maxHealth);
         }
     }
 
-    /**
-     * Fully restore health
-     */
     public void fullHeal() {
         currentHealth = maxHealth;
     }
 
-    /**
-     * Add experience and check for level up
-     */
+
     public boolean addExperience(int exp) {
         experience += exp;
-        System.out.println("Gained " + exp + " XP! (" + experience + "/" + experienceToNextLevel + ")");
 
         if (experience >= experienceToNextLevel) {
             levelUp();
@@ -242,48 +187,30 @@ public class PlayerStats {
         return false;
     }
 
-    /**
-     * Level up and grant stat points
-     */
     private void levelUp() {
         level++;
         experience -= experienceToNextLevel;
-        experienceToNextLevel = (int) (experienceToNextLevel * 1.5f);
+        experienceToNextLevel = (int) (experienceToNextLevel * 2f);
 
-        // Grant stat points instead of automatic stat increases
         availableStatPoints += STAT_POINTS_PER_LEVEL;
 
-        // Recalculate base stats for level
         recalculateStats();
 
-        // Full heal on level up
         currentHealth = maxHealth;
     }
 
-    /**
-     * Check if player is dead
-     */
     public boolean isDead() {
         return currentHealth <= 0;
     }
 
-    /**
-     * Set weapon damage bonus
-     */
     public void setWeaponDamage(int damage) {
         this.weaponDamage = damage;
     }
 
-    /**
-     * Set armor defense bonus
-     */
     public void setArmorDefense(int defense) {
         this.armorDefense = defense;
     }
 
-    /**
-     * Get health percentage (0-1)
-     */
     public float getHealthPercentage() {
         return (float) currentHealth / maxHealth;
     }
@@ -303,6 +230,7 @@ public class PlayerStats {
     public int getAllocatedHealthPoints() { return allocatedHealthPoints; }
     public int getAllocatedAttackPoints() { return allocatedAttackPoints; }
     public int getAllocatedDefensePoints() { return allocatedDefensePoints; }
+    public int getAllocatedDexPoints() { return allocatedDexPoints; }
 
     // Setters
     public void setCurrentHealth(int health) {
@@ -311,9 +239,5 @@ public class PlayerStats {
     public void setMaxHealth(int maxHealth) {
         this.maxHealth = maxHealth;
         this.currentHealth = Math.min(currentHealth, maxHealth);
-    }
-
-    public int getExpToNextLevel() {
-        return experienceToNextLevel;
     }
 }

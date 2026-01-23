@@ -365,7 +365,7 @@ public class Chunk {
         bodyDef.position.set(x + width / 2f, y + height / 2f);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(width / 3f, height / 3f);
+        shape.setAsBox(width / 4f, height / 4f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;

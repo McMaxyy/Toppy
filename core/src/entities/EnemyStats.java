@@ -232,19 +232,19 @@ public class EnemyStats {
             return new EnemyStats(
                     "Boss Kitty",
                     500 + (level * 75),
-                    15 + (level * 5),
-                    5 + (level * 2),
+                    15 + (level * 10),
+                    5 + (level * 3),
                     150 + (level * 50),
                     level,
                     AttackType.MELEE,
                     "boss",
                     1.5f,
                     60f,
-                    0.8f,
+                    0.6f,
                     0f,
                     150f,
                     0f,
-                    250f
+                    350f
             );
         }
 
@@ -252,19 +252,19 @@ public class EnemyStats {
             return new EnemyStats(
                     "Cyclops",
                     650 + (level * 100),
-                    18 + (level * 6),        // Higher base damage
-                    7 + (level * 3),         // Higher defense
-                    200 + (level * 60),      // More exp reward
+                    18 + (level * 6),
+                    7 + (level * 3),
+                    200 + (level * 60),
                     level,
-                    AttackType.AOE,          // AOE attack type for ground pound
+                    AttackType.AOE,
                     "boss",
-                    1.8f,                    // Slightly slower attack cooldown
-                    60f,                     // Melee range
-                    0.7f,                    // Slower attack speed (big guy)
-                    0f,                      // No cone angle
-                    150f,                    // Large AOE radius for ground pound
-                    0f,                      // No projectile
-                    0f                       // No charge speed
+                    1.8f,
+                    60f,
+                    0.8f,
+                    0f,
+                    150f,
+                    0f,
+                    0f
             );
         }
 

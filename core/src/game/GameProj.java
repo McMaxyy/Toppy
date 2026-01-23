@@ -12,8 +12,11 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
@@ -608,11 +611,12 @@ public class GameProj implements Screen, ContactListener {
             batch.setProjectionMatrix(hudCamera.combined);
 
             if (player.getInventory().isOpen()) {
-                player.getInventory().render(batch, false);
+                player.getInventory().render(batch, false, player);
             }
 
             batch.begin();
             player.renderSkillBar(batch);
+            renderExpBar(batch);
             batch.end();
 
             if (minimap != null && minimap.isMapOpen()) {
@@ -626,7 +630,21 @@ public class GameProj implements Screen, ContactListener {
     private void renderDungeon(float delta) {
         if (batch == null) return;
 
-        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+        float dungeonMinX = 0;
+        float dungeonMinY = 0;
+        float dungeonMaxX = currentDungeon.getWidth() * currentDungeon.getTileSize();
+        float dungeonMaxY = currentDungeon.getHeight() * currentDungeon.getTileSize();
+
+        float cameraHalfWidth = camera.viewportWidth / 2f;
+        float cameraHalfHeight = camera.viewportHeight / 2f;
+
+        float targetX = player.getPosition().x;
+        float targetY = player.getPosition().y;
+
+        float clampedX = Math.max(dungeonMinX + cameraHalfWidth, Math.min(targetX, dungeonMaxX - cameraHalfWidth));
+        float clampedY = Math.max(dungeonMinY + cameraHalfHeight, Math.min(targetY, dungeonMaxY - cameraHalfHeight));
+
+        camera.position.set(clampedX, clampedY, 0);
         camera.update();
 
         if (delta > 0) {
@@ -675,11 +693,12 @@ public class GameProj implements Screen, ContactListener {
             batch.setProjectionMatrix(hudCamera.combined);
 
             if (player.getInventory().isOpen()) {
-                player.getInventory().render(batch, false);
+                player.getInventory().render(batch, false, player);
             }
 
             batch.begin();
             player.renderSkillBar(batch);
+            renderExpBar(batch);
             batch.end();
 
             if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
@@ -742,13 +761,41 @@ public class GameProj implements Screen, ContactListener {
             batch.setProjectionMatrix(hudCamera.combined);
 
             if (player.getInventory().isOpen()) {
-                player.getInventory().render(batch, false);
+                player.getInventory().render(batch, false, player);
             }
 
             batch.begin();
             player.renderSkillBar(batch);
+            renderExpBar(batch);
             batch.end();
         }
+    }
+
+    private void renderExpBar(SpriteBatch batch) {
+        float barWidth = hudViewport.getWorldWidth() - 200f;
+        float barHeight = 15f;
+        float barX = (hudViewport.getWorldWidth() - barWidth) / 2f;
+        float barY = 10f;
+
+        Texture pixel = Storage.assetManager.get("white_pixel.png", Texture.class);
+
+        batch.setColor(0.2f, 0.2f, 0.2f, 0.9f);
+        batch.draw(pixel, barX, barY, barWidth, barHeight);
+
+        float xpPercent = (float) player.getStats().getExperience() / player.getStats().getExperienceToNextLevel();
+        batch.setColor(0.6f, 0.2f, 0.8f, 1f);
+        batch.draw(pixel, barX, barY, barWidth * xpPercent, barHeight);
+
+        batch.setColor(1, 1, 1, 1);
+        String xpText = player.getStats().getExperience() + "/" + player.getStats().getExperienceToNextLevel();
+        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.45f);
+
+        GlyphLayout layout = new GlyphLayout(font, xpText);
+        font.draw(batch, xpText, barX + (barWidth - layout.width) / 2f, barY + barHeight / 2f + layout.height / 2f);
+
+        font.getData().setScale(1f);
     }
 
     private void scheduleChunkGeneration(int chunkX, int chunkY) {

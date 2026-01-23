@@ -53,7 +53,7 @@ public class AbilityManager {
     // Sword attack cooldown (for Paladin)
     private float swordCooldown = 0f;
     private static final float SWORD_COOLDOWN_TIME = 0.5f;
-    private static final float SWORD_ATTACK_RANGE = 35f;
+    private static final float SWORD_ATTACK_RANGE = 45f;
 
     public AbilityManager(Player player, GameProj gameProj, PlayerClass playerClass) {
         this.player = player;
@@ -182,8 +182,7 @@ public class AbilityManager {
             useOffhandAttack();
         }
 
-        // For Paladin: Check LMB for sword attack
-        if (playerClass == PlayerClass.PALADIN && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+        if (playerClass == PlayerClass.PALADIN && Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
             if (!gameProj.isPaused() && !player.getInventory().isOpen()) {
                 performSwordAttack();
             }
@@ -216,13 +215,9 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Perform sword attack (for Paladin class)
-     */
     private void performSwordAttack() {
         if (swordCooldown > 0) { return; }
 
-        // Create golden conal visual
         player.addAbilityVisual(AbilityVisual.ConalAttack.createGolden(player, gameProj, 0.15f, SWORD_ATTACK_RANGE));
 
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
@@ -236,7 +231,6 @@ public class AbilityManager {
                 mousePos.x - playerPos.x, mousePos.y - playerPos.y
         ).nor();
 
-        // Check overworld enemies
         for (managers.Chunk chunk : gameProj.getChunks().values()) {
             for (entities.Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -437,7 +431,7 @@ public class AbilityManager {
         int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (2 * SEPARATOR_SPACE);
 
         float startX = (screenWidth - totalWidth) / 2f;
-        float startY = 20; // Bottom of screen
+        float startY = 35f;
 
         // End batch for shape rendering
         batch.end();
