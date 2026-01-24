@@ -6,10 +6,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 
-/**
- * Base class for all items in the game.
- * Each item has a type, texture, stats, and can be picked up or dropped.
- */
 public abstract class Item {
     protected String name;
     protected String description;
@@ -24,7 +20,8 @@ public abstract class Item {
     protected int damage;
     protected int defense;
     protected int healthRestore;
-    protected int value;
+    protected int buyValue;
+    protected int sellValue;
     protected int bonusHealth;
     protected int bonusDex;
     protected int bonusVitality;
@@ -48,27 +45,16 @@ public abstract class Item {
         this.damage = 0;
         this.defense = 0;
         this.healthRestore = 0;
-        this.value = 0;
+        this.buyValue = 0;
+        this.sellValue = 0;
     }
 
-    /**
-     * Called when the item is used (from inventory)
-     */
     public abstract void use(entities.Player player);
 
-    /**
-     * Called when the item is equipped (for weapons/armor)
-     */
     public abstract void equip(entities.Player player);
 
-    /**
-     * Called when the item is unequipped
-     */
     public abstract void unequip(entities.Player player);
 
-    /**
-     * Update item in world (bobbing animation, etc.)
-     */
     public void update(float delta) {
         if (!pickedUp && bounds != null) {
             // Add bobbing effect for items on ground
@@ -77,27 +63,18 @@ public abstract class Item {
         }
     }
 
-    /**
-     * Render item in world
-     */
     public void render(SpriteBatch batch) {
         if (!pickedUp && texture != null && bounds != null) {
             batch.draw(texture, bounds.x, bounds.y, bounds.width, bounds.height);
         }
     }
 
-    /**
-     * Render item icon in inventory
-     */
     public void renderIcon(SpriteBatch batch, float x, float y, float size) {
         if (iconTexture != null) {
             batch.draw(iconTexture, x, y, size, size);
         }
     }
 
-    /**
-     * Check if player is close enough to pick up
-     */
     public boolean isPlayerNear(Vector2 playerPos, float pickupRadius) {
         if (pickedUp) return false;
 
@@ -109,14 +86,8 @@ public abstract class Item {
         return playerPos.dst(itemCenter) < pickupRadius;
     }
 
-    /**
-     * Create a copy of this item (for stacking, etc.)
-     */
     public abstract Item copy();
 
-    /**
-     * Check if this item can stack with another
-     */
     public boolean canStackWith(Item other) {
         return this.getClass().equals(other.getClass()) &&
                 this.name.equals(other.name) &&
@@ -136,7 +107,24 @@ public abstract class Item {
     public int getDamage() { return damage; }
     public int getDefense() { return defense; }
     public int getHealthRestore() { return healthRestore; }
-    public int getValue() { return value; }
+
+    public int getBuyValue() { return buyValue; }
+
+    public int getSellValue() { return sellValue; }
+
+    public void setBuyValue(int buyValue) { this.buyValue = buyValue; }
+    public void setSellValue(int sellValue) { this.sellValue = sellValue; }
+
+    public void setValue(int buyValue) {
+        this.buyValue = buyValue;
+        this.sellValue = (int)(buyValue * 0.4f);
+    }
+
+    public void setValues(int buyValue, int sellValue) {
+        this.buyValue = buyValue;
+        this.sellValue = sellValue;
+    }
+
     public Texture getTexture() { return texture; }
     public Texture getIconTexture() { return iconTexture; }
     public int getBonusHealth() { return bonusHealth; }

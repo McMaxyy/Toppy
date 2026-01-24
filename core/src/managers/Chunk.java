@@ -389,9 +389,8 @@ public class Chunk {
 
         Body body = world.createBody(bodyDef);
 
-        // Main collision shape (collides with player, spear, abilities)
         PolygonShape mainShape = new PolygonShape();
-        mainShape.setAsBox(width / 3f, height / 3f);
+        mainShape.setAsBox(width / 3.5f, height / 4f);
 
         FixtureDef mainFixtureDef = new FixtureDef();
         mainFixtureDef.shape = mainShape;
@@ -453,7 +452,7 @@ public class Chunk {
     public void renderObstacles(SpriteBatch batch, float playerY, boolean renderBehind) {
         for (Obstacle obstacle : obstacles) {
             if ((renderBehind && obstacle.bounds.y < playerY) ||
-                    (!renderBehind && obstacle.bounds.y >= playerY)) {
+                    (!renderBehind && obstacle.bounds.y > playerY)) {
                 batch.draw(obstacle.texture, obstacle.bounds.x, obstacle.bounds.y, obstacle.bounds.width, obstacle.bounds.height);
             }
         }

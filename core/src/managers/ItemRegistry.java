@@ -32,7 +32,8 @@ public class ItemRegistry {
         public int bonusVitality;
         public int bonusDex;
         public int healthRestore;
-        public int value;
+        public int buyValue;
+        public int sellValue;
         public String gearType;
 
         public ItemDefinition(String id, String name, String description,
@@ -48,7 +49,8 @@ public class ItemRegistry {
             this.bonusVitality = 0;
             this.bonusDex = 0;
             this.healthRestore = 0;
-            this.value = 1;
+            this.buyValue = 1;
+            this.sellValue = 1;
             this.gearType = null;
         }
 
@@ -77,8 +79,20 @@ public class ItemRegistry {
             return this;
         }
 
-        public ItemDefinition setValue(int value) {
-            this.value = value;
+        public ItemDefinition setBuyValue(int buyValue) {
+            this.buyValue = buyValue;
+            this.sellValue = (int)(buyValue * 0.4f);
+            return this;
+        }
+
+        public ItemDefinition setSellValue(int sellValue) {
+            this.sellValue = sellValue;
+            return this;
+        }
+
+        public ItemDefinition setValues(int buyValue, int sellValue) {
+            this.buyValue = buyValue;
+            this.sellValue = sellValue;
             return this;
         }
 
@@ -109,7 +123,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSword.png",
                 "icons/gear/ironSword.png"
-        ).setBonusVitality(1).setDamage(6).setValue(10).setGearType(VALKYRIE));
+        ).setBonusVitality(1).setDamage(6).setValues(120, 50).setGearType(VALKYRIE));
 
         registerItem(new ItemDefinition(
                 "protectors_iron_sword",
@@ -118,7 +132,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSword.png",
                 "icons/gear/ironSword.png"
-        ).setBonusVitality(1).setDefense(6).setValue(10).setGearType(PROTECTOR));
+        ).setBonusVitality(1).setDefense(6).setValues(120, 50).setGearType(PROTECTOR));
 
         registerItem(new ItemDefinition(
                 "barbarians_iron_sword",
@@ -127,7 +141,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSword.png",
                 "icons/gear/ironSword.png"
-        ).setDamage(10).setDefense(6).setValue(10).setGearType(BARBARIAN));
+        ).setDamage(10).setDefense(6).setValues(120, 50).setGearType(BARBARIAN));
 
         registerItem(new ItemDefinition(
                 "berserkers_iron_sword",
@@ -136,7 +150,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSword.png",
                 "icons/gear/ironSword.png"
-        ).setDamage(10).setBonusDex(1).setValue(10).setGearType(BERSERKER));
+        ).setDamage(10).setBonusDex(1).setValues(120, 50).setGearType(BERSERKER));
 
         registerItem(new ItemDefinition(
                 "deceptors_iron_sword",
@@ -145,7 +159,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSword.png",
                 "icons/gear/ironSword.png"
-        ).setBonusDex(1).setDefense(6).setValue(10).setGearType(DECEPTOR));
+        ).setBonusDex(1).setDefense(6).setValues(120, 50).setGearType(DECEPTOR));
 
         // ===== IRON SPEARS =====
         registerItem(new ItemDefinition(
@@ -155,7 +169,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSpear.png",
                 "icons/gear/ironSpear.png"
-        ).setBonusVitality(2).setDamage(10).setValue(50).setGearType(VALKYRIE));
+        ).setBonusVitality(2).setDamage(10).setValues(120, 50).setGearType(VALKYRIE));
 
         registerItem(new ItemDefinition(
                 "protectors_iron_spear",
@@ -164,7 +178,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSpear.png",
                 "icons/gear/ironSpear.png"
-        ).setBonusVitality(2).setDefense(10).setValue(50).setGearType(PROTECTOR));
+        ).setBonusVitality(2).setDefense(10).setValues(120, 50).setGearType(PROTECTOR));
 
         registerItem(new ItemDefinition(
                 "barbarians_iron_spear",
@@ -173,7 +187,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSpear.png",
                 "icons/gear/ironSpear.png"
-        ).setDamage(15).setDefense(10).setValue(50).setGearType(BARBARIAN));
+        ).setDamage(15).setDefense(10).setValues(120, 50).setGearType(BARBARIAN));
 
         registerItem(new ItemDefinition(
                 "berserkers_iron_spear",
@@ -182,7 +196,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSpear.png",
                 "icons/gear/ironSpear.png"
-        ).setDamage(15).setBonusDex(1).setValue(50).setGearType(BERSERKER));
+        ).setDamage(15).setBonusDex(1).setValues(120, 50).setGearType(BERSERKER));
 
         registerItem(new ItemDefinition(
                 "deceptors_iron_spear",
@@ -191,7 +205,7 @@ public class ItemRegistry {
                 Item.ItemType.WEAPON,
                 "icons/gear/ironSpear.png",
                 "icons/gear/ironSpear.png"
-        ).setBonusDex(2).setDefense(10).setValue(50).setGearType(DECEPTOR));
+        ).setBonusDex(2).setDefense(10).setValues(120, 50).setGearType(DECEPTOR));
 
         // ===== IRON HELMETS =====
         registerItem(new ItemDefinition(
@@ -201,7 +215,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironHelmet.png",
                 "icons/gear/ironHelmet.png"
-        ).setBonusVitality(1).setDamage(5).setValue(75).setGearType(VALKYRIE));
+        ).setBonusVitality(1).setDamage(5).setValues(180, 75).setGearType(VALKYRIE));
 
         registerItem(new ItemDefinition(
                 "protectors_iron_helmet",
@@ -210,7 +224,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironHelmet.png",
                 "icons/gear/ironHelmet.png"
-        ).setBonusVitality(1).setDefense(5).setValue(75).setGearType(PROTECTOR));
+        ).setBonusVitality(1).setDefense(5).setValues(180, 75).setGearType(PROTECTOR));
 
         registerItem(new ItemDefinition(
                 "barbarians_iron_helmet",
@@ -219,7 +233,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironHelmet.png",
                 "icons/gear/ironHelmet.png"
-        ).setDamage(8).setDefense(5).setValue(75).setGearType(BARBARIAN));
+        ).setDamage(8).setDefense(5).setValues(180, 75).setGearType(BARBARIAN));
 
         registerItem(new ItemDefinition(
                 "berserkers_iron_helmet",
@@ -228,7 +242,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironHelmet.png",
                 "icons/gear/ironHelmet.png"
-        ).setDamage(8).setBonusDex(1).setValue(75).setGearType(BERSERKER));
+        ).setDamage(8).setBonusDex(1).setValues(180, 75).setGearType(BERSERKER));
 
         registerItem(new ItemDefinition(
                 "deceptors_iron_helmet",
@@ -237,7 +251,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironHelmet.png",
                 "icons/gear/ironHelmet.png"
-        ).setBonusDex(1).setDefense(5).setValue(75).setGearType(DECEPTOR));
+        ).setBonusDex(1).setDefense(5).setValues(180, 75).setGearType(DECEPTOR));
 
         // ===== IRON ARMOR (CHEST) =====
         registerItem(new ItemDefinition(
@@ -247,7 +261,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironChest.png",
                 "icons/gear/ironChest.png"
-        ).setBonusVitality(1).setDamage(8).setValue(100).setGearType(VALKYRIE));
+        ).setBonusVitality(1).setDamage(8).setValues(250, 100).setGearType(VALKYRIE));
 
         registerItem(new ItemDefinition(
                 "protectors_iron_armor",
@@ -256,7 +270,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironChest.png",
                 "icons/gear/ironChest.png"
-        ).setBonusVitality(1).setDefense(8).setValue(100).setGearType(PROTECTOR));
+        ).setBonusVitality(1).setDefense(8).setValues(250, 100).setGearType(PROTECTOR));
 
         registerItem(new ItemDefinition(
                 "barbarians_iron_armor",
@@ -265,7 +279,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironChest.png",
                 "icons/gear/ironChest.png"
-        ).setDamage(12).setDefense(8).setValue(100).setGearType(BARBARIAN));
+        ).setDamage(12).setDefense(8).setValues(250, 100).setGearType(BARBARIAN));
 
         registerItem(new ItemDefinition(
                 "berserkers_iron_armor",
@@ -274,7 +288,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironChest.png",
                 "icons/gear/ironChest.png"
-        ).setDamage(12).setBonusDex(1).setValue(100).setGearType(BERSERKER));
+        ).setDamage(12).setBonusDex(1).setValues(250, 100).setGearType(BERSERKER));
 
         registerItem(new ItemDefinition(
                 "deceptors_iron_armor",
@@ -283,7 +297,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironChest.png",
                 "icons/gear/ironChest.png"
-        ).setBonusDex(1).setDefense(8).setValue(100).setGearType(DECEPTOR));
+        ).setBonusDex(1).setDefense(8).setValues(250, 100).setGearType(DECEPTOR));
 
         // ===== IRON GLOVES =====
         registerItem(new ItemDefinition(
@@ -293,7 +307,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironGloves.png",
                 "icons/gear/ironGloves.png"
-        ).setBonusVitality(1).setDamage(3).setValue(50).setGearType(VALKYRIE));
+        ).setBonusVitality(1).setDamage(3).setValues(120, 50).setGearType(VALKYRIE));
 
         registerItem(new ItemDefinition(
                 "protectors_iron_gloves",
@@ -302,7 +316,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironGloves.png",
                 "icons/gear/ironGloves.png"
-        ).setBonusVitality(1).setDefense(3).setValue(50).setGearType(PROTECTOR));
+        ).setBonusVitality(1).setDefense(3).setValues(120, 50).setGearType(PROTECTOR));
 
         registerItem(new ItemDefinition(
                 "barbarians_iron_gloves",
@@ -311,7 +325,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironGloves.png",
                 "icons/gear/ironGloves.png"
-        ).setDamage(5).setDefense(3).setValue(50).setGearType(BARBARIAN));
+        ).setDamage(5).setDefense(3).setValues(120, 50).setGearType(BARBARIAN));
 
         registerItem(new ItemDefinition(
                 "berserkers_iron_gloves",
@@ -320,7 +334,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironGloves.png",
                 "icons/gear/ironGloves.png"
-        ).setDamage(5).setBonusDex(1).setValue(50).setGearType(BERSERKER));
+        ).setDamage(5).setBonusDex(1).setValues(120, 50).setGearType(BERSERKER));
 
         registerItem(new ItemDefinition(
                 "deceptors_iron_gloves",
@@ -329,7 +343,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironGloves.png",
                 "icons/gear/ironGloves.png"
-        ).setBonusDex(1).setDefense(3).setValue(50).setGearType(DECEPTOR));
+        ).setBonusDex(1).setDefense(3).setValues(120, 50).setGearType(DECEPTOR));
 
         // ===== IRON BOOTS =====
         registerItem(new ItemDefinition(
@@ -339,7 +353,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironBoots.png",
                 "icons/gear/ironBoots.png"
-        ).setBonusVitality(1).setDamage(3).setValue(50).setGearType(VALKYRIE));
+        ).setBonusVitality(1).setDamage(3).setValues(120, 50).setGearType(VALKYRIE));
 
         registerItem(new ItemDefinition(
                 "protectors_iron_boots",
@@ -348,7 +362,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironBoots.png",
                 "icons/gear/ironBoots.png"
-        ).setBonusVitality(1).setDefense(3).setValue(50).setGearType(PROTECTOR));
+        ).setBonusVitality(1).setDefense(3).setValues(120, 50).setGearType(PROTECTOR));
 
         registerItem(new ItemDefinition(
                 "barbarians_iron_boots",
@@ -357,7 +371,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironBoots.png",
                 "icons/gear/ironBoots.png"
-        ).setDamage(5).setDefense(3).setValue(50).setGearType(BARBARIAN));
+        ).setDamage(5).setDefense(3).setValues(120, 50).setGearType(BARBARIAN));
 
         registerItem(new ItemDefinition(
                 "berserkers_iron_boots",
@@ -366,7 +380,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironBoots.png",
                 "icons/gear/ironBoots.png"
-        ).setDamage(5).setBonusDex(1).setValue(50).setGearType(BERSERKER));
+        ).setDamage(5).setBonusDex(1).setValues(120, 50).setGearType(BERSERKER));
 
         registerItem(new ItemDefinition(
                 "deceptors_iron_boots",
@@ -375,7 +389,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironBoots.png",
                 "icons/gear/ironBoots.png"
-        ).setBonusDex(1).setDefense(3).setValue(50).setGearType(DECEPTOR));
+        ).setBonusDex(1).setDefense(3).setValues(120, 50).setGearType(DECEPTOR));
 
         // ===== IRON SHIELDS =====
         registerItem(new ItemDefinition(
@@ -385,7 +399,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
-        ).setBonusVitality(1).setDamage(6).setValue(100).setGearType(VALKYRIE));
+        ).setBonusVitality(1).setDamage(6).setValues(150, 100).setGearType(VALKYRIE));
 
         registerItem(new ItemDefinition(
                 "protectors_iron_shield",
@@ -394,7 +408,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
-        ).setBonusVitality(1).setDefense(6).setValue(100).setGearType(PROTECTOR));
+        ).setBonusVitality(1).setDefense(6).setValues(150, 100).setGearType(PROTECTOR));
 
         registerItem(new ItemDefinition(
                 "barbarians_iron_shield",
@@ -403,7 +417,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
-        ).setDamage(10).setDefense(6).setValue(100).setGearType(BARBARIAN));
+        ).setDamage(10).setDefense(6).setValues(150, 100).setGearType(BARBARIAN));
 
         registerItem(new ItemDefinition(
                 "berserkers_iron_shield",
@@ -412,7 +426,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
-        ).setDamage(10).setBonusDex(1).setValue(100).setGearType(BERSERKER));
+        ).setDamage(10).setBonusDex(1).setValues(150, 100).setGearType(BERSERKER));
 
         registerItem(new ItemDefinition(
                 "deceptors_iron_shield",
@@ -421,7 +435,7 @@ public class ItemRegistry {
                 Item.ItemType.ARMOR,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
-        ).setBonusDex(1).setDefense(6).setValue(100).setGearType(DECEPTOR));
+        ).setBonusDex(1).setDefense(6).setValues(150, 100).setGearType(DECEPTOR));
 
         // ===== CONSUMABLES =====
         registerItem(new ItemDefinition(
@@ -431,7 +445,7 @@ public class ItemRegistry {
                 Item.ItemType.CONSUMABLE,
                 "icons/items/HealthPotion.png",
                 "icons/items/HealthPotion.png"
-        ).setHealthRestore(50).setValue(15));
+        ).setHealthRestore(50).setValues(40, 15));
 
         registerItem(new ItemDefinition(
                 "small_health_potion",
@@ -440,7 +454,7 @@ public class ItemRegistry {
                 Item.ItemType.CONSUMABLE,
                 "icons/items/HealthPotion.png",
                 "icons/items/HealthPotion.png"
-        ).setHealthRestore(25).setValue(8));
+        ).setHealthRestore(25).setValues(20, 8));
 
         registerItem(new ItemDefinition(
                 "large_health_potion",
@@ -449,7 +463,7 @@ public class ItemRegistry {
                 Item.ItemType.CONSUMABLE,
                 "icons/items/HealthPotion.png",
                 "icons/items/HealthPotion.png"
-        ).setHealthRestore(100).setValue(30));
+        ).setHealthRestore(100).setValues(80, 30));
 
         // ===== COINS =====
         registerItem(new ItemDefinition(
@@ -459,7 +473,7 @@ public class ItemRegistry {
                 Item.ItemType.COIN,
                 "icons/items/coin.png",
                 "icons/items/coin.png"
-        ).setValue(1));
+        ).setValues(1, 1));
 
         registerItem(new ItemDefinition(
                 "coin_pile",
@@ -468,7 +482,7 @@ public class ItemRegistry {
                 Item.ItemType.COIN,
                 "icons/items/coin.png",
                 "icons/items/coin.png"
-        ).setValue(5));
+        ).setValues(5, 5));
     }
 
     public void registerItem(ItemDefinition definition) {
@@ -488,22 +502,22 @@ public class ItemRegistry {
         switch (def.type) {
             case WEAPON:
                 ItemTypes.WeaponItem weapon = new ItemTypes.WeaponItem(def.name, def.description, texture, iconTexture,
-                        position, def.damage, def.defense, def.bonusVitality, def.bonusDex, def.value);
+                        position, def.damage, def.defense, def.bonusVitality, def.bonusDex, def.buyValue, def.sellValue);
                 weapon.setGearType(def.gearType);
                 return weapon;
 
             case ARMOR:
                 ItemTypes.ArmorItem armor = new ItemTypes.ArmorItem(def.name, def.description, texture, iconTexture,
-                        position, def.defense, def.damage, def.bonusVitality, def.bonusDex, def.value);
+                        position, def.defense, def.damage, def.bonusVitality, def.bonusDex, def.buyValue, def.sellValue);
                 armor.setGearType(def.gearType);
                 return armor;
 
             case CONSUMABLE:
                 return new ItemTypes.ConsumableItem(def.name, def.description, texture, iconTexture,
-                        position, def.healthRestore, def.value);
+                        position, def.healthRestore, def.buyValue, def.sellValue);
 
             case COIN:
-                return new ItemTypes.CoinItem(texture, iconTexture, position, def.value);
+                return new ItemTypes.CoinItem(texture, iconTexture, position, def.buyValue);
 
             default:
                 return null;

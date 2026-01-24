@@ -90,7 +90,7 @@ public class Inventory {
 
     public boolean addItem(Item item) {
         if (item.getType() == Item.ItemType.COIN) {
-            coins += item.getValue();
+            coins += item.getBuyValue();
             return true;
         }
 

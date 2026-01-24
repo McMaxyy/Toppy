@@ -10,19 +10,29 @@ public abstract class ItemTypes {
 
         public ArmorItem(String name, String description, Texture texture,
                          Texture iconTexture, Vector2 position, int defense, int damage,
-                         int vitality, int dex, int value) {
+                         int vitality, int dex, int buyValue, int sellValue) {
             super(name, description, ItemType.ARMOR, texture, iconTexture, position);
             this.defense = defense;
             this.damage = damage;
             this.bonusVitality = vitality;
             this.bonusDex = dex;
-            this.value = value;
+            this.buyValue = buyValue;
+            this.sellValue = sellValue;
+        }
+
+        // Convenience constructor with auto-calculated sell value
+        public ArmorItem(String name, String description, Texture texture,
+                         Texture iconTexture, Vector2 position, int defense, int damage,
+                         int vitality, int dex, int buyValue) {
+            this(name, description, texture, iconTexture, position, defense, damage,
+                    vitality, dex, buyValue, (int)(buyValue * 0.4f));
         }
 
         // Convenience constructor for backward compatibility
         public ArmorItem(String name, String description, Texture texture,
                          Texture iconTexture, Vector2 position, int defense, int value) {
-            this(name, description, texture, iconTexture, position, defense, 0, 0, 0, value);
+            this(name, description, texture, iconTexture, position, defense, 0, 0, 0,
+                    value, (int)(value * 0.4f));
         }
 
         @Override
@@ -49,7 +59,8 @@ public abstract class ItemTypes {
         @Override
         public Item copy() {
             ArmorItem copy = new ArmorItem(name, description, texture, iconTexture,
-                    new Vector2(bounds.x, bounds.y), defense, damage, bonusVitality, bonusDex, value);
+                    new Vector2(bounds.x, bounds.y), defense, damage, bonusVitality, bonusDex,
+                    buyValue, sellValue);
             copy.setGearType(gearType);
             return copy;
         }
@@ -61,7 +72,8 @@ public abstract class ItemTypes {
         public CoinItem(Texture texture, Texture iconTexture, Vector2 position, int amount) {
             super("Coin", "Currency", ItemType.COIN, texture, iconTexture, position);
             this.amount = amount;
-            this.value = amount;
+            this.buyValue = amount;
+            this.sellValue = amount;
             this.texture = Storage.assetManager.get("icons/items/coin.png", Texture.class);
         }
 
@@ -92,10 +104,19 @@ public abstract class ItemTypes {
 
         public ConsumableItem(String name, String description, Texture texture,
                               Texture iconTexture, Vector2 position,
-                              int healthRestore, int value) {
+                              int healthRestore, int buyValue, int sellValue) {
             super(name, description, ItemType.CONSUMABLE, texture, iconTexture, position);
             this.healthRestore = healthRestore;
-            this.value = value;
+            this.buyValue = buyValue;
+            this.sellValue = sellValue;
+        }
+
+        // Convenience constructor with auto-calculated sell value
+        public ConsumableItem(String name, String description, Texture texture,
+                              Texture iconTexture, Vector2 position,
+                              int healthRestore, int buyValue) {
+            this(name, description, texture, iconTexture, position, healthRestore,
+                    buyValue, (int)(buyValue * 0.4f));
         }
 
         @Override
@@ -114,7 +135,7 @@ public abstract class ItemTypes {
         @Override
         public Item copy() {
             return new ConsumableItem(name, description, texture, iconTexture,
-                    new Vector2(bounds.x, bounds.y), healthRestore, value);
+                    new Vector2(bounds.x, bounds.y), healthRestore, buyValue, sellValue);
         }
     }
 
@@ -123,20 +144,30 @@ public abstract class ItemTypes {
 
         public WeaponItem(String name, String description, Texture texture,
                           Texture iconTexture, Vector2 position, int damage, int defense,
-                          int vitality, int dex, int value) {
+                          int vitality, int dex, int buyValue, int sellValue) {
             super(name, description, ItemType.WEAPON, texture, iconTexture, position);
             this.damage = damage;
             this.defense = defense;
             this.bonusVitality = vitality;
             this.bonusDex = dex;
-            this.value = value;
+            this.buyValue = buyValue;
+            this.sellValue = sellValue;
             this.attackSpeed = 100;
+        }
+
+        // Convenience constructor with auto-calculated sell value
+        public WeaponItem(String name, String description, Texture texture,
+                          Texture iconTexture, Vector2 position, int damage, int defense,
+                          int vitality, int dex, int buyValue) {
+            this(name, description, texture, iconTexture, position, damage, defense,
+                    vitality, dex, buyValue, (int)(buyValue * 0.4f));
         }
 
         // Convenience constructor for backward compatibility
         public WeaponItem(String name, String description, Texture texture,
                           Texture iconTexture, Vector2 position, int damage, int value) {
-            this(name, description, texture, iconTexture, position, damage, 0, 0, 0, value);
+            this(name, description, texture, iconTexture, position, damage, 0, 0, 0,
+                    value, (int)(value * 0.4f));
         }
 
         @Override
@@ -163,7 +194,8 @@ public abstract class ItemTypes {
         @Override
         public Item copy() {
             WeaponItem copy = new WeaponItem(name, description, texture, iconTexture,
-                    new Vector2(bounds.x, bounds.y), damage, defense, bonusVitality, bonusDex, value);
+                    new Vector2(bounds.x, bounds.y), damage, defense, bonusVitality, bonusDex,
+                    buyValue, sellValue);
             copy.setGearType(gearType);
             return copy;
         }

@@ -15,8 +15,8 @@ import java.util.ArrayList;
 public abstract class MercenaryAbilities {}
 
 class ChargeAbility extends Ability {
-    private static final float CHARGE_SPEED = 3000f;
-    private static final float CHARGE_DURATION = 0.5f;
+    private static final float CHARGE_SPEED = 500f;
+    private static final float CHARGE_DURATION = 0.7f;
     private static final float STUN_DURATION = 1.5f;
 
     private Player chargingPlayer;
@@ -28,10 +28,10 @@ class ChargeAbility extends Ability {
                 "Charge",
                 "Dash forward, dealing damage and stunning enemies on impact",
                 1.0f,
-                20,
+                15,
                 0f,
                 CHARGE_DURATION,
-                60f,
+                30f,
                 AbilityType.CROWD_CONTROL,
                 iconTexture
         );
@@ -56,8 +56,8 @@ class ChargeAbility extends Ability {
         }
 
         Vector2 chargeVelocity = new Vector2(
-                movementDirection.x * CHARGE_SPEED * 25,
-                movementDirection.y * CHARGE_SPEED * 25
+                movementDirection.x * CHARGE_SPEED,
+                movementDirection.y * CHARGE_SPEED
         );
 
         player.startCharge(chargeVelocity, CHARGE_DURATION);

@@ -109,7 +109,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
         body.setFixedRotation(true);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(size / 5f, size / 5f);
+        shape.setAsBox(size / 10f, size / 6f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;

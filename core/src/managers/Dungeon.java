@@ -461,7 +461,7 @@ public class Dungeon {
         bodyDef.position.set(x + 8f, y + 8f);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(16 / 3f, 16 / 3f);
+        shape.setAsBox(16 / 4f, 16 / 4f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;

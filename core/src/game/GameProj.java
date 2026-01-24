@@ -32,6 +32,7 @@ import config.Storage;
 import entities.*;
 import managers.*;
 import abilities.StatusEffect;
+import ui.MerchantShop;
 import ui.Settings;
 
 import java.util.HashMap;
@@ -88,6 +89,11 @@ public class GameProj implements Screen, ContactListener {
     private Settings settings;
     private boolean isPaused = false;
 
+    // Merchant system
+    private Merchant merchant;
+    private MerchantShop merchantShop;
+    private boolean merchantShopOpen = false;
+
     private Map<Object, List<StatusEffect>> statusEffects;
 
     public GameProj(Viewport viewport, Game game, GameScreen gameScreen) {
@@ -130,7 +136,8 @@ public class GameProj implements Screen, ContactListener {
     private void createComponents() {
         groundTexture = Storage.assetManager.get("tiles/grass.png", Texture.class);
 
-        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen, Storage.getSelectedPlayerClass());        batch = new SpriteBatch();
+        player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen, Storage.getSelectedPlayerClass());
+        batch = new SpriteBatch();
 
         hudStage = new Stage(hudViewport, batch);
 
@@ -150,8 +157,13 @@ public class GameProj implements Screen, ContactListener {
 
         player.initializeAbilityManager(this);
 
+        // Initialize merchant shop
+        merchantShop = new MerchantShop();
+        merchantShop.setPlayer(player);
+
         setRandomPlayerSpawn();
         spawnAllDungeonPortals();
+        spawnMerchant();
     }
 
     private void setRandomPlayerSpawn() {
@@ -169,6 +181,151 @@ public class GameProj implements Screen, ContactListener {
         float spawnY = spawnChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
 
         player.getBody().setTransform(spawnX, spawnY, 0);
+    }
+
+    private void spawnMerchant() {
+        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
+        int minChunk = -halfMapChunks;
+
+        Vector2 playerSpawn = player.getPosition();
+        float minDistanceFromSpawn = CHUNK_SIZE * TILE_SIZE * 0.5f; // Closer than portals
+
+        int attempts = 0;
+        int maxAttempts = 100;
+        boolean validPosition = false;
+        float merchantX = 0, merchantY = 0;
+
+        while (!validPosition && attempts < maxAttempts) {
+            attempts++;
+
+            int merchantChunkX = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+            int merchantChunkY = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+
+            float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+            float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+
+            merchantX = merchantChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+            merchantY = merchantChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+            float distanceFromSpawn = (float) Math.sqrt(
+                    Math.pow(merchantX - playerSpawn.x, 2) +
+                            Math.pow(merchantY - playerSpawn.y, 2)
+            );
+
+            // Check distance from portals
+            boolean tooCloseToPortals = false;
+            for (Portal portal : dungeonPortals) {
+                Vector2 portalPos = new Vector2(
+                        portal.getBounds().x + portal.getBounds().width / 2f,
+                        portal.getBounds().y + portal.getBounds().height / 2f
+                );
+                float distanceToPortal = (float) Math.sqrt(
+                        Math.pow(merchantX - portalPos.x, 2) +
+                                Math.pow(merchantY - portalPos.y, 2)
+                );
+                if (distanceToPortal < CHUNK_SIZE * TILE_SIZE * 0.5f) {
+                    tooCloseToPortals = true;
+                    break;
+                }
+            }
+
+            boolean overlapsObstacle = isMerchantOverlappingObstacles(merchantX, merchantY, 32);
+
+            if (distanceFromSpawn >= minDistanceFromSpawn && !tooCloseToPortals && !overlapsObstacle) {
+                validPosition = true;
+            }
+        }
+
+        // Create merchant
+        merchant = new Merchant(merchantX, merchantY, world.getWorld(), animationManager);
+
+        // Add merchant to minimap
+        if (minimap != null) {
+            minimap.setMerchant(merchant);
+        }
+    }
+
+    private boolean isMerchantOverlappingObstacles(float x, float y, float size) {
+        Rectangle merchantBounds = new Rectangle(x, y, size, size);
+
+        int chunkX = (int) Math.floor(x / (CHUNK_SIZE * TILE_SIZE));
+        int chunkY = (int) Math.floor(y / (CHUNK_SIZE * TILE_SIZE));
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                Vector2 chunkCoord = new Vector2(chunkX + dx, chunkY + dy);
+                Chunk chunk = chunks.get(chunkCoord);
+
+                if (chunk != null && chunk.isOverlappingAnyObstacle(merchantBounds)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void relocateMerchant() {
+        if (merchant != null) {
+            merchant.dispose(world.getWorld());
+        }
+
+        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
+        int minChunk = -halfMapChunks;
+
+        Vector2 playerSpawn = player.getPosition();
+        float minDistanceFromSpawn = CHUNK_SIZE * TILE_SIZE * 0.5f;
+
+        int attempts = 0;
+        int maxAttempts = 100;
+        boolean validPosition = false;
+        float merchantX = 0, merchantY = 0;
+
+        while (!validPosition && attempts < maxAttempts) {
+            attempts++;
+
+            int merchantChunkX = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+            int merchantChunkY = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+
+            float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+            float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+
+            merchantX = merchantChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+            merchantY = merchantChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+            float distanceFromSpawn = (float) Math.sqrt(
+                    Math.pow(merchantX - playerSpawn.x, 2) +
+                            Math.pow(merchantY - playerSpawn.y, 2)
+            );
+
+            boolean tooCloseToPortals = false;
+            for (Portal portal : dungeonPortals) {
+                Vector2 portalPos = new Vector2(
+                        portal.getBounds().x + portal.getBounds().width / 2f,
+                        portal.getBounds().y + portal.getBounds().height / 2f
+                );
+                float distanceToPortal = (float) Math.sqrt(
+                        Math.pow(merchantX - portalPos.x, 2) +
+                                Math.pow(merchantY - portalPos.y, 2)
+                );
+                if (distanceToPortal < CHUNK_SIZE * TILE_SIZE * 0.5f) {
+                    tooCloseToPortals = true;
+                    break;
+                }
+            }
+
+            boolean overlapsObstacle = isMerchantOverlappingObstacles(merchantX, merchantY, 32);
+
+            if (distanceFromSpawn >= minDistanceFromSpawn && !tooCloseToPortals && !overlapsObstacle) {
+                validPosition = true;
+            }
+        }
+
+        merchant = new Merchant(merchantX, merchantY, world.getWorld(), animationManager);
+
+        if (minimap != null) {
+            minimap.setMerchant(merchant);
+        }
     }
 
     private void spawnAllDungeonPortals() {
@@ -283,6 +440,11 @@ public class GameProj implements Screen, ContactListener {
             mapBoundary.disable();
         }
 
+        // Disable merchant while in dungeon
+        if (merchant != null) {
+            merchant.disable();
+        }
+
         int dungeonTileSize = (int) (TILE_SIZE / 1.2f);
         currentDungeon = new Dungeon(100, 100, dungeonTileSize, random, world.getWorld(), player, animationManager);
         dungeonMinimap = new DungeonMinimap(100, 100, dungeonTileSize, player, currentDungeon);
@@ -291,6 +453,10 @@ public class GameProj implements Screen, ContactListener {
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
         hudLabel.setText("Find the boss portal!");
+
+        // Randomize merchant position and shop inventory for when player returns
+        relocateMerchant();
+        merchantShop.randomizeShopInventory();
     }
 
     private void enterBossRoom() {
@@ -300,7 +466,6 @@ public class GameProj implements Screen, ContactListener {
 
         dungeonPlayerPosition = new Vector2(player.getPosition());
 
-        // Dispose dungeon (this removes all dungeon enemy bodies and walls)
         if (currentDungeon != null) {
             currentDungeon.dispose();
             currentDungeon = null;
@@ -311,7 +476,6 @@ public class GameProj implements Screen, ContactListener {
             dungeonMinimap = null;
         }
 
-        // Ensure overworld chunks are still disabled (they should be from enterDungeon)
         for (Chunk chunk : chunks.values()) {
             chunk.disableObstacles();
             chunk.disableEnemies();
@@ -323,7 +487,6 @@ public class GameProj implements Screen, ContactListener {
 
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
 
-        // Determine which boss to spawn based on progression
         BossRoom.BossType bossType = bossKittyDefeated ? BossRoom.BossType.CYCLOPS : BossRoom.BossType.CYCLOPS;
         currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, bossType);
 
@@ -351,6 +514,11 @@ public class GameProj implements Screen, ContactListener {
 
         if (mapBoundary != null) {
             mapBoundary.enable();
+        }
+
+        // Re-enable merchant
+        if (merchant != null) {
+            merchant.enable();
         }
 
         if (overworldPlayerPosition != null) {
@@ -384,6 +552,11 @@ public class GameProj implements Screen, ContactListener {
             mapBoundary.enable();
         }
 
+        // Re-enable merchant
+        if (merchant != null) {
+            merchant.enable();
+        }
+
         if (overworldPlayerPosition != null) {
             player.getBody().setTransform(overworldPlayerPosition.x, overworldPlayerPosition.y, 0);
         }
@@ -397,6 +570,12 @@ public class GameProj implements Screen, ContactListener {
     @Override
     public void render(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            if (merchantShopOpen) {
+                merchantShop.close();
+                merchantShopOpen = false;
+                return;
+            }
+
             if (player.getInventory().isInventoryOpen())
                 player.getInventory().toggleInventory();
 
@@ -421,7 +600,14 @@ public class GameProj implements Screen, ContactListener {
             unpauseGame();
         }
 
-        if (!isPaused) {
+        if (merchantShopOpen && merchantShop != null) {
+            merchantShop.update(delta);
+            if (!merchantShop.isOpen()) {
+                merchantShopOpen = false;
+            }
+        }
+
+        if (!isPaused && !merchantShopOpen) {
             world.getWorld().step(1 / 60f, 6, 2);
 
             if (!inDungeon && !inBossRoom) {
@@ -472,13 +658,18 @@ public class GameProj implements Screen, ContactListener {
             hudStage.draw();
         }
 
+        // Render merchant shop UI
+        if (merchantShopOpen && merchantShop != null) {
+            merchantShop.render(batch, false);
+        }
+
         if (settings != null && settings.isOpen()) {
             settings.render(batch, false);
         }
 
         if (world != null) {
             Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-//            debugRenderer.render(world.getWorld(), camera.combined);
+            debugRenderer.render(world.getWorld(), camera.combined);
         }
     }
 
@@ -549,13 +740,28 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderEnemies(batch);
         }
 
+        // Render merchant
+        if (merchant != null && merchant.isActive()) {
+            if (delta > 0) {
+                merchant.update(delta);
+            }
+            merchant.render(batch);
+
+            // Check for merchant interaction
+            if (!isPaused && !merchantShopOpen && merchant.isPlayerNear(player.getPosition()) &&
+                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                merchantShop.open();
+                merchantShopOpen = true;
+            }
+        }
+
         for (Portal portal : dungeonPortals) {
             if (delta > 0) {
                 portal.update(delta);
             }
             portal.render(batch);
 
-            if (!isPaused && portal.isPlayerNear(player.getPosition(), 20f) &&
+            if (!isPaused && !merchantShopOpen && portal.isPlayerNear(player.getPosition(), 20f) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.E) && !portal.getIsCleared()) {
                 enterDungeon();
                 break;
@@ -872,7 +1078,6 @@ public class GameProj implements Screen, ContactListener {
             player.getStats().addExperience(boss.getStats().getExpReward());
 
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getBoss() == boss) {
-                // Mark BossKitty as defeated for progression
                 bossKittyDefeated = true;
                 currentBossRoom.onBossDefeated();
                 hudLabel.setText("Boss Kitty defeated! Use the portal to return!");
@@ -905,7 +1110,6 @@ public class GameProj implements Screen, ContactListener {
     public void checkForDeadEnemies() {
         List<Body> bodiesToDestroy = new ArrayList<>();
 
-        // Only check overworld enemies when in overworld
         if (!inDungeon && !inBossRoom) {
             for (Chunk chunk : chunks.values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
@@ -928,7 +1132,6 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        // Only check dungeon enemies when in dungeon
         if (inDungeon && currentDungeon != null) {
             for (DungeonEnemy enemy : new ArrayList<>(currentDungeon.getEnemies())) {
                 if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
@@ -940,9 +1143,7 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        // Only check boss room bosses when in boss room
         if (inBossRoom && currentBossRoom != null) {
-            // Check BossKitty
             BossKitty bossRoomBoss = currentBossRoom.getBoss();
             if (bossRoomBoss != null && bossRoomBoss.isMarkedForRemoval() && bossRoomBoss.getBody() != null) {
                 handleEnemyDeath(bossRoomBoss, bossRoomBoss.getBody().getPosition(), true);
@@ -951,7 +1152,6 @@ public class GameProj implements Screen, ContactListener {
                 currentBossRoom.setBoss(null);
             }
 
-            // Check Cyclops
             Cyclops cyclopsRoomBoss = currentBossRoom.getCyclops();
             if (cyclopsRoomBoss != null && cyclopsRoomBoss.isMarkedForRemoval() && cyclopsRoomBoss.getBody() != null) {
                 handleEnemyDeath(cyclopsRoomBoss, cyclopsRoomBoss.getBody().getPosition(), true);
@@ -1045,6 +1245,16 @@ public class GameProj implements Screen, ContactListener {
             if (settings != null) {
                 settings.dispose();
                 settings = null;
+            }
+
+            if (merchantShop != null) {
+                merchantShop.dispose();
+                merchantShop = null;
+            }
+
+            if (merchant != null) {
+                merchant.dispose(world.getWorld());
+                merchant = null;
             }
 
             if (dungeonMinimap != null) {
@@ -1151,13 +1361,11 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
             } else if (inBossRoom && currentBossRoom != null) {
-                // Check BossKitty
                 BossKitty boss = currentBossRoom.getBoss();
                 if (boss != null && boss.getBody() == enemyBody) {
                     boss.takeDamage(playerDamage);
                 }
 
-                // Check Cyclops
                 Cyclops cyclops = currentBossRoom.getCyclops();
                 if (cyclops != null && cyclops.getBody() == enemyBody) {
                     cyclops.takeDamage(playerDamage);
@@ -1221,7 +1429,6 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
             } else if (inBossRoom && currentBossRoom != null) {
-                // Check BossKitty
                 BossKitty boss = currentBossRoom.getBoss();
                 if (boss != null && boss.getBody() == enemyBody && !player.isInvulnerable()) {
                     boss.damagePlayer();
@@ -1230,7 +1437,6 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
 
-                // Check Cyclops
                 Cyclops cyclops = currentBossRoom.getCyclops();
                 if (cyclops != null && cyclops.getBody() == enemyBody && !player.isInvulnerable()) {
                     cyclops.damagePlayer();
@@ -1336,13 +1542,8 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
             } else if (inBossRoom && currentBossRoom != null) {
-                // Handle reflected projectiles hitting bosses in boss room
-                // Note: BossKitty and Cyclops don't have projectiles, but this handles
-                // any future projectile-using enemies in boss rooms
                 BossKitty boss = currentBossRoom.getBoss();
                 Cyclops cyclops = currentBossRoom.getCyclops();
-
-                // If we add projectile enemies to boss rooms in the future, handle them here
             }
         }
 
@@ -1377,7 +1578,6 @@ public class GameProj implements Screen, ContactListener {
 
         if ((fixtureA.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0 &&
                 (fixtureB.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0) {
-
 
             Body enemyBody2 = (categoryA == CollisionFilter.ENEMY_ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
             Body enemyBody = (categoryA == CollisionFilter.ENEMY_ENEMY) ? fixtureA.getBody() : fixtureB.getBody();

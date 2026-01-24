@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
 import config.Storage;
+import entities.Merchant;
 import entities.Player;
 import entities.Portal;
 
@@ -23,12 +24,14 @@ public class Minimap {
     private final int tileSize;
     private final Player player;
     private List<Portal> portals;
+    private Merchant merchant;
 
     private final Set<String> exploredTiles;
     private final int EXPLORATION_RADIUS = 50;
 
     private boolean mapOpen = false;
     private boolean showPortal = true;
+    private boolean showMerchant = true;
     private final int MAP_PADDING = 50;
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
@@ -38,6 +41,7 @@ public class Minimap {
     private final Color EXPLORED_COLOR = new Color(0.3f, 0.4f, 0.3f, 1f);
     private final Color PLAYER_COLOR = new Color(0.2f, 0.8f, 1f, 1f);
     private final Color PORTAL_COLOR = new Color(0.8f, 0.2f, 1f, 1f);
+    private final Color MERCHANT_COLOR = new Color(1f, 0.84f, 0f, 1f); // Gold color for merchant
     private final Color WALL_COLOR = new Color(0.5f, 0.5f, 0.5f, 1f);
     private final Color BACKGROUND_COLOR = new Color(0.02f, 0.02f, 0.02f, 0.98f);
 
@@ -57,12 +61,20 @@ public class Minimap {
         this.portals.add(portal);
     }
 
+    public void setMerchant(Merchant merchant) {
+        this.merchant = merchant;
+    }
+
     public void toggleMap() {
         mapOpen = !mapOpen;
     }
 
     public void togglePortalDisplay() {
         showPortal = !showPortal;
+    }
+
+    public void toggleMerchantDisplay() {
+        showMerchant = !showMerchant;
     }
 
     public boolean isMapOpen() {
@@ -159,24 +171,19 @@ public class Minimap {
         // Draw portals
         if (showPortal && !portals.isEmpty()) {
             for (Portal portal : portals) {
-                // Use the portal's center position
                 Vector2 portalPos = new Vector2(
                         portal.getBounds().x,
                         portal.getBounds().y
                 );
 
-                // Convert to tile coordinates
                 int worldPortalTileX = (int) (portalPos.x / tileSize);
                 int worldPortalTileY = (int) (portalPos.y / tileSize);
                 String portalTileKey = worldPortalTileX + "," + worldPortalTileY;
 
-                // Check if this tile has been explored
                 if (exploredTiles.contains(portalTileKey)) {
-                    // Convert to minimap display coordinates
                     int portalTileX = worldPortalTileX - worldMinTileX;
                     int portalTileY = worldPortalTileY - worldMinTileY;
 
-                    // Ensure within minimap bounds
                     if (portalTileX >= 0 && portalTileX < totalTilesX &&
                             portalTileY >= 0 && portalTileY < totalTilesY) {
 
@@ -194,6 +201,39 @@ public class Minimap {
                                 pulseSize
                         );
                     }
+                }
+            }
+        }
+
+        // Draw merchant
+        if (showMerchant && merchant != null && merchant.isActive()) {
+            Vector2 merchantPos = merchant.getPosition();
+
+            int worldMerchantTileX = (int) (merchantPos.x / tileSize);
+            int worldMerchantTileY = (int) (merchantPos.y / tileSize);
+            String merchantTileKey = worldMerchantTileX + "," + worldMerchantTileY;
+
+            if (exploredTiles.contains(merchantTileKey)) {
+                int merchantTileX = worldMerchantTileX - worldMinTileX;
+                int merchantTileY = worldMerchantTileY - worldMinTileY;
+
+                if (merchantTileX >= 0 && merchantTileX < totalTilesX &&
+                        merchantTileY >= 0 && merchantTileY < totalTilesY) {
+
+                    float merchantDisplayX = mapStartX + merchantTileX * tileDisplaySize;
+                    float merchantDisplayY = mapStartY + merchantTileY * tileDisplaySize;
+
+                    // Pulsing gold marker for merchant
+                    float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 300.0) * 0.15f;
+                    shapeRenderer.setColor(MERCHANT_COLOR.r, MERCHANT_COLOR.g, MERCHANT_COLOR.b, 0.9f);
+                    float pulseSize = tileDisplaySize * 1.5f * pulse;
+                    float pulseOffset = (pulseSize - tileDisplaySize) / 2f;
+                    shapeRenderer.rect(
+                            merchantDisplayX - pulseOffset,
+                            merchantDisplayY - pulseOffset,
+                            pulseSize,
+                            pulseSize
+                    );
                 }
             }
         }
