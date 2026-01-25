@@ -46,12 +46,12 @@ public class Enemy {
     private boolean isAttacking = false;
     private boolean hasDealtDamage = false;
 
-    // Projectile management (for ranged enemies)
     private List<Projectile> projectiles = new ArrayList<>();
     private static final Color MUSHIE_PROJECTILE_COLOR = new Color(0.2f, 0.8f, 0.2f, 1f);
 
-    // Attack indicator
-    private boolean showAttackIndicator = false;
+    private boolean isJustHit = false;
+    private float hitFlashTimer = 0f;
+    private static final float HIT_FLASH_DURATION = 0.3f;
     private Vector2 attackDirection = new Vector2();
 
     public Enemy(Rectangle bounds, Texture texture, Body body, Player player,
@@ -131,15 +131,19 @@ public class Enemy {
             return;
         }
 
-        // Update per-instance animation time
         animationTime += delta;
 
-        // Update attack cooldown
+        if (isJustHit) {
+            hitFlashTimer -= delta;
+            if (hitFlashTimer <= 0) {
+                isJustHit = false;
+            }
+        }
+
         if (attackCooldown > 0) {
             attackCooldown -= delta;
         }
 
-        // Update attack state
         if (isAttacking) {
             updateAttack(delta);
         } else {
@@ -185,7 +189,6 @@ public class Enemy {
 
         // Show attack indicator during wind-up for melee enemies
         if (stats.getAttackType() == AttackType.MELEE || stats.getAttackType() == AttackType.CONAL) {
-            showAttackIndicator = true;
             updateAttackDirection();
         }
 
@@ -294,6 +297,7 @@ public class Enemy {
                 float dist = projectile.getPosition().dst(player.getPosition());
                 if (dist < 10f) {
                     player.getStats().takeDamage(projectile.getDamage());
+                    player.onTakeDamage();
                     projectile.markForRemoval();
                 }
             }
@@ -309,9 +313,7 @@ public class Enemy {
         isAttacking = false;
         attackCooldown = stats.getAttackCooldown();
         hasDealtDamage = false;
-        showAttackIndicator = false;
 
-        // Return to idle state
         setState(State.IDLE);
     }
 
@@ -360,7 +362,6 @@ public class Enemy {
     public void render(SpriteBatch batch) {
         if (!markForRemoval) {
 
-            // Render enemy sprite
             TextureRegion currentFrame = getCurrentFrame();
             if (currentFrame != null) {
                 TextureRegion frame = new TextureRegion(currentFrame);
@@ -369,7 +370,15 @@ public class Enemy {
                 } else if (!isFlipped && frame.isFlipX()) {
                     frame.flip(true, false);
                 }
+
+                // Apply hit flash effect
+                if (isJustHit) {
+                    batch.setColor(1f, 0.5f, 0.5f, 1f); // Red/white tint when hit
+                }
                 batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);
+                if (isJustHit) {
+                    batch.setColor(1f, 1f, 1f, 1f); // Reset color
+                }
             }
 
             // Render health bar
@@ -380,18 +389,6 @@ public class Enemy {
                 projectile.render(batch);
             }
         }
-    }
-
-    private void drawLine(SpriteBatch batch, float x1, float y1, float x2, float y2, float thickness) {
-        float dx = x2 - x1;
-        float dy = y2 - y1;
-        float dist = (float) Math.sqrt(dx * dx + dy * dy);
-        float angle = (float) Math.toDegrees(Math.atan2(dy, dx));
-
-        batch.draw(whitePixelTexture, x1, y1 - thickness / 2, 0, thickness / 2,
-                dist, thickness, 1, 1, angle,
-                0, 0, whitePixelTexture.getWidth(), whitePixelTexture.getHeight(),
-                false, false);
     }
 
     private void renderHealthBar(SpriteBatch batch) {
@@ -415,7 +412,11 @@ public class Enemy {
     }
 
     public void takeDamage(int damage) {
-        stats.takeDamage(damage);
+        if (damage > 0) {
+            stats.takeDamage(damage);
+            isJustHit = true;
+            hitFlashTimer = HIT_FLASH_DURATION;
+        }
 
         if (stats.isDead()) {
             markForRemoval();
@@ -423,8 +424,10 @@ public class Enemy {
     }
 
     public void damagePlayer() {
-        if (!player.isInvulnerable())
+        if (!player.isInvulnerable()) {
             player.getStats().takeDamage(stats.getDamage());
+            player.onTakeDamage();
+        }
     }
 
     public void clearBody() {

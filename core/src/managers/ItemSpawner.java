@@ -16,9 +16,6 @@ import com.badlogic.gdx.physics.box2d.World;
 import entities.Player;
 import items.Item;
 
-/**
- * Manages item spawning and world items
- */
 public class ItemSpawner {
     private List<WorldItem> worldItems;
     private final World world;
@@ -29,9 +26,6 @@ public class ItemSpawner {
     // Queue for items to spawn (to avoid Box2D world lock issues)
     private List<PendingItem> pendingItems;
 
-    /**
-     * Wrapper class for items in the world with physics
-     */
     public static class WorldItem {
         public Item item;
         public Body body;
@@ -62,9 +56,6 @@ public class ItemSpawner {
         }
     }
 
-    /**
-     * Class for queuing items to spawn (to avoid Box2D lock issues)
-     */
     private static class PendingItem {
         String itemId;
         Vector2 position;
@@ -91,19 +82,11 @@ public class ItemSpawner {
         this.random = new Random();
     }
 
-    /**
-     * Spawn an item at a position
-     * Items are queued and spawned during update to avoid Box2D lock issues
-     */
     public WorldItem spawnItem(String itemId, Vector2 position) {
-        // Queue the item to be spawned in update()
         pendingItems.add(new PendingItem(itemId, new Vector2(position)));
-        return null; // Will be created in update()
+        return null;
     }
 
-    /**
-     * Actually spawn an item (called during update when world is not locked)
-     */
     private WorldItem spawnItemNow(String itemId, Vector2 position, Vector2 velocity) {
         Item item = itemRegistry.createItem(itemId, position);
         if (item == null) {
@@ -113,7 +96,6 @@ public class ItemSpawner {
         Body body = createItemBody(position, item.getBounds().width, item.getBounds().height);
         item.setBody(body);
 
-        // Apply velocity if provided
         if (velocity != null) {
             body.setLinearVelocity(velocity);
         }
@@ -124,22 +106,6 @@ public class ItemSpawner {
         return worldItem;
     }
 
-    /**
-     * Spawn a random item at a position
-     */
-    public WorldItem spawnRandomItem(Vector2 position) {
-        String[] allItems = itemRegistry.getAllItemIds();
-        if (allItems.length == 0) {
-            return null;
-        }
-
-        String randomItemId = allItems[random.nextInt(allItems.length)];
-        return spawnItem(randomItemId, position);
-    }
-
-    /**
-     * Spawn item with random offset from position
-     */
     public WorldItem spawnItemWithOffset(String itemId, Vector2 position, float maxOffset) {
         float offsetX = (random.nextFloat() - 0.5f) * maxOffset * 2;
         float offsetY = (random.nextFloat() - 0.5f) * maxOffset * 2;
@@ -148,9 +114,6 @@ public class ItemSpawner {
         return spawnItem(itemId, spawnPos);
     }
 
-    /**
-     * Drop an item from player inventory
-     */
     public WorldItem dropItem(Item item, Vector2 playerPosition) {
         if (item == null) {
             return null;
@@ -169,49 +132,6 @@ public class ItemSpawner {
         return null; // Will be created in update()
     }
 
-    /**
-     * Spawn loot when enemy dies
-     */
-    public void spawnEnemyLoot(Vector2 position, int enemyLevel) {
-        // Coins drop chance: 60%
-        if (random.nextFloat() < 0.6f) {
-            int coinAmount = 1 + random.nextInt(3 + enemyLevel);
-            String coinType = coinAmount > 3 ? "coin_pile" : "coin";
-            spawnItemWithOffset(coinType, position, 15f);
-        }
-
-        // Health potion drop chance: 20%
-        if (random.nextFloat() < 0.2f) {
-            spawnItemWithOffset("small_health_potion", position, 15f);
-        }
-
-        // Rare item drop chance: 5%
-        if (random.nextFloat() < 0.05f) {
-            String[] rareItems = {"iron_sword", "iron_armor", "large_health_potion"};
-            String rareItem = rareItems[random.nextInt(rareItems.length)];
-            spawnItemWithOffset(rareItem, position, 15f);
-        }
-    }
-
-    /**
-     * Spawn boss loot (guaranteed good items)
-     */
-    public void spawnBossLoot(Vector2 position) {
-        // Guaranteed coins
-        for (int i = 0; i < 5; i++) {
-            spawnItemWithOffset("coin_pile", position, 30f);
-        }
-
-        // Guaranteed rare item
-        String[] bossLoot = {"iron_spear", "iron_armor", "large_health_potion"};
-        for (String item : bossLoot) {
-            spawnItemWithOffset(item, position, 30f);
-        }
-    }
-
-    /**
-     * Check for item pickups near player
-     */
     public List<Item> checkPickups(Player player, Inventory inventory) {
         List<Item> pickedUpItems = new ArrayList<>();
         Vector2 playerPos = player.getPosition();
@@ -240,9 +160,6 @@ public class ItemSpawner {
         return pickedUpItems;
     }
 
-    /**
-     * Create physics body for item
-     */
     private Body createItemBody(Vector2 position, float width, float height) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
@@ -258,20 +175,31 @@ public class ItemSpawner {
         fixtureDef.shape = shape;
         fixtureDef.density = 0.5f;
         fixtureDef.friction = 0.5f;
-        fixtureDef.isSensor = true; // Items don't block movement
+        fixtureDef.isSensor = true;
 
         fixtureDef.filter.categoryBits = CollisionFilter.OBSTACLE;
-        fixtureDef.filter.maskBits = 0; // Don't collide with anything
+        fixtureDef.filter.maskBits = 0;
 
         body.createFixture(fixtureDef);
         shape.dispose();
 
+        PolygonShape shape2 = new PolygonShape();
+        shape2.setAsBox(width / 5f, height / 5f);
+
+        FixtureDef fixtureDef2 = new FixtureDef();
+        fixtureDef2.shape = shape2;
+        fixtureDef2.density = 0.5f;
+        fixtureDef2.friction = 0.5f;
+
+        fixtureDef2.filter.categoryBits = CollisionFilter.ITEM;
+        fixtureDef2.filter.maskBits = CollisionFilter.ITEM | CollisionFilter.WALL;
+
+        body.createFixture(fixtureDef2);
+        shape2.dispose();
+
         return body;
     }
 
-    /**
-     * Update all world items
-     */
     public void update(float delta) {
         // Process pending items (spawn them now that world is not locked)
         if (!pendingItems.isEmpty() && !world.isLocked()) {
@@ -287,25 +215,16 @@ public class ItemSpawner {
         }
     }
 
-    /**
-     * Render all world items
-     */
     public void render(SpriteBatch batch) {
         for (WorldItem worldItem : worldItems) {
             worldItem.render(batch);
         }
     }
 
-    /**
-     * Get all world items
-     */
     public List<WorldItem> getWorldItems() {
         return worldItems;
     }
 
-    /**
-     * Clear all world items
-     */
     public void clear() {
         for (WorldItem worldItem : worldItems) {
             if (worldItem.body != null && !world.isLocked()) {
@@ -316,9 +235,6 @@ public class ItemSpawner {
         pendingItems.clear(); // Also clear pending items
     }
 
-    /**
-     * Remove items that have been in the world too long (optional cleanup)
-     */
     public void cleanupOldItems(float maxLifetime) {
         Iterator<WorldItem> iterator = worldItems.iterator();
         while (iterator.hasNext()) {

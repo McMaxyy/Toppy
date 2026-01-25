@@ -92,7 +92,7 @@ public class MerchantShop {
     public MerchantShop() {
         this.shapeRenderer = new ShapeRenderer();
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
-        this.coinIconTexture = Storage.assetManager.get("icons/items/coin.png", Texture.class);
+        this.coinIconTexture = Storage.assetManager.get("icons/items/Coin.png", Texture.class);
         this.itemRegistry = ItemRegistry.getInstance();
         this.random = new Random();
         this.shopItems = new Item[TOTAL_SHOP_SLOTS];

@@ -23,25 +23,21 @@ public class BossKitty {
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
 
-    // Stats system
     private EnemyStats stats;
     private Texture healthBarTexture;
     private Texture whitePixelTexture;
 
-    // Attack system
     private float attackCooldown = 0f;
     private boolean isAttacking = false;
     private float attackTimer = 0f;
     private boolean hasDealtDamage = false;
 
-    // Boss attack modes
     private enum BossAttackMode {
         CHARGE,
         MELEE
     }
     private BossAttackMode currentAttackMode = BossAttackMode.MELEE;
 
-    // Charge attack settings
     private final float CHARGE_DISTANCE_THRESHOLD = 100f;
     private float CHARGE_SPEED;
     private final float CHARGE_DURATION = 1f;
@@ -57,7 +53,6 @@ public class BossKitty {
     private final float TRAIL_POINT_LIFETIME = 0.4f;
     private final float TRAIL_ALPHA = 0.6f;
 
-    // Melee attack settings
     private float MELEE_RANGE;
     private final float MELEE_ATTACK_DURATION = 0.8f;
     private float MELEE_COOLDOWN;
@@ -65,13 +60,14 @@ public class BossKitty {
     private final float MELEE_WINDUP_TIME = 0.4f;
     private boolean showMeleeIndicator = false;
 
-    // Boss special abilities
     private float specialAbilityCooldown = 0f;
     private float specialAbilityTimer = 0f;
     private boolean isUsingSpecialAbility = false;
     private final float SPECIAL_ABILITY_COOLDOWN = 10f;
+    private boolean isJustHit = false;
+    private float hitFlashTimer = 0f;
+    private static final float HIT_FLASH_DURATION = 0.3f;
 
-    // Trail point class for charge visual
     private static class TrailPoint {
         Vector2 position;
         float lifetime;
@@ -111,6 +107,13 @@ public class BossKitty {
     public void update(float delta) {
         if (markForRemoval) {
             return;
+        }
+
+        if (isJustHit) {
+            hitFlashTimer -= delta;
+            if (hitFlashTimer <= 0) {
+                isJustHit = false;
+            }
         }
 
         if (specialAbilityCooldown > 0) {
@@ -339,9 +342,15 @@ public class BossKitty {
             renderSpecialAbilityIndicator(batch);
         }
 
+        if (isJustHit) {
+            batch.setColor(1f, 0.5f, 0.5f, 1f);
+        }
         TextureRegion currentFrame = new TextureRegion(getAnimationManager().getBossKittyCurrentFrame());
         currentFrame.flip(isFlipped, false);
         batch.draw(currentFrame, bounds.x, bounds.y, bounds.width, bounds.height);
+        if (isJustHit) {
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
 
         renderBossHealthBar(batch);
     }
@@ -507,7 +516,11 @@ public class BossKitty {
     }
 
     public void takeDamage(int damage) {
-        stats.takeDamage(damage);
+        if (damage > 0) {
+            stats.takeDamage(damage);
+            isJustHit = true;
+            hitFlashTimer = HIT_FLASH_DURATION;
+        }
 
         if (stats.isDead()) {
             markForRemoval();
@@ -517,7 +530,7 @@ public class BossKitty {
     private void damagePlayer(int damage) {
         if (!player.isInvulnerable()) {
             player.getStats().takeDamage(damage);
-            System.out.println("Boss hit player for " + damage + " damage!");
+            player.onTakeDamage();
         }
     }
 

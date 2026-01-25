@@ -70,13 +70,12 @@ public class Equipment {
             return EquipmentSlot.WEAPON;
         }
 
+        if (item instanceof ItemTypes.OffhandItem) {
+            return EquipmentSlot.OFFHAND;
+        }
+
         if (item instanceof ItemTypes.ArmorItem) {
             String name = item.getName().toLowerCase();
-
-            // Check for shield/offhand items
-            if (name.contains("shield") || name.contains("buckler")) {
-                return EquipmentSlot.OFFHAND;
-            }
 
             // Check by name for armor pieces
             if (name.contains("helmet") || name.contains("hat") || name.contains("hood")) {

@@ -372,9 +372,9 @@ public class Dungeon {
     }
 
     private void spawnEnemies(Random random) {
-        // Create enemy clumps - all Skeleton enemies in dungeon
         int clumpCount = 24 + random.nextInt(6);
-        int totalEnemiesSpawned = 0;
+        int totalSkeletonsSpawned = 0;
+        int totalRoguesSpawned = 0;
 
         for (int clump = 0; clump < clumpCount; clump++) {
             int attempts = 0;
@@ -413,21 +413,35 @@ public class Dungeon {
                                     float worldX = enemyX * tileSize;
                                     float worldY = enemyY * tileSize;
 
-                                    // Create Skeleton enemy with conal attack
                                     Body body = createEnemyBody(worldX, worldY);
-                                    EnemyStats stats = EnemyStats.Factory.createSkeletonEnemy(2);
 
-                                    enemies.add(new DungeonEnemy(
-                                            new Rectangle(worldX, worldY, 16, 16),
-                                            body,
-                                            player,
-                                            animationManager,
-                                            this,
-                                            stats,
-                                            EnemyType.SKELETON
-                                    ));
+                                    // 40% chance to spawn Skeleton Rogue, 60% regular Skeleton
+                                    if (random.nextFloat() < 0.4f) {
+                                        EnemyStats stats = EnemyStats.Factory.createSkeletonRogueEnemy(2);
+                                        enemies.add(new DungeonEnemy(
+                                                new Rectangle(worldX, worldY, 16, 16),
+                                                body,
+                                                player,
+                                                animationManager,
+                                                this,
+                                                stats,
+                                                EnemyType.SKELETON_ROGUE
+                                        ));
+                                        totalRoguesSpawned++;
+                                    } else {
+                                        EnemyStats stats = EnemyStats.Factory.createSkeletonEnemy(2);
+                                        enemies.add(new DungeonEnemy(
+                                                new Rectangle(worldX, worldY, 16, 16),
+                                                body,
+                                                player,
+                                                animationManager,
+                                                this,
+                                                stats,
+                                                EnemyType.SKELETON
+                                        ));
+                                        totalSkeletonsSpawned++;
+                                    }
 
-                                    totalEnemiesSpawned++;
                                     enemyPlaced = true;
                                 }
                             }
@@ -438,8 +452,6 @@ public class Dungeon {
                 }
             }
         }
-
-        System.out.println("Spawned " + totalEnemiesSpawned + " Skeleton enemies in " + clumpCount + " clumps");
     }
 
     private boolean isNearSpawn(float x, float y, float minDistance) {

@@ -93,6 +93,8 @@ public class GameProj implements Screen, ContactListener {
     private Merchant merchant;
     private MerchantShop merchantShop;
     private boolean merchantShopOpen = false;
+    private Texture cursorTexture;
+    private boolean useCustomCursor = true;
 
     private Map<Object, List<StatusEffect>> statusEffects;
 
@@ -134,6 +136,9 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void createComponents() {
+        cursorTexture = Storage.assetManager.get("mouse.png", Texture.class);
+        Gdx.input.setCursorCatched(true);
+
         groundTexture = Storage.assetManager.get("tiles/grass.png", Texture.class);
 
         player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen, Storage.getSelectedPlayerClass());
@@ -667,9 +672,18 @@ public class GameProj implements Screen, ContactListener {
             settings.render(batch, false);
         }
 
+        if (useCustomCursor && batch != null) {
+            batch.setProjectionMatrix(hudCamera.combined);
+            batch.begin();
+            float cursorX = Gdx.input.getX();
+            float cursorY = Gdx.graphics.getHeight() - Gdx.input.getY();
+            batch.draw(cursorTexture, cursorX - cursorTexture.getWidth() / 4, cursorY - cursorTexture.getHeight() / 4, 32, 32);
+            batch.end();
+        }
+
         if (world != null) {
             Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
-            debugRenderer.render(world.getWorld(), camera.combined);
+//            debugRenderer.render(world.getWorld(), camera.combined);
         }
     }
 
@@ -1073,7 +1087,8 @@ public class GameProj implements Screen, ContactListener {
         } else if (enemy instanceof BossKitty) {
             BossKitty boss = (BossKitty) enemy;
 
-            itemSpawner.spawnBossLoot(enemyPosition);
+            String lootTable = boss.getStats().getLootTableType();
+            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
 
             player.getStats().addExperience(boss.getStats().getExpReward());
 
@@ -1088,7 +1103,8 @@ public class GameProj implements Screen, ContactListener {
         } else if (enemy instanceof Cyclops) {
             Cyclops cyclopsEnemy = (Cyclops) enemy;
 
-            itemSpawner.spawnBossLoot(enemyPosition);
+            String lootTable = cyclopsEnemy.getStats().getLootTableType();
+            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
 
             player.getStats().addExperience(cyclopsEnemy.getStats().getExpReward());
 

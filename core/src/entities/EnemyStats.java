@@ -228,6 +228,26 @@ public class EnemyStats {
             );
         }
 
+        public static EnemyStats createSkeletonRogueEnemy(int level) {
+            return new EnemyStats(
+                    "Skeleton Rogue",
+                    35 + (level * 15),
+                    12 + (level * 4),
+                    1 + level,
+                    12 + (level * 8),
+                    level,
+                    AttackType.MELEE,
+                    "dungeon_enemy",
+                    1.0f,
+                    30f,
+                    0.8f,
+                    0f,
+                    0f,
+                    0f,
+                    0f
+            );
+        }
+
         public static EnemyStats createBoss(int level) {
             return new EnemyStats(
                     "Boss Kitty",

@@ -22,24 +22,23 @@ public class Cyclops {
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
 
-    // Stats system
     private EnemyStats stats;
     private Texture healthBarTexture;
     private Texture whitePixelTexture;
 
-    // Attack system
     private float attackCooldown = 0f;
     private boolean isAttacking = false;
     private float attackTimer = 0f;
     private boolean hasDealtDamage = false;
-
-    // Melee attack settings
     private float MELEE_RANGE;
     private final float MELEE_ATTACK_DURATION = 1.0f;
     private float MELEE_COOLDOWN;
     private float meleeWindupTimer = 0f;
     private final float MELEE_WINDUP_TIME = 0.5f;
     private boolean showMeleeIndicator = false;
+    private boolean isJustHit = false;
+    private float hitFlashTimer = 0f;
+    private static final float HIT_FLASH_DURATION = 0.3f;
 
     // Ground Pound attack (replaces charge attack)
     private enum GroundPoundPhase {
@@ -94,6 +93,13 @@ public class Cyclops {
     public void update(float delta) {
         if (markForRemoval) {
             return;
+        }
+
+        if (isJustHit) {
+            hitFlashTimer -= delta;
+            if (hitFlashTimer <= 0) {
+                isJustHit = false;
+            }
         }
 
         // Update cooldowns
@@ -333,9 +339,15 @@ public class Cyclops {
             renderSpecialAbilityIndicator(batch);
         }
 
+        if (isJustHit) {
+            batch.setColor(1f, 0.5f, 0.5f, 1f);
+        }
         TextureRegion currentFrame = new TextureRegion(getAnimationManager().getCyclopsCurrentFrame());
         currentFrame.flip(isFlipped, false);
         batch.draw(currentFrame, bounds.x, bounds.y, bounds.width, bounds.height);
+        if (isJustHit) {
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
 
         renderBossHealthBar(batch);
     }
@@ -537,7 +549,11 @@ public class Cyclops {
     }
 
     public void takeDamage(int damage) {
-        stats.takeDamage(damage);
+        if (damage > 0) {
+            stats.takeDamage(damage);
+            isJustHit = true;
+            hitFlashTimer = HIT_FLASH_DURATION;
+        }
 
         if (stats.isDead()) {
             markForRemoval();
@@ -547,7 +563,7 @@ public class Cyclops {
     private void damagePlayer(int damage) {
         if (!player.isInvulnerable()) {
             player.getStats().takeDamage(damage);
-            System.out.println("Cyclops hit player for " + damage + " damage!");
+            player.onTakeDamage();
         }
     }
 

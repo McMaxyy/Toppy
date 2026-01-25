@@ -39,6 +39,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private boolean playerDeath;
     private GameScreen gameScreen;
     public static boolean gameStarted = false;
+    private boolean isFlipped = false;
     private float dashSpeed = 3000f;
     private float dashDuration = 0.5f;
     private float dashCooldown = 1f;
@@ -61,8 +62,10 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private Vector2 chargeVelocity = new Vector2();
     private java.util.Set<Object> chargeHitEnemies;
 
-    // Player class for animations and abilities
     private PlayerClass playerClass = PlayerClass.MERCENARY;
+    private boolean isJustHit = false;
+    private float hitFlashTimer = 0f;
+    private static final float HIT_FLASH_DURATION = 0.3f;
 
     private class Trail {
         Vector2 position;
@@ -159,6 +162,13 @@ public class Player implements PlayerStats.SpeedChangeListener {
         }
 
         stats.update(delta);
+
+        if (isJustHit) {
+            hitFlashTimer -= delta;
+            if (hitFlashTimer <= 0) {
+                isJustHit = false;
+            }
+        }
 
         if (abilityManager != null) {
             abilityManager.update(delta);
@@ -310,6 +320,8 @@ public class Player implements PlayerStats.SpeedChangeListener {
         Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
         Vector2 playerPosition = body.getPosition();
 
+        isFlipped = mousePosition.x < playerPosition.x;
+
         float angle = (float) Math.toDegrees(Math.atan2(mousePosition.y - playerPosition.y, mousePosition.x - playerPosition.x));
         if (angle < 0) angle += 360;
 
@@ -426,6 +438,11 @@ public class Player implements PlayerStats.SpeedChangeListener {
         dyingAnimationStarted = false;
     }
 
+    public void onTakeDamage() {
+        isJustHit = true;
+        hitFlashTimer = HIT_FLASH_DURATION;
+    }
+
     public void cleanupSpears() {
         if (world != null && !world.getWorld().isLocked()) {
             for (int i = spearBodies.size - 1; i >= 0; i--) {
@@ -498,12 +515,29 @@ public class Player implements PlayerStats.SpeedChangeListener {
         Vector2 position = body.getPosition();
 
         getAnimationManager().update(Gdx.graphics.getDeltaTime());
-        batch.draw(getAnimationManager().getCurrentFrame(),
-                position.x - TILE_SIZE / 4f,
-                position.y - TILE_SIZE / 4f,
-                TILE_SIZE / 2f, TILE_SIZE / 2f);
 
-        // Only render spears for Mercenary
+        TextureRegion currentFrame = getAnimationManager().getCurrentFrame();
+        TextureRegion frame = new TextureRegion(currentFrame);
+
+        if (isFlipped) {
+            if (!frame.isFlipX()) {
+                frame.flip(true, false);
+            }
+        } else {
+            if (frame.isFlipX()) {
+                frame.flip(true, false);
+            }
+        }
+
+        if (isJustHit) {
+            float flashIntensity = hitFlashTimer / HIT_FLASH_DURATION;
+            batch.setColor(1f, 1f - flashIntensity * 0.5f, 1f - flashIntensity * 0.5f, 1f);
+        }
+
+        if (isJustHit) {
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
         if (playerClass == PlayerClass.MERCENARY) {
             for (int i = 0; i < spearBodies.size; i++) {
                 Body spearBody = spearBodies.get(i);
@@ -526,6 +560,22 @@ public class Player implements PlayerStats.SpeedChangeListener {
             }
 
             renderCooldownBar(batch, TILE_SIZE);
+        }
+
+        if (isJustHit) {
+            batch.setColor(1f, 1f, 1f, 1f);
+            batch.draw(frame,
+                    position.x - TILE_SIZE / 4f,
+                    position.y - TILE_SIZE / 4f,
+                    TILE_SIZE / 2f, TILE_SIZE / 2f);
+            batch.setColor(1f, 0.5f, 0.5f, 0.8f);
+        }
+        else {
+            batch.draw(frame,
+                    position.x - TILE_SIZE / 4f,
+                    position.y - TILE_SIZE / 4f,
+                    TILE_SIZE / 2f, TILE_SIZE / 2f);
+            batch.setColor(1f, 1f, 1f, 1f);
         }
 
         if (abilityManager != null) {

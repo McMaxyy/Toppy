@@ -35,6 +35,10 @@ public class AnimationManager {
 	private Animation<TextureRegion> cyclopsIdleAnimation;
 	private Animation<TextureRegion> cyclopsRunningAnimation;
 	private Animation<TextureRegion> cyclopsAttackingAnimation;
+	private Animation<TextureRegion> merchantIdleAnimation;
+	private Animation<TextureRegion> skeletonRogueIdleAnimation;
+	private Animation<TextureRegion> skeletonRogueRunningAnimation;
+	private Animation<TextureRegion> skeletonRogueAttackingAnimation;
 
 	private float playerAnimationTime = 0f;
 	private float mushieAnimationTime = 0f;
@@ -42,6 +46,8 @@ public class AnimationManager {
 	private float skeletonAnimationTime = 0f;
 	private float wolfieAnimationTime = 0f;
 	private float cyclopsAnimationTime = 0f;
+	private float merchantAnimationTime = 0f;
+	private float skeletonRogueAnimationTime = 0f;
 
 	private PlayerClass currentPlayerClass = PlayerClass.MERCENARY;
 
@@ -55,6 +61,8 @@ public class AnimationManager {
 	private State wolfieCurrentState = State.IDLE;
 	private State bossKittyCurrentState = State.RUNNING;
 	private State cyclopsCurrentState = State.IDLE;
+	private State merchantCurrentState = State.IDLE;
+	private State skeletonRogueCurrentState = State.IDLE;
 
 	public AnimationManager() {
 		loadAnimations();
@@ -91,7 +99,7 @@ public class AnimationManager {
 		for (int i = 0; i < 4; i++) {
 			playerIdleFrame.add(playerIdleFrames[0][i]);
 		}
-		playerIdleAnimation = new Animation<>(1.3f, playerIdleFrame, Animation.PlayMode.LOOP);
+		playerIdleAnimation = new Animation<>(0.4f, playerIdleFrame, Animation.PlayMode.LOOP);
 
 		Texture playerDyingTexture = Storage.assetManager.get("character/Dying.png", Texture.class);
 		playerDyingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -112,7 +120,7 @@ public class AnimationManager {
 			for (int i = 0; i < 4; i++) {
 				paladinWalkingFrames.add(paladinWalkFrames[0][i]);
 			}
-			paladinRunningAnimation = new Animation<>(0.5f, paladinWalkingFrames, Animation.PlayMode.LOOP);
+			paladinRunningAnimation = new Animation<>(0.4f, paladinWalkingFrames, Animation.PlayMode.LOOP);
 
 			Texture paladinIdleTexture = Storage.assetManager.get("character/Paladin/Idle.png", Texture.class);
 			paladinIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -121,7 +129,7 @@ public class AnimationManager {
 			for (int i = 0; i < 4; i++) {
 				paladinIdleFrame.add(paladinIdleFrames[0][i]);
 			}
-			paladinIdleAnimation = new Animation<>(1.3f, paladinIdleFrame, Animation.PlayMode.LOOP);
+			paladinIdleAnimation = new Animation<>(0.4f, paladinIdleFrame, Animation.PlayMode.LOOP);
 
 			Texture paladinDyingTexture = Storage.assetManager.get("character/Paladin/Dying.png", Texture.class);
 			paladinDyingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -265,6 +273,43 @@ public class AnimationManager {
 			cyclopsAttackingFrame.add(cyclopsAttackingFrames[0][i]);
 		}
 		cyclopsAttackingAnimation = new Animation<>(0.2f, cyclopsAttackingFrame, Animation.PlayMode.NORMAL);
+
+		Texture merchantIdleTexture = Storage.assetManager.get("enemies/Merchant/Idle.png", Texture.class);
+		merchantIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		TextureRegion[][] merchantIdleFrames = TextureRegion.split(merchantIdleTexture, merchantIdleTexture.getWidth() / 4, merchantIdleTexture.getHeight());
+		Array<TextureRegion> merchantIdleFrame = new Array<>();
+		for (int i = 0; i < 4; i++) {
+			merchantIdleFrame.add(merchantIdleFrames[0][i]);
+		}
+		merchantIdleAnimation = new Animation<>(0.4f, merchantIdleFrame, Animation.PlayMode.LOOP);
+
+		// Skeleton Rogue animations
+		Texture skeletonRogueWalkingTexture = Storage.assetManager.get("enemies/SkeletonRogue/Walking.png", Texture.class);
+		skeletonRogueWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		TextureRegion[][] skeletonRogueWalkFrames = TextureRegion.split(skeletonRogueWalkingTexture, skeletonRogueWalkingTexture.getWidth() / 4, skeletonRogueWalkingTexture.getHeight());
+		Array<TextureRegion> skeletonRogueWalkFrame = new Array<>();
+		for (int i = 0; i < 4; i++) {
+			skeletonRogueWalkFrame.add(skeletonRogueWalkFrames[0][i]);
+		}
+		skeletonRogueRunningAnimation = new Animation<>(0.3f, skeletonRogueWalkFrame, Animation.PlayMode.LOOP);
+
+		Texture skeletonRogueIdleTexture = Storage.assetManager.get("enemies/SkeletonRogue/Idle.png", Texture.class);
+		skeletonRogueIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		TextureRegion[][] skeletonRogueIdleFrames = TextureRegion.split(skeletonRogueIdleTexture, skeletonRogueIdleTexture.getWidth() / 4, skeletonRogueIdleTexture.getHeight());
+		Array<TextureRegion> skeletonRogueIdleFrame = new Array<>();
+		for (int i = 0; i < 4; i++) {
+			skeletonRogueIdleFrame.add(skeletonRogueIdleFrames[0][i]);
+		}
+		skeletonRogueIdleAnimation = new Animation<>(0.4f, skeletonRogueIdleFrame, Animation.PlayMode.LOOP);
+
+		Texture skeletonRogueAttackingTexture = Storage.assetManager.get("enemies/SkeletonRogue/Attacking.png", Texture.class);
+		skeletonRogueAttackingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		TextureRegion[][] skeletonRogueAttackingFrames = TextureRegion.split(skeletonRogueAttackingTexture, skeletonRogueAttackingTexture.getWidth() / 4, skeletonRogueAttackingTexture.getHeight());
+		Array<TextureRegion> skeletonRogueAttackingFrame = new Array<>();
+		for (int i = 0; i < 4; i++) {
+			skeletonRogueAttackingFrame.add(skeletonRogueAttackingFrames[0][i]);
+		}
+		skeletonRogueAttackingAnimation = new Animation<>(0.15f, skeletonRogueAttackingFrame, Animation.PlayMode.NORMAL);
 	}
 
 	public void update(float delta) {
@@ -274,6 +319,8 @@ public class AnimationManager {
 		wolfieAnimationTime += delta;
 		skeletonAnimationTime += delta;
 		cyclopsAnimationTime += delta;
+		merchantAnimationTime += delta;
+		skeletonRogueAnimationTime += delta;
 	}
 
 	public Animation<TextureRegion> getAnimationForState(EnemyType enemyType, State state) {
@@ -326,6 +373,18 @@ public class AnimationManager {
 					default:
 						return cyclopsIdleAnimation;
 				}
+			case MERCHANT:
+				return merchantIdleAnimation;
+			case SKELETON_ROGUE:
+				switch (state) {
+					case RUNNING:
+						return skeletonRogueRunningAnimation;
+					case ATTACKING:
+						return skeletonRogueAttackingAnimation;
+					case IDLE:
+					default:
+						return skeletonRogueIdleAnimation;
+				}
 			default:
 				return mushieIdleAnimation;
 		}
@@ -369,6 +428,18 @@ public class AnimationManager {
 					cyclopsAnimationTime = 0f;
 				}
 				break;
+			case "Merchant":
+				if (merchantCurrentState != newState) {
+					merchantCurrentState = newState;
+					merchantAnimationTime = 0f;
+				}
+				break;
+			case "SkeletonRogue":
+				if (skeletonRogueCurrentState != newState) {
+					skeletonRogueCurrentState = newState;
+					skeletonRogueAnimationTime = 0f;
+				}
+				break;
 		}
 	}
 
@@ -386,6 +457,10 @@ public class AnimationManager {
 				return wolfieCurrentState;
 			case "Cyclops":
 				return cyclopsCurrentState;
+			case "Merchant":
+				return merchantCurrentState;
+			case "SkeletonRogue":
+				return skeletonRogueCurrentState;
 			default:
 				return null;
 		}
@@ -599,5 +674,13 @@ public class AnimationManager {
 			default:
 				return cyclopsIdleAnimation.isAnimationFinished(cyclopsAnimationTime);
 		}
+	}
+
+	public TextureRegion getMerchantCurrentFrame() {
+		return merchantIdleAnimation.getKeyFrame(merchantAnimationTime);
+	}
+
+	public boolean isMerchantAnimationFinished() {
+		return merchantIdleAnimation.isAnimationFinished(merchantAnimationTime);
 	}
 }

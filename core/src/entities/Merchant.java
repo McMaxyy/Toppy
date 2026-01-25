@@ -28,7 +28,7 @@ public class Merchant {
         this.body = createBody(world, x, y);
         this.animationManager = animationManager;
 
-        getAnimationManager().setState(AnimationManager.State.IDLE, "Cyclops");
+        getAnimationManager().setState(AnimationManager.State.IDLE, "Merchant");
     }
 
     private Body createBody(World world, float x, float y) {
@@ -65,8 +65,7 @@ public class Merchant {
     public void render(SpriteBatch batch) {
         if (!isActive) return;
 
-        // Get the current frame from AnimationManager using Cyclops idle animation
-        TextureRegion currentFrame = new TextureRegion(getAnimationManager().getCyclopsCurrentFrame());
+        TextureRegion currentFrame = new TextureRegion(getAnimationManager().getMerchantCurrentFrame());
         batch.draw(currentFrame, bounds.x, bounds.y, SIZE, SIZE);
     }
 

@@ -30,20 +30,16 @@ public class DungeonEnemy {
     private boolean isFlipped = false;
     private List<Projectile> projectiles = new ArrayList<>();
 
-    // Enemy type system
     private EnemyType enemyType;
 
-    // Per-instance animation tracking
     private float animationTime = 0f;
     private State currentState = State.IDLE;
 
-    // Pathfinding
     private List<Vector2> currentPath;
     private int currentPathIndex = 0;
     private float pathUpdateTimer = 0f;
     private final float PATH_UPDATE_INTERVAL = 0.3f;
 
-    // Stuck detection
     private Vector2 lastPosition = new Vector2();
     private float stuckTimer = 0f;
     private final float STUCK_THRESHOLD = 0.5f;
@@ -51,30 +47,27 @@ public class DungeonEnemy {
     private int pathfindingAttempts = 0;
     private final int MAX_PATHFINDING_ATTEMPTS = 5;
 
-    // Velocity smoothing
     private final Vector2[] velocityHistory = new Vector2[5];
     private int velocityHistoryIndex = 0;
     private Vector2 averageVelocity = new Vector2();
 
-    // Stats system
     private EnemyStats stats;
     private Texture healthBarTexture;
     private Texture whitePixelTexture;
 
-    // Attack system
     private float attackCooldown = 0f;
     private boolean isAttacking = false;
     private boolean hasDealtDamage = false;
 
-    // Attack indicator
-    private boolean showAttackIndicator = false;
-
-    // Health regeneration
     private float healthRegenTimer = 0f;
     private final float HEALTH_REGEN_INTERVAL = 4f;
     private final float COMBAT_TIMER = 3f;
     private float combatTimer = 0f;
     private boolean wasInCombat = false;
+
+    private boolean isJustHit = false;
+    private float hitFlashTimer = 0f;
+    private static final float HIT_FLASH_DURATION = 0.2f;
 
     public DungeonEnemy(Rectangle bounds, Body body, Player player,
                         AnimationManager animationManager, Dungeon dungeon, int level) {
@@ -118,6 +111,9 @@ public class DungeonEnemy {
                 return EnemyType.MUSHIE;
             case "wolfie":
                 return EnemyType.WOLFIE;
+            case "skeleton rogue":
+            case "skeletonrogue":
+                return EnemyType.SKELETON_ROGUE;
             case "boss kitty":
             case "bosskitty":
                 return EnemyType.BOSS_KITTY;
@@ -161,6 +157,13 @@ public class DungeonEnemy {
         }
 
         animationTime += delta;
+
+        if (isJustHit) {
+            hitFlashTimer -= delta;
+            if (hitFlashTimer <= 0) {
+                isJustHit = false;
+            }
+        }
 
         if (attackCooldown > 0) {
             attackCooldown -= delta;
@@ -296,7 +299,6 @@ public class DungeonEnemy {
 
     private void updateAttack(float delta) {
         body.setLinearVelocity(0, 0);
-        showAttackIndicator = true;
 
         boolean animationFinished = isCurrentAnimationFinished();
 
@@ -358,7 +360,6 @@ public class DungeonEnemy {
         isAttacking = false;
         attackCooldown = stats.getAttackCooldown();
         hasDealtDamage = false;
-        showAttackIndicator = false;
         setState(State.IDLE);
         handleAttackEnd();
     }
@@ -480,7 +481,15 @@ public class DungeonEnemy {
                 } else if (!isFlipped && frame.isFlipX()) {
                     frame.flip(true, false);
                 }
+
+                // Apply hit flash effect
+                if (isJustHit) {
+                    batch.setColor(1f, 0.5f, 0.5f, 1f);
+                }
                 batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);
+                if (isJustHit) {
+                    batch.setColor(1f, 1f, 1f, 1f);
+                }
             }
 
             renderHealthBar(batch);
@@ -527,7 +536,11 @@ public class DungeonEnemy {
     }
 
     public void takeDamage(int damage) {
-        stats.takeDamage(damage);
+        if (damage > 0) {
+            stats.takeDamage(damage);
+            isJustHit = true;
+            hitFlashTimer = HIT_FLASH_DURATION;
+        }
 
         combatTimer = COMBAT_TIMER;
         wasInCombat = true;
@@ -539,8 +552,10 @@ public class DungeonEnemy {
     }
 
     public void damagePlayer() {
-        if (!player.isInvulnerable())
+        if (!player.isInvulnerable()) {
             player.getStats().takeDamage(stats.getDamage());
+            player.onTakeDamage();
+        }
     }
 
     public void clearBody() {

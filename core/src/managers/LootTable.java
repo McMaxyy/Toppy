@@ -5,10 +5,8 @@ import java.util.List;
 import java.util.Random;
 
 import com.badlogic.gdx.math.Vector2;
+import items.Item;
 
-/**
- * Loot table system for defining what items enemies drop
- */
 public class LootTable {
     private List<LootEntry> entries;
     private int guaranteedCoins;
@@ -20,20 +18,27 @@ public class LootTable {
         this.random = new Random();
     }
 
-    /**
-     * Single loot entry with item ID and drop chance
-     */
     public static class LootEntry {
         public String itemId;
-        public float dropChance; // 0.0 to 1.0
+        public Item.ItemType itemType; // Can be null for non-randomized items
+        public float dropChance;
         public int minQuantity;
         public int maxQuantity;
 
         public LootEntry(String itemId, float dropChance) {
-            this(itemId, dropChance, 1, 1);
+            this(null, itemId, dropChance, 1, 1);
         }
 
         public LootEntry(String itemId, float dropChance, int minQuantity, int maxQuantity) {
+            this(null, itemId, dropChance, minQuantity, maxQuantity);
+        }
+
+        public LootEntry(Item.ItemType itemType, String itemId, float dropChance) {
+            this(itemType, itemId, dropChance, 1, 1);
+        }
+
+        public LootEntry(Item.ItemType itemType, String itemId, float dropChance, int minQuantity, int maxQuantity) {
+            this.itemType = itemType;
             this.itemId = itemId;
             this.dropChance = dropChance;
             this.minQuantity = minQuantity;
@@ -41,43 +46,64 @@ public class LootTable {
         }
     }
 
-    /**
-     * Add an item to the loot table
-     * @param itemId The item ID from ItemRegistry
-     * @param dropChance Chance to drop (0.0 = never, 1.0 = always)
-     */
-    public LootTable addDrop(String itemId, float dropChance) {
-        entries.add(new LootEntry(itemId, dropChance));
-        return this; // For chaining
+    public LootTable addDrop(Item.ItemType itemType, String itemId, float dropChance) {
+        entries.add(new LootEntry(itemType, itemId, dropChance, 1, 1));
+        return this;
     }
 
-    /**
-     * Add an item with quantity range
-     * @param itemId The item ID from ItemRegistry
-     * @param dropChance Chance to drop (0.0 = never, 1.0 = always)
-     * @param minQuantity Minimum number to drop
-     * @param maxQuantity Maximum number to drop
-     */
     public LootTable addDrop(String itemId, float dropChance, int minQuantity, int maxQuantity) {
-        entries.add(new LootEntry(itemId, dropChance, minQuantity, maxQuantity));
-        return this; // For chaining
+        entries.add(new LootEntry(null, itemId, dropChance, minQuantity, maxQuantity));
+        return this;
     }
 
-    /**
-     * Set guaranteed coins (always drop)
-     */
     public LootTable setGuaranteedCoins(int amount) {
         this.guaranteedCoins = amount;
         return this;
     }
 
-    /**
-     * Roll the loot table and spawn items at position
-     * @param itemSpawner The item spawner to use
-     * @param position Where to spawn the items
-     */
+    private String randomizeItemId(Item.ItemType itemType, String baseItemId) {
+        if (itemType == null) {
+            return baseItemId;
+        }
+
+        String[] prefixes = {"valkyries_", "protectors_", "barbarians_", "berserkers_", "deceptors_"};
+        String randomPrefix = prefixes[random.nextInt(5)];
+
+        switch (itemType) {
+            case WEAPON:
+                if (baseItemId.equals("iron_sword")) {
+                    return randomPrefix + "iron_sword";
+                } else if (baseItemId.equals("iron_spear")) {
+                    return randomPrefix + "iron_spear";
+                }
+                break;
+
+            case ARMOR:
+                if (baseItemId.equals("iron_helmet")) {
+                    return randomPrefix + "iron_helmet";
+                } else if (baseItemId.equals("iron_armor")) {
+                    return randomPrefix + "iron_armor";
+                } else if (baseItemId.equals("iron_gloves")) {
+                    return randomPrefix + "iron_gloves";
+                } else if (baseItemId.equals("iron_boots")) {
+                    return randomPrefix + "iron_boots";
+                }
+                break;
+
+            case OFFHAND:
+                if (baseItemId.equals("iron_shield")) {
+                    return randomPrefix + "iron_shield";
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        return baseItemId;
+    }
+
     public void spawnLoot(ItemSpawner itemSpawner, Vector2 position) {
-        // Spawn guaranteed coins
         if (guaranteedCoins > 0) {
             String coinType = guaranteedCoins >= 5 ? "coin_pile" : "coin";
             for (int i = 0; i < Math.min(guaranteedCoins, 5); i++) {
@@ -85,26 +111,22 @@ public class LootTable {
             }
         }
 
-        // Roll each loot entry
         for (LootEntry entry : entries) {
             if (random.nextFloat() <= entry.dropChance) {
-                // Determine quantity
                 int quantity = entry.minQuantity;
                 if (entry.maxQuantity > entry.minQuantity) {
                     quantity += random.nextInt(entry.maxQuantity - entry.minQuantity + 1);
                 }
 
-                // Spawn the items
+                String finalItemId = randomizeItemId(entry.itemType, entry.itemId);
+
                 for (int i = 0; i < quantity; i++) {
-                    itemSpawner.spawnItemWithOffset(entry.itemId, position, 20f);
+                    itemSpawner.spawnItemWithOffset(finalItemId, position, 20f);
                 }
             }
         }
     }
 
-    /**
-     * Get all entries (for debugging/display)
-     */
     public List<LootEntry> getEntries() {
         return entries;
     }

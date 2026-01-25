@@ -29,6 +29,7 @@ public abstract class Item {
 
     public enum ItemType {
         WEAPON,
+        OFFHAND,
         ARMOR,
         CONSUMABLE,
         COIN
@@ -92,6 +93,7 @@ public abstract class Item {
         return this.getClass().equals(other.getClass()) &&
                 this.name.equals(other.name) &&
                 this.type != ItemType.WEAPON &&
+                this.type != ItemType.OFFHAND &&
                 this.type != ItemType.ARMOR;
     }
 

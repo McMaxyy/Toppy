@@ -74,7 +74,6 @@ public abstract class ItemTypes {
             this.amount = amount;
             this.buyValue = amount;
             this.sellValue = amount;
-            this.texture = Storage.assetManager.get("icons/items/coin.png", Texture.class);
         }
 
         @Override
@@ -202,5 +201,63 @@ public abstract class ItemTypes {
 
         public int getAttackSpeed() { return attackSpeed; }
         public void setAttackSpeed(int attackSpeed) { this.attackSpeed = attackSpeed; }
+    }
+
+    public static class OffhandItem extends Item {
+
+        public OffhandItem(String name, String description, Texture texture,
+                          Texture iconTexture, Vector2 position, int damage, int defense,
+                          int vitality, int dex, int buyValue, int sellValue) {
+            super(name, description, ItemType.OFFHAND, texture, iconTexture, position);
+            this.damage = damage;
+            this.defense = defense;
+            this.bonusVitality = vitality;
+            this.bonusDex = dex;
+            this.buyValue = buyValue;
+            this.sellValue = sellValue;
+        }
+
+        public OffhandItem(String name, String description, Texture texture,
+                          Texture iconTexture, Vector2 position, int damage, int defense,
+                          int vitality, int dex, int buyValue) {
+            this(name, description, texture, iconTexture, position, damage, defense,
+                    vitality, dex, buyValue, (int)(buyValue * 0.4f));
+        }
+
+        public OffhandItem(String name, String description, Texture texture,
+                          Texture iconTexture, Vector2 position, int damage, int value) {
+            this(name, description, texture, iconTexture, position, damage, 0, 0, 0,
+                    value, (int)(value * 0.4f));
+        }
+
+        @Override
+        public void use(entities.Player player) {
+            equip(player);
+        }
+
+        @Override
+        public void equip(entities.Player player) {
+            if (damage > 0) player.getStats().addGearDamage(damage);
+            if (defense > 0) player.getStats().addGearDefense(defense);
+            if (bonusVitality > 0) player.getStats().addGearVitality(bonusVitality);
+            if (bonusDex > 0) player.getStats().addGearDex(bonusDex);
+        }
+
+        @Override
+        public void unequip(entities.Player player) {
+            if (damage > 0) player.getStats().removeGearDamage(damage);
+            if (defense > 0) player.getStats().removeGearDefense(defense);
+            if (bonusVitality > 0) player.getStats().removeGearVitality(bonusVitality);
+            if (bonusDex > 0) player.getStats().removeGearDex(bonusDex);
+        }
+
+        @Override
+        public Item copy() {
+            OffhandItem copy = new OffhandItem(name, description, texture, iconTexture,
+                    new Vector2(bounds.x, bounds.y), damage, defense, bonusVitality, bonusDex,
+                    buyValue, sellValue);
+            copy.setGearType(gearType);
+            return copy;
+        }
     }
 }

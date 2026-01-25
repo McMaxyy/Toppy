@@ -10,5 +10,5 @@ public class CollisionFilter {
     public static final short ABILITY = 0x0040;
     public static final short REFLECT = 0x0080;
     public static final short ENEMY_ENEMY = 0x0100;
-    public static final short SWORD = 0x0200;
+    public static final short ITEM = 0x0200;
 }

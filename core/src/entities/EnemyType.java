@@ -8,7 +8,9 @@ public enum EnemyType {
     WOLFIE("Wolfie"),
     SKELETON("Skeleton"),
     BOSS_KITTY("BossKitty"),
-    CYCLOPS("Cyclops");
+    CYCLOPS("Cyclops"),
+    MERCHANT("Merchant"),
+    SKELETON_ROGUE("Skeleton Rogue");
 
     private final String animationKey;
 
@@ -16,9 +18,6 @@ public enum EnemyType {
         this.animationKey = animationKey;
     }
 
-    /**
-     * Get the animation key used by AnimationManager
-     */
     public String getAnimationKey() {
         return animationKey;
     }

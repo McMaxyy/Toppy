@@ -61,7 +61,8 @@ public class Storage {
         assetManager.load("tiles/Portal.png", Texture.class);
         assetManager.load("tiles/grass.png", Texture.class);
 
-        assetManager.load("icons/items/coin.png", Texture.class);
+        assetManager.load("icons/items/Coin.png", Texture.class);
+        assetManager.load("icons/items/PileOfCoins.png", Texture.class);
         assetManager.load("icons/items/HealthPotion.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
@@ -110,6 +111,10 @@ public class Storage {
         assetManager.load("enemies/Skeleton/Idle.png", Texture.class);
         assetManager.load("enemies/Skeleton/Attacking.png", Texture.class);
 
+        assetManager.load("enemies/SkeletonRogue/Walking.png", Texture.class);
+        assetManager.load("enemies/SkeletonRogue/Idle.png", Texture.class);
+        assetManager.load("enemies/SkeletonRogue/Attacking.png", Texture.class);
+
         assetManager.load("enemies/Wolfie/Walking.png", Texture.class);
         assetManager.load("enemies/Wolfie/Idle.png", Texture.class);
         assetManager.load("enemies/Wolfie/Attacking.png", Texture.class);
@@ -122,10 +127,13 @@ public class Storage {
         assetManager.load("enemies/Cyclops/Walking.png", Texture.class);
         assetManager.load("enemies/Cyclops/Idle.png", Texture.class);
         assetManager.load("enemies/Cyclops/Attacking.png", Texture.class);
+
+        assetManager.load("enemies/Merchant/Idle.png", Texture.class);
         
         assetManager.load("enemy.png", Texture.class);
         assetManager.load("title.png", Texture.class);
         assetManager.load("white_pixel.png", Texture.class);
+        assetManager.load("mouse.png", Texture.class);
         
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
         

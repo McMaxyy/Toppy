@@ -72,7 +72,7 @@ public class Inventory {
         this.shapeRenderer = new ShapeRenderer();
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
         this.slotTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
-        this.coinIconTexture = Storage.assetManager.get("icons/items/coin.png", Texture.class);
+        this.coinIconTexture = Storage.assetManager.get("icons/items/Coin.png", Texture.class);
         this.characterSprite = Storage.assetManager.get("character/Sprite-0002.png", Texture.class);
     }
 
@@ -142,8 +142,10 @@ public class Inventory {
         Item item = items[inventorySlot];
         if (item == null) return;
 
-        // Only weapons and armor can be equipped
-        if (item.getType() != Item.ItemType.WEAPON && item.getType() != Item.ItemType.ARMOR) {
+        // Only weapons, armor, and offhand can be equipped
+        if (item.getType() != Item.ItemType.WEAPON &&
+                item.getType() != Item.ItemType.ARMOR &&
+                item.getType() != Item.ItemType.OFFHAND) {
             return;
         }
 
@@ -159,9 +161,6 @@ public class Inventory {
         }
     }
 
-    /**
-     * Unequip item from equipment slot to inventory
-     */
     public void unequipItemToInventory(EquipmentSlot slot, entities.Player player) {
         if (isFull()) {
             System.out.println("Inventory is full! Cannot unequip item.");
@@ -175,24 +174,16 @@ public class Inventory {
     }
 
     public void useSelectedItem(entities.Player player, GameProj gameP) {
-        Vector3 mousePosition3D = gameP.getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
-        Vector2 mousePosition = new Vector2(mousePosition3D.x, mousePosition3D.y);
-
         if (selectingEquipmentSlot) {
-            // Unequip from equipment slot
             if (selectedEquipmentSlot != null) {
                 unequipItemToInventory(selectedEquipmentSlot, player);
             }
         } else {
-            // Use/equip from inventory
             if (items[selectedSlot] != null) {
                 Item item = items[selectedSlot];
 
-                // If it's equipment, equip it
-                if (item.getType() == Item.ItemType.WEAPON || item.getType() == Item.ItemType.ARMOR) {
-                    equipItemFromInventory(selectedSlot, player);
+                if (item.getType() == Item.ItemType.WEAPON || item.getType() == Item.ItemType.ARMOR || item.getType() == Item.ItemType.OFFHAND) {                    equipItemFromInventory(selectedSlot, player);
                 } else {
-                    // It's a consumable, use it
                     item.use(player);
                     if (item.getType() == Item.ItemType.CONSUMABLE) {
                         removeItem(selectedSlot);
@@ -240,7 +231,6 @@ public class Inventory {
             return;
         }
 
-        // --- MOUSE TRACKING LOGIC ---
         int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
         int panelWidth = 700;
@@ -248,11 +238,9 @@ public class Inventory {
         float panelX = (screenWidth - panelWidth) / 2f;
         float panelY = (screenHeight - panelHeight) / 2f;
 
-        // libGDX mouse Y is top-down, we need bottom-up to match ShapeRenderer
         float mouseX = Gdx.input.getX();
         float mouseY = screenHeight - Gdx.input.getY();
 
-        // 1. Check Inventory Slots
         float invStartX = panelX + 280;
         float invStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
 
@@ -264,7 +252,7 @@ public class Inventory {
 
             if (mouseX >= x && mouseX <= x + SLOT_SIZE && mouseY >= y && mouseY <= y + SLOT_SIZE) {
                 selectedSlot = i;
-                selectingEquipmentSlot = false; // Mouse over inventory takes priority
+                selectingEquipmentSlot = false;
 
                 if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
                     useSelectedItem(player, gameP);
@@ -274,7 +262,6 @@ public class Inventory {
 
         checkEquipmentMouseHover(mouseX, mouseY, panelX, panelY, panelHeight, player, gameP);
 
-        // Check stats panel buttons
         checkStatButtonClicks(mouseX, mouseY, panelX, panelY, panelHeight, player);
     }
 

@@ -396,7 +396,7 @@ public class ItemRegistry {
                 "valkyries_iron_shield",
                 "Valkyrie's Iron Shield",
                 "",
-                Item.ItemType.ARMOR,
+                Item.ItemType.OFFHAND,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
         ).setBonusVitality(1).setDamage(6).setValues(150, 100).setGearType(VALKYRIE));
@@ -405,7 +405,7 @@ public class ItemRegistry {
                 "protectors_iron_shield",
                 "Protector's Iron Shield",
                 "",
-                Item.ItemType.ARMOR,
+                Item.ItemType.OFFHAND,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
         ).setBonusVitality(1).setDefense(6).setValues(150, 100).setGearType(PROTECTOR));
@@ -414,7 +414,7 @@ public class ItemRegistry {
                 "barbarians_iron_shield",
                 "Barbarian's Iron Shield",
                 "",
-                Item.ItemType.ARMOR,
+                Item.ItemType.OFFHAND,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
         ).setDamage(10).setDefense(6).setValues(150, 100).setGearType(BARBARIAN));
@@ -423,7 +423,7 @@ public class ItemRegistry {
                 "berserkers_iron_shield",
                 "Berserker's Iron Shield",
                 "",
-                Item.ItemType.ARMOR,
+                Item.ItemType.OFFHAND,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
         ).setDamage(10).setBonusDex(1).setValues(150, 100).setGearType(BERSERKER));
@@ -432,7 +432,7 @@ public class ItemRegistry {
                 "deceptors_iron_shield",
                 "Deceptor's Iron Shield",
                 "",
-                Item.ItemType.ARMOR,
+                Item.ItemType.OFFHAND,
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
         ).setBonusDex(1).setDefense(6).setValues(150, 100).setGearType(DECEPTOR));
@@ -471,8 +471,8 @@ public class ItemRegistry {
                 "Coin",
                 "Currency",
                 Item.ItemType.COIN,
-                "icons/items/coin.png",
-                "icons/items/coin.png"
+                "icons/items/Coin.png",
+                "icons/items/Coin.png"
         ).setValues(1, 1));
 
         registerItem(new ItemDefinition(
@@ -480,8 +480,8 @@ public class ItemRegistry {
                 "Coin Pile",
                 "A pile of coins",
                 Item.ItemType.COIN,
-                "icons/items/coin.png",
-                "icons/items/coin.png"
+                "icons/items/PileOfCoins.png",
+                "icons/items/PileOfCoins.png"
         ).setValues(5, 5));
     }
 
@@ -505,6 +505,12 @@ public class ItemRegistry {
                         position, def.damage, def.defense, def.bonusVitality, def.bonusDex, def.buyValue, def.sellValue);
                 weapon.setGearType(def.gearType);
                 return weapon;
+
+            case OFFHAND:
+                ItemTypes.OffhandItem offhand = new ItemTypes.OffhandItem(def.name, def.description, texture, iconTexture,
+                        position, def.damage, def.defense, def.bonusVitality, def.bonusDex, def.buyValue, def.sellValue);
+                offhand.setGearType(def.gearType);
+                return offhand;
 
             case ARMOR:
                 ItemTypes.ArmorItem armor = new ItemTypes.ArmorItem(def.name, def.description, texture, iconTexture,
