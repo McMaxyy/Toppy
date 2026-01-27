@@ -13,6 +13,7 @@ import entities.PlayerClass;
 import game.GameProj;
 import items.Item;
 import managers.Equipment;
+import managers.SoundManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -189,9 +190,6 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Use ability at slot index
-     */
     private void useAbility(int slot) {
         if (slot >= 0 && slot < NUM_ABILITY_SLOTS && abilities[slot] != null) {
             boolean success = abilities[slot].use(player, gameProj);
@@ -201,9 +199,6 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Use offhand attack (shield bash if shield equipped)
-     */
     private void useOffhandAttack() {
         if (offhandCooldown > 0) { return; }
 
@@ -217,6 +212,8 @@ public class AbilityManager {
 
     private void performSwordAttack() {
         if (swordCooldown > 0) { return; }
+
+        SoundManager.getInstance().playHitSound();
 
         player.addAbilityVisual(AbilityVisual.ConalAttack.createGolden(player, gameProj, 0.15f, SWORD_ATTACK_RANGE));
 
@@ -386,9 +383,6 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Add status effect to target
-     */
     public void addStatusEffect(Object target, StatusEffect effect) {
         if (!activeEffects.containsKey(target)) {
             activeEffects.put(target, new ArrayList<>());
@@ -396,16 +390,10 @@ public class AbilityManager {
         activeEffects.get(target).add(effect);
     }
 
-    /**
-     * Add any ability visual effect
-     */
     public void addAbilityVisual(AbilityVisual visual) {
         activeVisuals.add(visual);
     }
 
-    /**
-     * Render ability visual effects (called from world coordinates)
-     */
     public void renderAbilityEffects(SpriteBatch batch) {
         for (AbilityVisual visual : activeVisuals) {
             visual.render(batch);

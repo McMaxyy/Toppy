@@ -360,10 +360,15 @@ public class Player implements PlayerStats.SpeedChangeListener {
 
                 getAnimationManager().setState(AnimationManager.State.RUNNING, "Player");
 
+                if (!gameP.isInDungeon() && !gameP.isInBossRoom()) {
+                    SoundManager.getInstance().startGrassRunning();
+                }
+
                 if(!gameStarted)
                     gameStarted = true;
             } else {
                 getAnimationManager().setState(AnimationManager.State.IDLE, "Player");
+                SoundManager.getInstance().stopGrassRunning();
             }
         }
 

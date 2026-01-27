@@ -13,8 +13,8 @@ public class DesktopLauncher {
 		
 		config.setWindowedMode(1280, 720);
 		config.setDecorated(true);
-		config.setResizable(false);
-		
+		config.setResizable(true);
+
 		int samples = 32;
         config.setBackBufferConfig(8, 8, 8, 8, 16, 0, samples);
 		

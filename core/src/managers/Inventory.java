@@ -97,9 +97,9 @@ public class Inventory {
             int coinValue = (int)(item.getBuyValue() * coinMultiplier);
             coins += coinValue;
             return true;
-        }
+        } else
+            SoundManager.getInstance().playPickupSound();
 
-        // Check if item can stack with existing items
         for (int i = 0; i < MAX_SLOTS; i++) {
             if (items[i] != null && items[i].canStackWith(item)) {
                 int currentCount = itemCounts.getOrDefault(i, 1);
@@ -108,7 +108,6 @@ public class Inventory {
             }
         }
 
-        // Find first empty slot
         for (int i = 0; i < MAX_SLOTS; i++) {
             if (items[i] == null) {
                 items[i] = item;
@@ -147,23 +146,21 @@ public class Inventory {
         Item item = items[inventorySlot];
         if (item == null) return;
 
-        // Only weapons, armor, and offhand can be equipped
         if (item.getType() != Item.ItemType.WEAPON &&
                 item.getType() != Item.ItemType.ARMOR &&
                 item.getType() != Item.ItemType.OFFHAND) {
             return;
         }
 
-        // Equip the item (this returns the previously equipped item if any)
         Item previousItem = equipment.equipItem(item, player);
 
-        // Remove from inventory
         removeItem(inventorySlot);
 
-        // Add the previously equipped item back to inventory if there was one
         if (previousItem != null) {
             addItem(previousItem);
         }
+
+        SoundManager.getInstance().playPickupSound();
     }
 
     public void unequipItemToInventory(EquipmentSlot slot, entities.Player player) {

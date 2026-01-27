@@ -21,15 +21,11 @@ import entities.EnemyStats;
 import entities.Player;
 import entities.Portal;
 
-/**
- * A dedicated boss room that players enter from the dungeon portal.
- * Contains the dungeon boss (either BossKitty or Cyclops) and spawns an exit portal upon boss defeat.
- */
 public class BossRoom {
     private final int width;
     private final int height;
     private final int tileSize;
-    private final int[][] tiles; // 0 = wall, 1 = floor, 2 = exit
+    private final int[][] tiles;
     private final List<Wall> walls;
     private final World world;
     private final Player player;
@@ -256,7 +252,7 @@ public class BossRoom {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.filter.categoryBits = CollisionFilter.WALL;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY | CollisionFilter.ITEM;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);
@@ -268,7 +264,7 @@ public class BossRoom {
     private void spawnBoss() {
         // Spawn boss at center of room
         float bossX = (width / 2) * tileSize;
-        float bossY = (height / 2 + 2) * tileSize; // Slightly above center
+        float bossY = (height / 2 + 2) * tileSize;
 
         Body bossBody = createBossBody(bossX, bossY);
 
@@ -283,7 +279,6 @@ public class BossRoom {
                         cyclopsStats
                 );
                 bossBody.setUserData(cyclops);
-                System.out.println("Cyclops spawned in boss room at: " + bossX + ", " + bossY);
                 break;
 
             case BOSS_KITTY:
@@ -297,7 +292,6 @@ public class BossRoom {
                         bossStats
                 );
                 bossBody.setUserData(boss);
-                System.out.println("Boss Kitty spawned in boss room at: " + bossX + ", " + bossY);
                 break;
         }
     }
@@ -308,7 +302,6 @@ public class BossRoom {
         bodyDef.position.set(x, y);
 
         PolygonShape shape = new PolygonShape();
-        // Cyclops is slightly larger
         float boxSize = (currentBossType == BossType.CYCLOPS) ? 14f : 12f;
         shape.setAsBox(boxSize, boxSize);
 
@@ -326,9 +319,6 @@ public class BossRoom {
         return body;
     }
 
-    /**
-     * Called when the boss is defeated - spawns the exit portal
-     */
     public void onBossDefeated() {
         if (bossDefeated) return;
 
@@ -336,7 +326,6 @@ public class BossRoom {
         boss = null;
         cyclops = null;
 
-        // Mark exit tile
         int tileX = (int) (exitPoint.x / tileSize);
         int tileY = (int) (exitPoint.y / tileSize);
 
@@ -344,20 +333,16 @@ public class BossRoom {
             tiles[tileX][tileY] = EXIT;
         }
 
-        // Create the exit portal
         exitPortal = new Portal(
                 exitPoint.x - 16,
                 exitPoint.y - 16,
                 32,
                 world,
-                true // already cleared
+                true
         );
-
-        System.out.println("Exit portal spawned in boss room!");
     }
 
     public void render(SpriteBatch batch) {
-        // Render floor
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (tiles[x][y] == FLOOR) {
@@ -369,7 +354,6 @@ public class BossRoom {
             }
         }
 
-        // Render walls
         for (Wall wall : walls) {
             if (wall.textureRegion != null) {
                 batch.draw(wall.textureRegion, wall.bounds.x, wall.bounds.y, wall.bounds.width, wall.bounds.height);
@@ -393,7 +377,6 @@ public class BossRoom {
     }
 
     public void update(float delta) {
-        // Update boss
         if (boss != null) {
             boss.update(delta);
         }
@@ -401,10 +384,20 @@ public class BossRoom {
             cyclops.update(delta);
         }
 
-        // Update exit portal if it exists
         if (exitPortal != null) {
             exitPortal.update(delta);
         }
+    }
+
+    private boolean isWalkable(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        return tiles[x][y] != WALL;
+    }
+
+    public boolean isWalkableWorld(float worldX, float worldY) {
+        int tileX = (int) (worldX / tileSize);
+        int tileY = (int) (worldY / tileSize);
+        return isWalkable(tileX, tileY);
     }
 
     public boolean isPlayerAtExit(Vector2 playerPos) {

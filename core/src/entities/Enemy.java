@@ -12,6 +12,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
+import managers.SoundManager;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.Array;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
+import managers.SoundManager;
 
 public class BossKitty {
     public Rectangle bounds;
@@ -306,6 +307,7 @@ public class BossKitty {
     }
 
     private void updateSpecialAbility(float delta) {
+        body.setLinearVelocity(0, 0);
         specialAbilityTimer += delta;
 
         if (specialAbilityTimer >= 1.5f) {

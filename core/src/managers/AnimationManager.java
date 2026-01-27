@@ -120,7 +120,7 @@ public class AnimationManager {
 			for (int i = 0; i < 4; i++) {
 				paladinWalkingFrames.add(paladinWalkFrames[0][i]);
 			}
-			paladinRunningAnimation = new Animation<>(0.4f, paladinWalkingFrames, Animation.PlayMode.LOOP);
+			paladinRunningAnimation = new Animation<>(0.5f, paladinWalkingFrames, Animation.PlayMode.LOOP);
 
 			Texture paladinIdleTexture = Storage.assetManager.get("character/Paladin/Idle.png", Texture.class);
 			paladinIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);

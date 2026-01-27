@@ -206,7 +206,7 @@ public class ItemSpawner {
         shape.dispose();
 
         PolygonShape shape2 = new PolygonShape();
-        shape2.setAsBox(width / 3f, height / 3f);
+        shape2.setAsBox(width / 5f, height / 5f);
 
         FixtureDef fixtureDef2 = new FixtureDef();
         fixtureDef2.shape = shape2;

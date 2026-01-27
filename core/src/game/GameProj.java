@@ -12,9 +12,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -39,24 +37,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GameProj implements Screen, ContactListener {
-    private Skin skin;
-    private Viewport viewport, hudViewport;
+    private final Skin skin;
+    private final Viewport viewport;
+    private final Viewport hudViewport;
     public Stage stage, hudStage;
     private Game game;
-    private GameScreen gameScreen;
-    private Storage storage;
+    private final GameScreen gameScreen;
     private SpriteBatch batch;
-    private AnimationManager animationManager;
+    private final AnimationManager animationManager;
 
-    private OrthographicCamera camera, hudCamera;
+    private final OrthographicCamera camera;
+    private final OrthographicCamera hudCamera;
     private Box2DWorld world;
 
     private Texture groundTexture;
     private Player player;
-    private ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
-    private ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
-    private Random random;
-    private ExecutorService chunkGenerator;
+    private final ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
+    private final ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
+    private final Random random;
+    private final ExecutorService chunkGenerator;
     private Label hudLabel;
     private int enemiesKilled = 0;
     private boolean bossSpawned = false;
@@ -72,12 +71,10 @@ public class GameProj implements Screen, ContactListener {
 
     private Dungeon currentDungeon;
     private BossRoom currentBossRoom;
-    private List<Portal> dungeonPortals = new ArrayList<>();
+    private final List<Portal> dungeonPortals = new ArrayList<>();
     private Vector2 overworldPlayerPosition;
-    private Vector2 dungeonPlayerPosition;
     private final int NUM_DUNGEONS = 5;
 
-    // Boss progression tracking
     private boolean bossKittyDefeated = false;
 
     private MapBoundary mapBoundary;
@@ -106,7 +103,7 @@ public class GameProj implements Screen, ContactListener {
         stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
 
-        storage = Storage.getInstance();
+        Storage storage = Storage.getInstance();
         storage.createFont();
         skin = storage.skin;
         animationManager = new AnimationManager();
@@ -137,6 +134,12 @@ public class GameProj implements Screen, ContactListener {
 
     private void createComponents() {
         cursorTexture = Storage.assetManager.get("mouse.png", Texture.class);
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0);
+        pixmap.fill();
+        Cursor emptyCursor = Gdx.graphics.newCursor(pixmap, 0, 0);
+        Gdx.graphics.setCursor(emptyCursor);
+        pixmap.dispose();
         Gdx.input.setCursorCatched(true);
 
         groundTexture = Storage.assetManager.get("tiles/grass.png", Texture.class);
@@ -169,6 +172,7 @@ public class GameProj implements Screen, ContactListener {
         setRandomPlayerSpawn();
         spawnAllDungeonPortals();
         spawnMerchant();
+        SoundManager.getInstance().playForestMusic();
     }
 
     private void setRandomPlayerSpawn() {
@@ -431,6 +435,9 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        SoundManager.getInstance().stopGrassRunning();
+        SoundManager.getInstance().playDungeonMusic();
+
         inDungeon = true;
         inBossRoom = false;
         itemSpawner.clear();
@@ -465,11 +472,11 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void enterBossRoom() {
+        SoundManager.getInstance().playBossMusic();
+
         inBossRoom = true;
         inDungeon = false;
         itemSpawner.clear();
-
-        dungeonPlayerPosition = new Vector2(player.getPosition());
 
         if (currentDungeon != null) {
             currentDungeon.dispose();
@@ -492,7 +499,7 @@ public class GameProj implements Screen, ContactListener {
 
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
 
-        BossRoom.BossType bossType = bossKittyDefeated ? BossRoom.BossType.CYCLOPS : BossRoom.BossType.CYCLOPS;
+        BossRoom.BossType bossType = bossKittyDefeated ? BossRoom.BossType.CYCLOPS : BossRoom.BossType.BOSS_KITTY;
         currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, bossType);
 
         Vector2 spawnPoint = currentBossRoom.getSpawnPoint();
@@ -506,6 +513,8 @@ public class GameProj implements Screen, ContactListener {
         inBossRoom = false;
         inDungeon = false;
         itemSpawner.clear();
+
+        SoundManager.getInstance().playForestMusic();
 
         if (currentBossRoom != null) {
             currentBossRoom.dispose();
@@ -594,6 +603,8 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        SoundManager.getInstance().update(delta);
+
         if (Gdx.input.isKeyPressed(Input.Keys.F5) && !isPaused) {
             gameScreen.switchToNewState(GameScreen.START);
             return;
@@ -675,9 +686,11 @@ public class GameProj implements Screen, ContactListener {
         if (useCustomCursor && batch != null) {
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
-            float cursorX = Gdx.input.getX();
-            float cursorY = Gdx.graphics.getHeight() - Gdx.input.getY();
-            batch.draw(cursorTexture, cursorX - cursorTexture.getWidth() / 4, cursorY - cursorTexture.getHeight() / 4, 32, 32);
+
+            float cursorX = Math.max(0, Math.min(Gdx.input.getX(), Gdx.graphics.getWidth()));
+            float cursorY = Math.max(0, Math.min(Gdx.graphics.getHeight() - Gdx.input.getY(), Gdx.graphics.getHeight()));
+
+            batch.draw(cursorTexture, cursorX - cursorTexture.getWidth() / 4f, cursorY - cursorTexture.getHeight() / 3f, 32, 32);
             batch.end();
         }
 
@@ -754,14 +767,12 @@ public class GameProj implements Screen, ContactListener {
             chunk.renderEnemies(batch);
         }
 
-        // Render merchant
         if (merchant != null && merchant.isActive()) {
             if (delta > 0) {
                 merchant.update(delta);
             }
             merchant.render(batch);
 
-            // Check for merchant interaction
             if (!isPaused && !merchantShopOpen && merchant.isPlayerNear(player.getPosition()) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.E)) {
                 merchantShop.open();
@@ -1326,6 +1337,8 @@ public class GameProj implements Screen, ContactListener {
                 world.dispose();
                 world = null;
             }
+
+            SoundManager.getInstance().dispose();
 
             System.gc();
 

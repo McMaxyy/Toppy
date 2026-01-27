@@ -362,7 +362,7 @@ public class Dungeon {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.filter.categoryBits = CollisionFilter.WALL;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY | CollisionFilter.ITEM;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);

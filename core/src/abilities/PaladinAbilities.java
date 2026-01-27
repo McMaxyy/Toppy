@@ -9,6 +9,7 @@ import entities.*;
 import game.GameProj;
 import managers.Chunk;
 import managers.Dungeon;
+import managers.SoundManager;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,6 +35,8 @@ class PaladinBlinkAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Blink");
+
         Vector3 mousePosition3D = gameProj.getCamera().unproject(
                 new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
         );
@@ -45,7 +48,12 @@ class PaladinBlinkAbility extends Ability {
             }
         }
 
-        // Valid position - teleport
+        if (gameProj.getCurrentBossRoom() != null) {
+            if (!gameProj.getCurrentBossRoom().isWalkableWorld(mousePosition.x, mousePosition.y)) {
+                return;
+            }
+        }
+
         player.getBody().setTransform(mousePosition, 0f);
 
         AbilityVisual.Blink blinkVisual = new AbilityVisual.Blink(mousePosition);
@@ -125,6 +133,8 @@ class PullAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Pull");
+
         pullingPlayer = player;
         currentGameProj = gameProj;
         affectedEnemies.clear();
@@ -311,6 +321,8 @@ class SmiteAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Smite");
+
         Vector2 playerPos = player.getPosition();
 
         // Create visual effect
@@ -398,7 +410,7 @@ class PaladinPrayerAbility extends Ability {
                 "Channel divine energy to restore 80 health",
                 10.0f,
                 0,
-                1.0f,
+                2.0f,
                 0f,
                 0f,
                 AbilityType.HEALING,
@@ -408,6 +420,8 @@ class PaladinPrayerAbility extends Ability {
 
     @Override
     protected void onCastStart(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Prayer");
+
         super.onCastStart(player, gameProj);
         this.targetPlayer = player;
         HEAL_AMOUNT += (targetPlayer.getLevel() * 5);

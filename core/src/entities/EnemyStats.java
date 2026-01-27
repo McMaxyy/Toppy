@@ -259,12 +259,12 @@ public class EnemyStats {
                     AttackType.MELEE,
                     "boss",
                     1.5f,
-                    60f,
+                    75f,
                     0.6f,
                     0f,
                     150f,
                     0f,
-                    350f
+                    400f
             );
         }
 
