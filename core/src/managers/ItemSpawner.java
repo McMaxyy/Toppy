@@ -136,17 +136,27 @@ public class ItemSpawner {
         List<Item> pickedUpItems = new ArrayList<>();
         Vector2 playerPos = player.getPosition();
 
+        // Get coin multiplier from player's stats (Lucky Clover buff)
+        float coinMultiplier = player.getStats().getCoinMultiplier();
+
         Iterator<WorldItem> iterator = worldItems.iterator();
         while (iterator.hasNext()) {
             WorldItem worldItem = iterator.next();
 
             if (worldItem.item.isPlayerNear(playerPos, PICKUP_RADIUS)) {
-                // Try to add to inventory
-                if (inventory.addItem(worldItem.item)) {
+                boolean added = false;
+
+                // Apply coin multiplier for coin items
+                if (worldItem.item.getType() == Item.ItemType.COIN) {
+                    added = addCoinWithMultiplier(inventory, worldItem.item, coinMultiplier);
+                } else {
+                    added = inventory.addItem(worldItem.item);
+                }
+
+                if (added) {
                     worldItem.item.setPickedUp(true);
                     pickedUpItems.add(worldItem.item);
 
-                    // Destroy physics body
                     if (worldItem.body != null && !world.isLocked()) {
                         world.destroyBody(worldItem.body);
                         worldItem.body = null;
@@ -158,6 +168,18 @@ public class ItemSpawner {
         }
 
         return pickedUpItems;
+    }
+
+    /**
+     * Adds coins to inventory with the Lucky Clover multiplier applied
+     */
+    private boolean addCoinWithMultiplier(Inventory inventory, Item coinItem, float multiplier) {
+        int baseValue = coinItem.getBuyValue();
+        int multipliedValue = (int)(baseValue * multiplier);
+
+        // Add the multiplied coin value directly
+        inventory.addCoins(multipliedValue);
+        return true;
     }
 
     private Body createItemBody(Vector2 position, float width, float height) {
@@ -184,7 +206,7 @@ public class ItemSpawner {
         shape.dispose();
 
         PolygonShape shape2 = new PolygonShape();
-        shape2.setAsBox(width / 5f, height / 5f);
+        shape2.setAsBox(width / 3f, height / 3f);
 
         FixtureDef fixtureDef2 = new FixtureDef();
         fixtureDef2.shape = shape2;
@@ -201,7 +223,6 @@ public class ItemSpawner {
     }
 
     public void update(float delta) {
-        // Process pending items (spawn them now that world is not locked)
         if (!pendingItems.isEmpty() && !world.isLocked()) {
             for (PendingItem pending : pendingItems) {
                 spawnItemNow(pending.itemId, pending.position, pending.velocity);
@@ -232,20 +253,6 @@ public class ItemSpawner {
             }
         }
         worldItems.clear();
-        pendingItems.clear(); // Also clear pending items
-    }
-
-    public void cleanupOldItems(float maxLifetime) {
-        Iterator<WorldItem> iterator = worldItems.iterator();
-        while (iterator.hasNext()) {
-            WorldItem worldItem = iterator.next();
-
-            if (worldItem.lifetime > maxLifetime) {
-                if (worldItem.body != null && !world.isLocked()) {
-                    world.destroyBody(worldItem.body);
-                }
-                iterator.remove();
-            }
-        }
+        pendingItems.clear();
     }
 }

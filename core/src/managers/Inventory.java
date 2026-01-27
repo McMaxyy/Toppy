@@ -89,8 +89,13 @@ public class Inventory {
     }
 
     public boolean addItem(Item item) {
+        return addItem(item, 1.0f);
+    }
+
+    public boolean addItem(Item item, float coinMultiplier) {
         if (item.getType() == Item.ItemType.COIN) {
-            coins += item.getBuyValue();
+            int coinValue = (int)(item.getBuyValue() * coinMultiplier);
+            coins += coinValue;
             return true;
         }
 
@@ -182,7 +187,8 @@ public class Inventory {
             if (items[selectedSlot] != null) {
                 Item item = items[selectedSlot];
 
-                if (item.getType() == Item.ItemType.WEAPON || item.getType() == Item.ItemType.ARMOR || item.getType() == Item.ItemType.OFFHAND) {                    equipItemFromInventory(selectedSlot, player);
+                if (item.getType() == Item.ItemType.WEAPON || item.getType() == Item.ItemType.ARMOR || item.getType() == Item.ItemType.OFFHAND) {
+                    equipItemFromInventory(selectedSlot, player);
                 } else {
                     item.use(player);
                     if (item.getType() == Item.ItemType.CONSUMABLE) {
@@ -320,7 +326,6 @@ public class Inventory {
         float equipmentY = py + UI_PADDING + 40;
         float eqWidth = 250;
 
-        // Define the positions exactly as you do in render
         EquipmentSlot[] leftSlots = {EquipmentSlot.HELMET, EquipmentSlot.CHEST, EquipmentSlot.GLOVES, EquipmentSlot.BOOTS};
         float leftX = equipmentX + 10;
         float leftStartY = equipmentY + ph - 140;
@@ -348,37 +353,13 @@ public class Inventory {
         }
     }
 
-    private EquipmentSlot getNextEquipmentSlot(EquipmentSlot current, boolean forward) {
-        EquipmentSlot[] allSlots = {
-                EquipmentSlot.HELMET,
-                EquipmentSlot.CHEST,
-                EquipmentSlot.GLOVES,
-                EquipmentSlot.BOOTS,
-                EquipmentSlot.WEAPON,
-                EquipmentSlot.OFFHAND
-        };
-
-        for (int i = 0; i < allSlots.length; i++) {
-            if (allSlots[i] == current) {
-                if (forward) {
-                    return allSlots[(i + 1) % allSlots.length];
-                } else {
-                    return allSlots[(i - 1 + allSlots.length) % allSlots.length];
-                }
-            }
-        }
-
-        return EquipmentSlot.HELMET;
-    }
-
     public void render(SpriteBatch batch, boolean batchIsActive) {
         if (!inventoryOpen) return;
 
         int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
 
-        // Calculate panel dimensions
-        int panelWidth = 700; // Wider to accommodate equipment
+        int panelWidth = 700;
         int panelHeight = 500;
 
         float panelX = (screenWidth - panelWidth) / 2f;
@@ -388,13 +369,11 @@ public class Inventory {
             batch.end();
         }
 
-        // Draw background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(BACKGROUND_COLOR);
         shapeRenderer.rect(panelX, panelY, panelWidth, panelHeight);
         shapeRenderer.end();
 
-        // Draw border
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         Gdx.gl.glLineWidth(2);
         shapeRenderer.setColor(SLOT_BORDER_COLOR);
@@ -402,49 +381,34 @@ public class Inventory {
         shapeRenderer.end();
         Gdx.gl.glLineWidth(1);
 
-        // Render equipment slots and character
         renderEquipmentPanel(batch, panelX, panelY, panelHeight);
 
-        // Render inventory slots
         renderInventorySlots(batch, panelX, panelY, panelWidth, panelHeight);
 
-        // Draw UI text and items
         batch.begin();
 
-        // Title
         font.setColor(Color.WHITE);
         font.getData().setScale(1f);
         font.draw(batch, "Inventory", panelX + UI_PADDING,
                 panelY + panelHeight - UI_PADDING / 2);
 
-        // Coin count
         batch.draw(coinIconTexture, panelX + panelWidth - UI_PADDING - 120,
                 panelY + panelHeight - UI_PADDING - 30, 40, 40);
         font.getData().setScale(1.0f);
         font.draw(batch, "" + coins, panelX + panelWidth - UI_PADDING - 70,
                 panelY + panelHeight - UI_PADDING);
 
-        // Draw equipped items in equipment slots
         renderEquippedItems(batch, panelX, panelY, panelHeight);
 
-        // Draw items in inventory slots
         renderInventoryItems(batch, panelX, panelY, panelWidth, panelHeight);
 
-        // Draw selected item info
         renderItemInfo(batch, panelX, panelY, panelWidth);
 
         font.setColor(Color.WHITE);
         font.getData().setScale(1.0f);
 
         batch.end();
-
-        // Store player reference for stats panel - need to pass it through
-        // Stats panel is rendered separately via renderWithPlayer
     }
-
-    /**
-     * Render inventory with player reference for stats panel
-     */
     public void render(SpriteBatch batch, boolean batchIsActive, entities.Player player) {
         if (!inventoryOpen) return;
 

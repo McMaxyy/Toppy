@@ -7,16 +7,15 @@ public class PlayerStats {
     private int baseDamage;
     private int defense;
     private float baseSpeed;
+    private float coinMultiplier = 1.0f;
 
-    // Base stats as points (what's displayed)
-    private static final int BASE_VIT = 100;  // Starting VIT points
-    private static final int BASE_DEX = 50;   // Starting DEX points
+    private static final int BASE_VIT = 100;
+    private static final int BASE_DEX = 50;
     private static final int BASE_DAMAGE = 20;
     private static final int BASE_DEFENSE = 1;
 
-    // Conversion rates
-    private static final int HEALTH_PER_VIT = 10;      // 1 VIT = 10 health
-    private static final float SPEED_PER_DEX = 100f;   // 1 DEX = 100 speed
+    private static final int HEALTH_PER_VIT = 10;
+    private static final float SPEED_PER_DEX = 100f;
 
     private int allocatedHealthPoints;
     private int allocatedAttackPoints;
@@ -27,11 +26,10 @@ public class PlayerStats {
     private static final int ATTACK_PER_POINT = 2;
     private static final int DEFENSE_PER_POINT = 1;
 
-    // Gear bonuses (unified for all equipment)
     private int gearDamage;
     private int gearDefense;
-    private int gearVitality;  // This is in VIT points
-    private int gearDex;     // This is in DEX points
+    private int gearVitality;
+    private int gearDex;
 
     private int level;
     private int experience;
@@ -82,6 +80,38 @@ public class PlayerStats {
                 heal((int) healthRegenRate);
                 regenTimer = 0f;
             }
+        }
+    }
+
+    public void addAndRemoveBuffs (String buff, boolean activate) {
+        switch (buff) {
+            case "Attack Potion":
+                if (activate)
+                    allocatedAttackPoints += 5;
+                else
+                    allocatedAttackPoints -= 5;
+                recalculateStats();
+                break;
+            case "Defense Potion":
+                if (activate)
+                    allocatedDefensePoints += 5;
+                else
+                    allocatedDefensePoints -= 5;
+                recalculateStats();
+                break;
+            case "Dex Potion":
+                if (activate)
+                    allocatedDexPoints += 5;
+                else
+                    allocatedDexPoints -= 5;
+                recalculateStats();
+                break;
+            case "Lucky Clover":
+                if (activate)
+                    coinMultiplier = 2.0f;
+                else
+                    coinMultiplier = 1.0f;
+                break;
         }
     }
 
@@ -281,6 +311,7 @@ public class PlayerStats {
     public int getAllocatedAttackPoints() { return allocatedAttackPoints; }
     public int getAllocatedDefensePoints() { return allocatedDefensePoints; }
     public int getAllocatedDexPoints() { return allocatedDexPoints; }
+    public float getCoinMultiplier() { return coinMultiplier; }
 
     // Setters
     public void setCurrentHealth(int health) {

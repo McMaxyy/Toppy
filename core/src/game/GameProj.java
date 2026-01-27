@@ -836,6 +836,7 @@ public class GameProj implements Screen, ContactListener {
 
             batch.begin();
             player.renderSkillBar(batch);
+            player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
 
@@ -918,6 +919,7 @@ public class GameProj implements Screen, ContactListener {
 
             batch.begin();
             player.renderSkillBar(batch);
+            player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
 
@@ -986,6 +988,7 @@ public class GameProj implements Screen, ContactListener {
 
             batch.begin();
             player.renderSkillBar(batch);
+            player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
         }

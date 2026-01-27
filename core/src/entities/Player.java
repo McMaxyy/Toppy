@@ -61,11 +61,14 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private float chargeTimer = 0f;
     private Vector2 chargeVelocity = new Vector2();
     private java.util.Set<Object> chargeHitEnemies;
+    private BuffManager buffManager;
 
-    private PlayerClass playerClass = PlayerClass.MERCENARY;
+    private PlayerClass playerClass;
     private boolean isJustHit = false;
     private float hitFlashTimer = 0f;
     private static final float HIT_FLASH_DURATION = 0.3f;
+
+    private boolean playerBuffs[] = new boolean[4];
 
     private class Trail {
         Vector2 position;
@@ -93,6 +96,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
         this.gameScreen = gameScreen;
         this.inventory = new Inventory();
         this.stats = new PlayerStats();
+        this.buffManager = new BuffManager(this);
         this.healthBarBgTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.playerClass = playerClass;
         whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
@@ -162,6 +166,10 @@ public class Player implements PlayerStats.SpeedChangeListener {
         }
 
         stats.update(delta);
+
+        if (buffManager != null) {
+            buffManager.update(delta);
+        }
 
         if (isJustHit) {
             hitFlashTimer -= delta;
@@ -511,6 +519,65 @@ public class Player implements PlayerStats.SpeedChangeListener {
         return chargeHitEnemies;
     }
 
+    public void setPlayerBuff(String buff) {
+        switch (buff) {
+            case "Attack Potion":
+                if (!playerBuffs[0]) {
+                    playerBuffs[0] = true;
+                    stats.addAndRemoveBuffs(buff, true);
+                }
+                break;
+            case "Defense Potion":
+                if (!playerBuffs[1]) {
+                    playerBuffs[1] = true;
+                    stats.addAndRemoveBuffs(buff, true);
+                }
+                break;
+            case "Dex Potion":
+                if (!playerBuffs[2]) {
+                    playerBuffs[2] = true;
+                    stats.addAndRemoveBuffs(buff, true);
+                }
+                break;
+            case "Lucky Clover":
+                if (!playerBuffs[3]) {
+                    playerBuffs[3] = true;
+                    stats.addAndRemoveBuffs(buff, true);
+                }
+                break;
+        }
+        buffManager.activateBuff(buff);
+    }
+
+    public void removePlayerBuff(String buff) {
+        switch (buff) {
+            case "Attack Potion":
+                if (playerBuffs[0]) {
+                    playerBuffs[0] = false;
+                    stats.addAndRemoveBuffs(buff, false);
+                }
+                break;
+            case "Defense Potion":
+                if (playerBuffs[1]) {
+                    playerBuffs[1] = false;
+                    stats.addAndRemoveBuffs(buff, false);
+                }
+                break;
+            case "Dex Potion":
+                if (playerBuffs[2]) {
+                    playerBuffs[2] = false;
+                    stats.addAndRemoveBuffs(buff, false);
+                }
+                break;
+            case "Lucky Clover":
+                if (playerBuffs[3]) {
+                    playerBuffs[3] = false;
+                    stats.addAndRemoveBuffs(buff, false);
+                }
+                break;
+        }
+    }
+
     public void render(SpriteBatch batch, int TILE_SIZE) {
         Vector2 position = body.getPosition();
 
@@ -593,6 +660,12 @@ public class Player implements PlayerStats.SpeedChangeListener {
         batch.setColor(1, 1, 1, 1);
 
         renderPlayerHealthBar(batch, TILE_SIZE);
+    }
+
+    public void renderBuffIcons(SpriteBatch batch) {
+        if (buffManager != null) {
+            buffManager.render(batch);
+        }
     }
 
     public void renderSkillBar(SpriteBatch batch) {
@@ -694,5 +767,8 @@ public class Player implements PlayerStats.SpeedChangeListener {
     }
     public int getLevel() {
         return stats.getLevel();
+    }
+    public BuffManager getBuffManager() {
+        return buffManager;
     }
 }

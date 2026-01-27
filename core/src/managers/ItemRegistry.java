@@ -34,6 +34,11 @@ public class ItemRegistry {
         public int healthRestore;
         public int buyValue;
         public int sellValue;
+
+        public boolean attackPotion;
+        public boolean defensePotion;
+        public boolean dexPotion;
+        public boolean luckyClover;
         public String gearType;
 
         public ItemDefinition(String id, String name, String description,
@@ -52,6 +57,10 @@ public class ItemRegistry {
             this.buyValue = 1;
             this.sellValue = 1;
             this.gearType = null;
+            this.attackPotion = false;
+            this.defensePotion = false;
+            this.dexPotion = false;
+            this.luckyClover = false;
         }
 
         public ItemDefinition setDamage(int damage) {
@@ -76,6 +85,26 @@ public class ItemRegistry {
 
         public ItemDefinition setHealthRestore(int healthRestore) {
             this.healthRestore = healthRestore;
+            return this;
+        }
+
+        public ItemDefinition setAttackPotion(boolean attackPotion) {
+            this.attackPotion = attackPotion;
+            return this;
+        }
+
+        public ItemDefinition setDefensePotion(boolean defensePotion) {
+            this.defensePotion = defensePotion;
+            return this;
+        }
+
+        public ItemDefinition setDexPotion(boolean dexPotion) {
+            this.dexPotion = dexPotion;
+            return this;
+        }
+
+        public ItemDefinition setLuckyClover(boolean luckyClover) {
+            this.luckyClover = luckyClover;
             return this;
         }
 
@@ -441,29 +470,65 @@ public class ItemRegistry {
         registerItem(new ItemDefinition(
                 "health_potion",
                 "Health Potion",
-                "Restores 50 health",
+                "Restores health",
                 Item.ItemType.CONSUMABLE,
                 "icons/items/HealthPotion.png",
                 "icons/items/HealthPotion.png"
-        ).setHealthRestore(50).setValues(40, 15));
+        ).setHealthRestore(150).setValues(40, 15));
 
         registerItem(new ItemDefinition(
                 "small_health_potion",
                 "Small Health Potion",
-                "Restores 25 health",
+                "Restores small health",
                 Item.ItemType.CONSUMABLE,
-                "icons/items/HealthPotion.png",
-                "icons/items/HealthPotion.png"
-        ).setHealthRestore(25).setValues(20, 8));
+                "icons/items/SmolHealthPotion.png",
+                "icons/items/SmolHealthPotion.png"
+        ).setHealthRestore(75).setValues(20, 8));
 
         registerItem(new ItemDefinition(
                 "large_health_potion",
                 "Large Health Potion",
-                "Restores 100 health",
+                "Restores big health",
                 Item.ItemType.CONSUMABLE,
-                "icons/items/HealthPotion.png",
-                "icons/items/HealthPotion.png"
-        ).setHealthRestore(100).setValues(80, 30));
+                "icons/items/BigHealthPotion.png",
+                "icons/items/BigHealthPotion.png"
+        ).setHealthRestore(300).setValues(80, 30));
+
+        registerItem(new ItemDefinition(
+                "attack_potion",
+                "Attack Potion",
+                "Big strong",
+                Item.ItemType.CONSUMABLE,
+                "icons/items/AttackPotion.png",
+                "icons/items/AttackPotion.png"
+        ).setAttackPotion(true).setValues(150, 75));
+
+        registerItem(new ItemDefinition(
+                "dex_potion",
+                "Dex Potion",
+                "Big fast",
+                Item.ItemType.CONSUMABLE,
+                "icons/items/DexPotion.png",
+                "icons/items/DexPotion.png"
+        ).setDexPotion(true).setValues(150, 75));
+
+        registerItem(new ItemDefinition(
+                "defense_potion",
+                "Defense Potion",
+                "Big tank",
+                Item.ItemType.CONSUMABLE,
+                "icons/items/DefensePotion.png",
+                "icons/items/DefensePotion.png"
+        ).setDefensePotion(true).setValues(150, 75));
+
+        registerItem(new ItemDefinition(
+                "lucky_clover",
+                "Lucky Clover",
+                "Good luck",
+                Item.ItemType.CONSUMABLE,
+                "icons/items/Clover.png",
+                "icons/items/Clover.png"
+        ).setLuckyClover(true).setValues(300, 200));
 
         // ===== COINS =====
         registerItem(new ItemDefinition(

@@ -64,6 +64,16 @@ public class Storage {
         assetManager.load("icons/items/Coin.png", Texture.class);
         assetManager.load("icons/items/PileOfCoins.png", Texture.class);
         assetManager.load("icons/items/HealthPotion.png", Texture.class);
+        assetManager.load("icons/items/BigHealthPotion.png", Texture.class);
+        assetManager.load("icons/items/SmolHealthPotion.png", Texture.class);
+        assetManager.load("icons/items/AttackPotion.png", Texture.class);
+        assetManager.load("icons/items/DefensePotion.png", Texture.class);
+        assetManager.load("icons/items/DexPotion.png", Texture.class);
+        assetManager.load("icons/items/Clover.png", Texture.class);
+        assetManager.load("icons/items/AttackBuff.png", Texture.class);
+        assetManager.load("icons/items/DefenseBuff.png", Texture.class);
+        assetManager.load("icons/items/DexBuff.png", Texture.class);
+        assetManager.load("icons/items/LuckBuff.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         assetManager.load("icons/gear/ironHelmet.png", Texture.class);

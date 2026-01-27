@@ -23,10 +23,16 @@ public class LootTableRegistry {
 
     private void registerDefaultLootTables() {
         LootTable basicEnemy = new LootTable()
-                .setGuaranteedCoins(1) // Always drops 1 coin
-                .addDrop("coin", 0.3f, 1, 2)
-                .addDrop(Item.ItemType.CONSUMABLE, "small_health_potion", 0.15f)
-                .addDrop(Item.ItemType.CONSUMABLE, "health_potion", 0.05f);
+                .setGuaranteedCoins(1)
+                .addDrop("coin", 0.3f, 1, 1)
+                .addDrop(Item.ItemType.CONSUMABLE, "small_health_potion", 1f)
+                .addDrop(Item.ItemType.CONSUMABLE, "health_potion", 1f)
+                .addDrop(Item.ItemType.CONSUMABLE, "large_health_potion", 1f)
+                .addDrop(Item.ItemType.CONSUMABLE, "attack_potion", 1f)
+                .addDrop(Item.ItemType.CONSUMABLE, "defense_potion", 1f)
+                .addDrop(Item.ItemType.CONSUMABLE, "dex_potion", 1f)
+                .addDrop(Item.ItemType.CONSUMABLE, "lucky_clover", 1f)
+                .addDrop(Item.ItemType.CONSUMABLE, "coin_pile", 1f);
         registerLootTable("basic_enemy", basicEnemy);
 
         LootTable rangedEnemy = new LootTable()
