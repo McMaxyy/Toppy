@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import abilities.StatusEffectRenderer;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -85,8 +86,8 @@ public class GameProj implements Screen, ContactListener {
     private LootTableRegistry lootTableRegistry;
     private Settings settings;
     private boolean isPaused = false;
+    private float statusEffectTimer = 0f;
 
-    // Merchant system
     private Merchant merchant;
     private MerchantShop merchantShop;
     private boolean merchantShopOpen = false;
@@ -814,6 +815,11 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        if (delta > 0) {
+            statusEffectTimer += delta;
+        }
+        StatusEffectRenderer.render(batch, statusEffects, statusEffectTimer);
+
         player.render(batch, PLAYER_TILE_SIZE);
         player.renderAbilityEffects(batch);
 
@@ -906,6 +912,11 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        if (delta > 0) {
+            statusEffectTimer += delta;
+        }
+        StatusEffectRenderer.render(batch, statusEffects, statusEffectTimer);
+
         player.render(batch, PLAYER_TILE_SIZE);
         player.renderAbilityEffects(batch);
 
@@ -974,6 +985,11 @@ public class GameProj implements Screen, ContactListener {
                 return;
             }
         }
+
+        if (delta > 0) {
+            statusEffectTimer += delta;
+        }
+        StatusEffectRenderer.render(batch, statusEffects, statusEffectTimer);
 
         player.render(batch, PLAYER_TILE_SIZE);
         player.renderAbilityEffects(batch);

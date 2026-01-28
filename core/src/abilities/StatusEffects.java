@@ -1,19 +1,15 @@
 package abilities;
 
+import com.badlogic.gdx.graphics.Texture;
+import config.Storage;
 import entities.Player;
 import entities.Enemy;
 import entities.DungeonEnemy;
 import entities.BossKitty;
+import entities.Cyclops;
 
-/**
- * All status effect implementations in one file.
- * Abstract wrapper class with all effects as package-private.
- */
 public abstract class StatusEffects {}
 
-/**
- * Bubble Shield - blocks all incoming damage for duration
- */
 class BubbleShieldEffect extends StatusEffect {
     private Player player;
     private boolean wasInvulnerable;
@@ -27,46 +23,46 @@ class BubbleShieldEffect extends StatusEffect {
     public void onApply() {
         wasInvulnerable = player.isInvulnerable();
         player.setInvulnerable(true);
-        System.out.println("Bubble Shield activated! Duration: " + duration + " seconds");
     }
 
     @Override
     public void onUpdate(float delta) {
         // Keep player invulnerable while active
-        // The base StatusEffect class handles the duration countdown
     }
 
     @Override
     public void onExpire() {
-        // Only remove invulnerability if it wasn't set before the bubble
         if (!wasInvulnerable) {
             player.setInvulnerable(false);
         }
-        System.out.println("Bubble Shield expired!");
     }
 }
 
-/**
- * Bleed effect - deals damage over time
- */
 class BleedEffect extends StatusEffect {
-    private Object target; // Can be Enemy, DungeonEnemy, or BossKitty
+    private Object target;
     private int damagePerTick;
     private float tickInterval;
     private float tickTimer;
+    private static Texture bleedIcon;
 
     public BleedEffect(Object target, float duration, int damagePerTick) {
         super("Bleeding", duration, EffectType.DOT);
         this.target = target;
         this.damagePerTick = damagePerTick;
-        this.tickInterval = 0.5f; // Damage every 0.5 seconds
+        this.tickInterval = 0.5f;
         this.tickTimer = 0f;
+
+        if (bleedIcon == null) {
+            try {
+                bleedIcon = Storage.assetManager.get("icons/effects/Bleed.png", Texture.class);
+            } catch (Exception e) {
+                bleedIcon = null;
+            }
+        }
     }
 
     @Override
     public void onApply() {
-        System.out.println("Target is bleeding! Will take " + damagePerTick + " damage every " +
-                tickInterval + " seconds for " + duration + " seconds");
     }
 
     @Override
@@ -74,79 +70,163 @@ class BleedEffect extends StatusEffect {
         tickTimer += delta;
 
         if (tickTimer >= tickInterval) {
-            // Deal damage based on target type
             if (target instanceof Enemy) {
                 ((Enemy) target).takeDamage(damagePerTick);
             } else if (target instanceof DungeonEnemy) {
                 ((DungeonEnemy) target).takeDamage(damagePerTick);
             } else if (target instanceof BossKitty) {
                 ((BossKitty) target).takeDamage(damagePerTick);
+            } else if (target instanceof Cyclops) {
+                ((Cyclops) target).takeDamage(damagePerTick);
             }
 
             tickTimer = 0f;
-            System.out.println("Bleed tick! Remaining: " + getTimeRemaining() + "s");
         }
     }
 
     @Override
     public void onExpire() {
-        System.out.println("Bleeding stopped!");
+    }
+
+    public Object getTarget() {
+        return target;
+    }
+
+    public static Texture getIcon() {
+        return bleedIcon;
     }
 }
 
-/**
- * Stun effect - prevents enemy movement
- */
 class StunEffect extends StatusEffect {
     private Object target;
-    private com.badlogic.gdx.math.Vector2 originalVelocity;
-    private boolean velocitySaved = false;
+    private static Texture stunIcon;
 
     public StunEffect(Object target, float duration) {
         super("Stunned", duration, EffectType.CROWD_CONTROL);
         this.target = target;
+
+        if (stunIcon == null) {
+            try {
+                stunIcon = Storage.assetManager.get("icons/effects/Stunned.png", Texture.class);
+            } catch (Exception e) {
+                stunIcon = null;
+            }
+        }
     }
 
     @Override
     public void onApply() {
-        // Save and stop velocity
-        if (target instanceof Enemy && ((Enemy) target).getBody() != null) {
-            originalVelocity = new com.badlogic.gdx.math.Vector2(
-                    ((Enemy) target).getBody().getLinearVelocity()
-            );
-            ((Enemy) target).getBody().setLinearVelocity(0, 0);
-            velocitySaved = true;
-        } else if (target instanceof DungeonEnemy && ((DungeonEnemy) target).getBody() != null) {
-            originalVelocity = new com.badlogic.gdx.math.Vector2(
-                    ((DungeonEnemy) target).getBody().getLinearVelocity()
-            );
-            ((DungeonEnemy) target).getBody().setLinearVelocity(0, 0);
-            velocitySaved = true;
-        } else if (target instanceof BossKitty && ((BossKitty) target).getBody() != null) {
-            originalVelocity = new com.badlogic.gdx.math.Vector2(
-                    ((BossKitty) target).getBody().getLinearVelocity()
-            );
-            ((BossKitty) target).getBody().setLinearVelocity(0, 0);
-            velocitySaved = true;
+        if (target instanceof Enemy) {
+            ((Enemy) target).setStunned(true);
+        } else if (target instanceof DungeonEnemy) {
+            ((DungeonEnemy) target).setStunned(true);
+        } else if (target instanceof BossKitty) {
+            ((BossKitty) target).setStunned(true);
+        } else if (target instanceof Cyclops) {
+            ((Cyclops) target).setStunned(true);
         }
-        System.out.println("Target is stunned for " + duration + " seconds!");
+
+        if (target instanceof Enemy && ((Enemy) target).getBody() != null) {
+            ((Enemy) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof DungeonEnemy && ((DungeonEnemy) target).getBody() != null) {
+            ((DungeonEnemy) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof BossKitty && ((BossKitty) target).getBody() != null) {
+            ((BossKitty) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof Cyclops && ((Cyclops) target).getBody() != null) {
+            ((Cyclops) target).getBody().setLinearVelocity(0, 0);
+        }
     }
 
     @Override
     public void onUpdate(float delta) {
-        // Keep velocity at 0
         if (target instanceof Enemy && ((Enemy) target).getBody() != null) {
             ((Enemy) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof DungeonEnemy && ((DungeonEnemy) target).getBody() != null) {
             ((DungeonEnemy) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof BossKitty && ((BossKitty) target).getBody() != null) {
             ((BossKitty) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof Cyclops && ((Cyclops) target).getBody() != null) {
+            ((Cyclops) target).getBody().setLinearVelocity(0, 0);
         }
     }
 
     @Override
     public void onExpire() {
-        System.out.println("Stun expired!");
-        // Velocity will naturally resume when enemy AI updates
+        if (target instanceof Enemy) {
+            ((Enemy) target).setStunned(false);
+        } else if (target instanceof DungeonEnemy) {
+            ((DungeonEnemy) target).setStunned(false);
+        } else if (target instanceof BossKitty) {
+            ((BossKitty) target).setStunned(false);
+        } else if (target instanceof Cyclops) {
+            ((Cyclops) target).setStunned(false);
+        }
+    }
+
+    public Object getTarget() {
+        return target;
+    }
+
+    public static Texture getIcon() {
+        return stunIcon;
+    }
+}
+
+class ConsecratedEffect extends StatusEffect {
+    private Object target;
+    private int damage;
+    private boolean damageDealt = false;
+    private static Texture consecratedIcon;
+    private float pulseTimer = 0f;
+
+    public ConsecratedEffect(Object target, float duration, int damage) {
+        super("Consecrated", duration, EffectType.DEBUFF);
+        this.target = target;
+        this.damage = damage;
+
+        if (consecratedIcon == null) {
+            try {
+                consecratedIcon = Storage.assetManager.get("icons/effects/Consecrated.png", Texture.class);
+            } catch (Exception e) {
+                consecratedIcon = null;
+            }
+        }
+    }
+
+    @Override
+    public void onApply() {
+    }
+
+    @Override
+    public void onUpdate(float delta) {
+        pulseTimer += delta;
+    }
+
+    @Override
+    public void onExpire() {
+        if (!damageDealt) {
+            if (target instanceof Enemy && !((Enemy) target).isMarkedForRemoval()) {
+                ((Enemy) target).takeDamage(damage);
+            } else if (target instanceof DungeonEnemy && !((DungeonEnemy) target).isMarkedForRemoval()) {
+                ((DungeonEnemy) target).takeDamage(damage);
+            } else if (target instanceof BossKitty && !((BossKitty) target).isMarkedForRemoval()) {
+                ((BossKitty) target).takeDamage(damage);
+            } else if (target instanceof Cyclops && !((Cyclops) target).isMarkedForRemoval()) {
+                ((Cyclops) target).takeDamage(damage);
+            }
+            damageDealt = true;
+        }
+    }
+
+    public Object getTarget() {
+        return target;
+    }
+
+    public float getPulseTimer() {
+        return pulseTimer;
+    }
+
+    public static Texture getIcon() {
+        return consecratedIcon;
     }
 }

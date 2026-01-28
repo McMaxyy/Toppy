@@ -67,7 +67,6 @@ public class AbilityManager {
 
         this.activeVisuals = new ArrayList<>();
 
-        // Initialize abilities based on player class
         if (playerClass == PlayerClass.PALADIN) {
             initializePaladinAbilities();
         } else {
@@ -75,14 +74,6 @@ public class AbilityManager {
         }
     }
 
-    // Legacy constructor for backward compatibility
-    public AbilityManager(Player player, GameProj gameProj) {
-        this(player, gameProj, PlayerClass.MERCENARY);
-    }
-
-    /**
-     * Initialize the 5 Mercenary abilities
-     */
     private void initializeMercenaryAbilities() {
         abilities[0] = new ChargeAbility(Storage.assetManager.get("icons/abilities/Charge.png", Texture.class));
         abilities[1] = new DoubleSwingAbility(Storage.assetManager.get("icons/abilities/DoubleSwing.png", Texture.class));
@@ -91,39 +82,29 @@ public class AbilityManager {
         abilities[4] = new PrayerAbility(Storage.assetManager.get("icons/abilities/Prayer.png", Texture.class));
     }
 
-    /**
-     * Initialize the 5 Paladin abilities
-     */
     private void initializePaladinAbilities() {
         abilities[0] = new PaladinBlinkAbility(Storage.assetManager.get("icons/abilities/Blink.png", Texture.class));
-        abilities[1] = new PaladinBubbleAbility(Storage.assetManager.get("icons/abilities/Bubble.png", Texture.class));
+        abilities[1] = new ConsecratedGroundAbility(Storage.assetManager.get("icons/abilities/ConsecratedGround.png", Texture.class));
         abilities[2] = new PullAbility(Storage.assetManager.get("icons/abilities/Pull.png", Texture.class));
         abilities[3] = new SmiteAbility(Storage.assetManager.get("icons/abilities/Smite.png", Texture.class));
         abilities[4] = new PaladinPrayerAbility(Storage.assetManager.get("icons/abilities/Prayer.png", Texture.class));
     }
 
-    /**
-     * Update all abilities and status effects
-     */
     public void update(float delta) {
-        // Update ability cooldowns
         for (Ability ability : abilities) {
             if (ability != null) {
                 ability.update(delta);
             }
         }
 
-        // Update offhand cooldown
         if (offhandCooldown > 0) {
             offhandCooldown -= delta;
         }
 
-        // Update sword cooldown (for Paladin)
         if (swordCooldown > 0) {
             swordCooldown -= delta;
         }
 
-        // Update all status effects
         for (Map.Entry<Object, List<StatusEffect>> entry : new HashMap<>(activeEffects).entrySet()) {
             List<StatusEffect> effects = entry.getValue();
             List<StatusEffect> toRemove = new ArrayList<>();
@@ -137,19 +118,14 @@ public class AbilityManager {
 
             effects.removeAll(toRemove);
 
-            // Remove empty lists
             if (effects.isEmpty()) {
                 activeEffects.remove(entry.getKey());
             }
         }
 
-        // Update visual effects
         updateVisualEffects(delta);
     }
 
-    /**
-     * Update all visual effects
-     */
     private void updateVisualEffects(float delta) {
         // Update all visuals and remove inactive ones
         for (int i = activeVisuals.size() - 1; i >= 0; i--) {
@@ -162,9 +138,6 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Handle ability input (keys 1-5, RMB, LMB for Paladin)
-     */
     public void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             useAbility(0);
@@ -178,7 +151,6 @@ public class AbilityManager {
             useAbility(4);
         }
 
-        // Check RMB for offhand attack
         if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
             useOffhandAttack();
         }

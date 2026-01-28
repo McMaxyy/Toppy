@@ -22,6 +22,7 @@ public class Cyclops {
     private boolean isMoving = false;
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
+    private boolean isStunned = false;
 
     private EnemyStats stats;
     private Texture healthBarTexture;
@@ -93,6 +94,16 @@ public class Cyclops {
 
     public void update(float delta) {
         if (markForRemoval) {
+            return;
+        }
+
+        if (isStunned) {
+            body.setLinearVelocity(0, 0);
+            if (getAnimationManager().getState("Cyclops") != State.IDLE) {
+                getAnimationManager().setState(State.IDLE, "Cyclops");
+            }
+            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
+                    body.getPosition().y - bounds.height / 2f);
             return;
         }
 
@@ -622,4 +633,13 @@ public class Cyclops {
     public AnimationManager getAnimationManager() {
         return animationManager;
     }
+
+    public void setStunned(boolean stunned) {
+        this.isStunned = stunned;
+        if (stunned && body != null) {
+            body.setLinearVelocity(0, 0);
+        }
+    }
+
+    public boolean isStunned() { return isStunned; }
 }

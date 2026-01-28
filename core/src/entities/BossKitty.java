@@ -23,6 +23,7 @@ public class BossKitty {
     private boolean isMoving = false;
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
+    private boolean isStunned = false;
 
     private EnemyStats stats;
     private Texture healthBarTexture;
@@ -107,6 +108,16 @@ public class BossKitty {
 
     public void update(float delta) {
         if (markForRemoval) {
+            return;
+        }
+
+        if (isStunned) {
+            body.setLinearVelocity(0, 0);
+            if (getAnimationManager().getState("BossKitty") != State.IDLE) {
+                getAnimationManager().setState(State.IDLE, "BossKitty");
+            }
+            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
+                    body.getPosition().y - bounds.height / 2f);
             return;
         }
 
@@ -590,4 +601,12 @@ public class BossKitty {
     public AnimationManager getAnimationManager() {
         return animationManager;
     }
+    public void setStunned(boolean stunned) {
+        this.isStunned = stunned;
+        if (stunned && body != null) {
+            body.setLinearVelocity(0, 0);
+        }
+    }
+
+    public boolean isStunned() { return isStunned; }
 }

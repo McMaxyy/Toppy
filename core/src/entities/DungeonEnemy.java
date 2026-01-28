@@ -25,6 +25,7 @@ public class DungeonEnemy {
     private final float detectionRadius = 100f;
     private boolean hasDetected = false;
     private final float speed = 70f;
+    private boolean isStunned = false;
     private boolean markForRemoval = false;
     private boolean isMoving = false;
     private final AnimationManager animationManager;
@@ -149,6 +150,17 @@ public class DungeonEnemy {
 
     public void update(float delta) {
         if (markForRemoval) {
+            return;
+        }
+
+        if (isStunned) {
+            body.setLinearVelocity(0, 0);
+            if (currentState != State.IDLE) {
+                setState(State.IDLE);
+            }
+            animationTime += delta;
+            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
+                    body.getPosition().y - bounds.height / 2f);
             return;
         }
 
@@ -607,7 +619,15 @@ public class DungeonEnemy {
         return distance <= detectionRadius;
     }
 
+    public void setStunned(boolean stunned) {
+        this.isStunned = stunned;
+        if (stunned && body != null) {
+            body.setLinearVelocity(0, 0);
+        }
+    }
+
     public List<Projectile> getProjectiles() {
         return projectiles;
     }
+    public boolean isStunned() { return isStunned; }
 }

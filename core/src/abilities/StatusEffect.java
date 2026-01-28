@@ -1,13 +1,5 @@
 package abilities;
 
-import entities.Enemy;
-import entities.DungeonEnemy;
-import entities.BossKitty;
-import entities.Player;
-
-/**
- * Base class for status effects (buffs, debuffs, etc.)
- */
 public abstract class StatusEffect {
     protected String name;
     protected float duration;
@@ -16,10 +8,10 @@ public abstract class StatusEffect {
     protected EffectType type;
 
     public enum EffectType {
-        BUFF,       // Positive effect on player
-        DEBUFF,     // Negative effect on enemy
-        CROWD_CONTROL, // Stun, slow, etc.
-        DOT         // Damage over time
+        BUFF,
+        DEBUFF,
+        CROWD_CONTROL,
+        DOT
     }
 
     public StatusEffect(String name, float duration, EffectType type) {
@@ -30,16 +22,11 @@ public abstract class StatusEffect {
         this.isActive = true;
     }
 
-    /**
-     * Update the effect (called every frame)
-     * @return true if effect should continue, false if it should be removed
-     */
     public boolean update(float delta) {
         if (!isActive) return false;
 
         elapsed += delta;
 
-        // Call the update logic for the specific effect
         onUpdate(delta);
 
         if (elapsed >= duration) {
@@ -51,19 +38,10 @@ public abstract class StatusEffect {
         return true;
     }
 
-    /**
-     * Called when the effect is applied
-     */
     public abstract void onApply();
 
-    /**
-     * Called every frame while active
-     */
     public abstract void onUpdate(float delta);
 
-    /**
-     * Called when the effect expires
-     */
     public abstract void onExpire();
 
     public boolean isExpired() {

@@ -4,11 +4,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
-import config.Storage;
 import entities.*;
 import game.GameProj;
 import managers.Chunk;
-import managers.Dungeon;
 import managers.SoundManager;
 
 import java.util.ArrayList;
@@ -201,7 +199,6 @@ class PullAbility extends Ability {
             }
         }
 
-        // Pull dungeon enemies
         if (currentGameProj.getCurrentDungeon() != null) {
             for (DungeonEnemy enemy : new ArrayList<>(currentGameProj.getCurrentDungeon().getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -238,7 +235,6 @@ class PullAbility extends Ability {
             }
         }
 
-        // Pull boss room bosses
         if (currentGameProj.getCurrentBossRoom() != null) {
             BossKitty bossRoomBoss = currentGameProj.getCurrentBossRoom().getBoss();
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
@@ -325,7 +321,6 @@ class SmiteAbility extends Ability {
 
         Vector2 playerPos = player.getPosition();
 
-        // Create visual effect
         AbilityVisual.Smite smiteVisual = new AbilityVisual.Smite(player, SMITE_RADIUS, 0.5f);
         player.addAbilityVisual(smiteVisual);
 
@@ -341,29 +336,8 @@ class SmiteAbility extends Ability {
                     }
                 }
             }
-
-            for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
-                if (boss.getBody() != null) {
-                    float dist = playerPos.dst(boss.getBody().getPosition());
-                    if (dist < SMITE_RADIUS) {
-                        boss.takeDamage(damage + (player.getLevel() * 5));
-                        enemiesHit++;
-                    }
-                }
-            }
-
-            for (Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
-                if (cyclops.getBody() != null) {
-                    float dist = playerPos.dst(cyclops.getBody().getPosition());
-                    if (dist < SMITE_RADIUS) {
-                        cyclops.takeDamage(damage + (player.getLevel() * 5));
-                        enemiesHit++;
-                    }
-                }
-            }
         }
 
-        // Damage dungeon enemies
         if (gameProj.getCurrentDungeon() != null) {
             for (DungeonEnemy enemy : new ArrayList<>(gameProj.getCurrentDungeon().getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -376,7 +350,6 @@ class SmiteAbility extends Ability {
             }
         }
 
-        // Damage boss room bosses
         if (gameProj.getCurrentBossRoom() != null) {
             BossKitty bossRoomBoss = gameProj.getCurrentBossRoom().getBoss();
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
@@ -453,6 +426,88 @@ class PaladinPrayerAbility extends Ability {
         if (prayerVisual != null) {
             prayerVisual.dispose();
             prayerVisual = null;
+        }
+    }
+}
+
+class ConsecratedGroundAbility extends Ability {
+    private static final float CONSECRATE_RADIUS = 80f;
+    private static final float CONSECRATE_DELAY = 3.0f;
+    private static final int CONSECRATE_DAMAGE = 120;
+
+    public ConsecratedGroundAbility(Texture iconTexture) {
+        super(
+                "Consecrated Ground",
+                "Mark all enemies in range with holy light. After 3 seconds, they take massive damage.",
+                8.0f,
+                CONSECRATE_DAMAGE,
+                0f,
+                CONSECRATE_DELAY,
+                CONSECRATE_RADIUS,
+                AbilityType.DAMAGE,
+                iconTexture
+        );
+    }
+
+    @Override
+    protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Consecrate");
+
+        Vector2 playerPos = player.getPosition();
+
+        AbilityVisual.ConsecratedGround consecrateVisual = new AbilityVisual.ConsecratedGround(
+                player, CONSECRATE_RADIUS, CONSECRATE_DELAY
+        );
+        player.addAbilityVisual(consecrateVisual);
+
+        int scaledDamage = damage + (player.getLevel() * 10);
+
+        for (Chunk chunk : gameProj.getChunks().values()) {
+            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                if (enemy.getBody() != null) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < CONSECRATE_RADIUS) {
+                        ConsecratedEffect effect = new ConsecratedEffect(enemy, CONSECRATE_DELAY, scaledDamage);
+                        effect.onApply();
+                        gameProj.addStatusEffect(enemy, effect);
+                    }
+                }
+            }
+        }
+
+        if (gameProj.getCurrentDungeon() != null) {
+            for (DungeonEnemy enemy : new ArrayList<>(gameProj.getCurrentDungeon().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < CONSECRATE_RADIUS) {
+                        ConsecratedEffect effect = new ConsecratedEffect(enemy, CONSECRATE_DELAY, scaledDamage);
+                        effect.onApply();
+                        gameProj.addStatusEffect(enemy, effect);
+                    }
+                }
+            }
+        }
+
+        if (gameProj.getCurrentBossRoom() != null) {
+            BossKitty bossRoomBoss = gameProj.getCurrentBossRoom().getBoss();
+            if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
+                float dist = playerPos.dst(bossRoomBoss.getBody().getPosition());
+                if (dist < CONSECRATE_RADIUS) {
+                    ConsecratedEffect effect = new ConsecratedEffect(bossRoomBoss, CONSECRATE_DELAY, scaledDamage);
+                    effect.onApply();
+                    gameProj.addStatusEffect(bossRoomBoss, effect);
+                }
+            }
+
+            Cyclops cyclopsRoomBoss = gameProj.getCurrentBossRoom().getCyclops();
+            if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null) {
+                float dist = playerPos.dst(cyclopsRoomBoss.getBody().getPosition());
+                if (dist < CONSECRATE_RADIUS) {
+                    ConsecratedEffect effect = new ConsecratedEffect(cyclopsRoomBoss, CONSECRATE_DELAY, scaledDamage);
+                    effect.onApply();
+                    gameProj.addStatusEffect(cyclopsRoomBoss, effect);
+                }
+            }
         }
     }
 }

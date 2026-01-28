@@ -24,7 +24,7 @@ public class Enemy {
     private final Player player;
     private final float detectionRadius = 150f;
     private final float speed = 60f;
-    private float windupTimer = 0f;
+    private boolean isStunned = false;
     private boolean markForRemoval = false;
     private boolean isMoving = false;
     private final AnimationManager animationManager;
@@ -68,7 +68,6 @@ public class Enemy {
         this.healthBarTexture = Storage.assetManager.get("tiles/hpBar.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
 
-        // Set initial state
         this.currentState = State.IDLE;
         this.animationTime = 0f;
     }
@@ -88,9 +87,6 @@ public class Enemy {
         }
     }
 
-    /**
-     * Set animation state for this enemy instance
-     */
     private void setState(State newState) {
         if (currentState != newState) {
             currentState = newState;
@@ -98,9 +94,6 @@ public class Enemy {
         }
     }
 
-    /**
-     * Get current animation frame for this enemy instance
-     */
     private TextureRegion getCurrentFrame() {
         Animation<TextureRegion> animation = animationManager.getAnimationForState(enemyType, currentState);
         if (animation != null) {
@@ -111,9 +104,6 @@ public class Enemy {
         return null;
     }
 
-    /**
-     * Check if current animation is finished (for non-looping animations)
-     */
     private boolean isCurrentAnimationFinished() {
         Animation<TextureRegion> animation = animationManager.getAnimationForState(enemyType, currentState);
         if (animation != null) {
@@ -124,6 +114,17 @@ public class Enemy {
 
     public void update(float delta) {
         if (markForRemoval) {
+            return;
+        }
+
+        if (isStunned) {
+            body.setLinearVelocity(0, 0);
+            if (currentState != State.IDLE) {
+                setState(State.IDLE);
+            }
+            animationTime += delta;
+            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
+                    body.getPosition().y - bounds.height / 2f);
             return;
         }
 
@@ -151,14 +152,11 @@ public class Enemy {
             updateMovement(delta);
         }
 
-        // Update projectiles
         updateProjectiles(delta);
 
-        // Update position
         bounds.setPosition(body.getPosition().x - bounds.width / 2f,
                 body.getPosition().y - bounds.height / 2f);
 
-        // Update flip based on player position
         isFlipped = body.getPosition().x > player.getBody().getPosition().x;
     }
 
@@ -186,14 +184,11 @@ public class Enemy {
 
     private void updateAttack(float delta) {
         body.setLinearVelocity(0, 0);
-        windupTimer += delta;
 
-        // Show attack indicator during wind-up for melee enemies
         if (stats.getAttackType() == AttackType.MELEE || stats.getAttackType() == AttackType.CONAL) {
             updateAttackDirection();
         }
 
-        // Check if attack animation is finished
         boolean animationFinished = isCurrentAnimationFinished();
 
         if (animationFinished && !hasDealtDamage) {
@@ -201,7 +196,6 @@ public class Enemy {
             hasDealtDamage = true;
         }
 
-        // End attack after animation completes
         if (animationFinished) {
             endAttack();
         }
@@ -255,7 +249,6 @@ public class Enemy {
     }
 
     private void startAttack() {
-        windupTimer = 0f;
         isAttacking = true;
         hasDealtDamage = false;
         body.setLinearVelocity(0, 0);
@@ -506,6 +499,13 @@ public class Enemy {
         body.setLinearVelocity(direction.scl(speed));
     }
 
+    public void setStunned(boolean stunned) {
+        this.isStunned = stunned;
+        if (stunned && body != null) {
+            body.setLinearVelocity(0, 0);
+        }
+    }
+
     public AnimationManager getAnimationManager() {
         return animationManager;
     }
@@ -513,4 +513,5 @@ public class Enemy {
     public List<Projectile> getProjectiles() {
         return projectiles;
     }
+    public boolean isStunned() { return isStunned; }
 }

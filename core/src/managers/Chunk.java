@@ -451,8 +451,10 @@ public class Chunk {
 
     public void renderObstacles(SpriteBatch batch, float playerY, boolean renderBehind) {
         for (Obstacle obstacle : obstacles) {
-            if ((renderBehind && obstacle.bounds.y < playerY) ||
-                    (!renderBehind && obstacle.bounds.y > playerY)) {
+            float obstacleBaseY = obstacle.bounds.y + (obstacle.bounds.height * 0.15f);
+
+            if ((renderBehind && obstacleBaseY < playerY) ||
+                    (!renderBehind && obstacleBaseY > playerY)) {
                 batch.draw(obstacle.texture, obstacle.bounds.x, obstacle.bounds.y, obstacle.bounds.width, obstacle.bounds.height);
             }
         }

@@ -13,9 +13,6 @@ import entities.Player;
 import game.GameProj;
 import managers.CollisionFilter;
 
-/**
- * Abstract base class for all ability visual effects
- */
 public abstract class AbilityVisual {
     protected float duration;
     protected float timer;
@@ -41,9 +38,6 @@ public abstract class AbilityVisual {
         onUpdate(delta);
     }
 
-    /**
-     * Override for custom update logic
-     */
     protected void onUpdate(float delta) {}
 
     public abstract void render(SpriteBatch batch);
@@ -95,8 +89,6 @@ public abstract class AbilityVisual {
             Vector2 playerPos = player.getPosition();
 
             BodyDef bodyDef = new BodyDef();
-            // Use KinematicBody - it can move but isn't affected by forces,
-            // and will solidly block dynamic bodies (enemies)
             bodyDef.type = BodyDef.BodyType.KinematicBody;
             bodyDef.position.set(playerPos.x, playerPos.y);
             bodyDef.fixedRotation = true;
@@ -111,7 +103,7 @@ public abstract class AbilityVisual {
             fixtureDef.isSensor = false;
             fixtureDef.density = 1f;
             fixtureDef.friction = 0.8f;
-            fixtureDef.restitution = 1f; // High restitution to bounce enemies back
+            fixtureDef.restitution = 1f;
             fixtureDef.filter.categoryBits = CollisionFilter.ABILITY;
             fixtureDef.filter.maskBits = CollisionFilter.ENEMY | CollisionFilter.PROJECTILE;
 
@@ -205,9 +197,7 @@ public abstract class AbilityVisual {
 
         // Cone texture
         private static Texture coneTexture;
-        private static final int NUM_SEGMENTS = 8; // Number of segments to divide cone into
 
-        private static final float DEFAULT_RANGE = 25f;
         private static final float DEFAULT_CONE_ANGLE = 60f;
 
         public ConalAttack(Player player, GameProj gameProj, float duration, float range, Color color) {
@@ -231,23 +221,14 @@ public abstract class AbilityVisual {
             }
         }
 
-        /**
-         * Create static white indicator for other abilities
-         */
         public static ConalAttack createWhite(Player player, GameProj gameProj, float duration, float range) {
             return new ConalAttack(player, gameProj, duration, range, Color.WHITE);
         }
 
-        /**
-         * Create red indicator for Rend with custom range
-         */
         public static ConalAttack createRed(Player player, GameProj gameProj, float duration, float range) {
             return new ConalAttack(player, gameProj, duration, range, new Color(1f, 0.2f, 0.2f, 1f));
         }
 
-        /**
-         * Create golden indicator for Paladin sword attacks
-         */
         public static ConalAttack createGolden(Player player, GameProj gameProj, float duration, float range) {
             return new ConalAttack(player, gameProj, duration, range, new Color(1f, 0.85f, 0.2f, 1f));
         }
@@ -285,9 +266,6 @@ public abstract class AbilityVisual {
             }
         }
 
-        /**
-         * Render cone using texture (static, full cone)
-         */
         private void renderTexturedConeStatic(SpriteBatch batch, Vector2 playerPos, float facingAngle) {
             // Draw the full cone texture
             float coneWidth = range;
@@ -309,10 +287,6 @@ public abstract class AbilityVisual {
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
-
-        /**
-         * Render static cone (fallback line-based)
-         */
         private void renderStaticCone(SpriteBatch batch, Vector2 playerPos, float facingAngle) {
             batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.3f);
 
@@ -348,9 +322,6 @@ public abstract class AbilityVisual {
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
-        /**
-         * Set the cone texture (can be called to change texture at runtime)
-         */
         public static void setConeTexture(Texture texture) {
             coneTexture = texture;
         }
@@ -368,7 +339,6 @@ public abstract class AbilityVisual {
         private float fillProgress;
         private float fillSpeed;
 
-        // Cone texture
         private static Texture coneTexture;
         private static final int NUM_SEGMENTS = 8;
 
@@ -393,17 +363,11 @@ public abstract class AbilityVisual {
             }
         }
 
-        /**
-         * Update the position and facing angle (for moving enemies)
-         */
         public void updatePositionAndAngle(Vector2 newPosition, float newAngle) {
             this.position.set(newPosition);
             this.facingAngle = newAngle;
         }
 
-        /**
-         * Get current fill progress (0-1)
-         */
         public float getFillProgress() {
             return fillProgress;
         }
@@ -666,26 +630,32 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // PULL CIRCLE VISUAL - Shrinking circle for Pull ability
+    // PULL CIRCLE VISUAL - Shrinking texture circle for Pull ability
     // =========================================================================
     public static class PullCircle extends AbilityVisual {
         private Player player;
         private float maxRadius;
         private float currentRadius;
+        private Texture pullTexture;
 
         private static final int CIRCLE_SEGMENTS = 32;
-        private static final Color PULL_COLOR = new Color(0.6f, 0.3f, 1f, 1f); // Purple/divine color
+        private static final Color PULL_COLOR = new Color(0.6f, 0.3f, 1f, 1f);
 
         public PullCircle(Player player, float radius, float duration) {
             super(duration);
             this.player = player;
             this.maxRadius = radius;
             this.currentRadius = radius;
+
+            try {
+                pullTexture = Storage.assetManager.get("character/abilities/Pull.png", Texture.class);
+            } catch (Exception e) {
+                pullTexture = null;
+            }
         }
 
         @Override
         protected void onUpdate(float delta) {
-            // Shrink the circle over time
             float progress = timer / duration;
             currentRadius = maxRadius * (1f - progress);
         }
@@ -696,18 +666,25 @@ public abstract class AbilityVisual {
 
             Vector2 pos = player.getPosition();
             float progress = timer / duration;
-            float alpha = 0.6f * (1f - progress * 0.5f);
+            float alpha = 0.7f * (1f - progress * 0.3f);
 
-            // Draw outer circle (shrinking)
-            renderCircle(batch, pos, currentRadius, alpha, PULL_COLOR);
+            if (pullTexture != null) {
+                float size = currentRadius * 2f;
+                batch.setColor(1f, 1f, 1f, alpha);
+                batch.draw(pullTexture,
+                        pos.x - size / 2f,
+                        pos.y - size / 2f,
+                        size, size);
+                batch.setColor(1f, 1f, 1f, 0.3f);
+            } else {
+                renderCircle(batch, pos, currentRadius, alpha, PULL_COLOR);
 
-            // Draw inner glow
-            if (currentRadius > 10f) {
-                renderFilledCircle(batch, pos, currentRadius * 0.3f, alpha * 0.3f, PULL_COLOR);
+                if (currentRadius > 10f) {
+                    renderFilledCircle(batch, pos, currentRadius * 0.3f, alpha * 0.3f, PULL_COLOR);
+                }
+
+                renderPullLines(batch, pos, currentRadius, alpha);
             }
-
-            // Draw radial lines (pull effect)
-            renderPullLines(batch, pos, currentRadius, alpha);
         }
 
         private void renderCircle(SpriteBatch batch, Vector2 center, float radius, float alpha, Color color) {
@@ -757,7 +734,7 @@ public abstract class AbilityVisual {
             float angleStep = 360f / numLines;
 
             for (int i = 0; i < numLines; i++) {
-                float angle = i * angleStep + (timer * 180f); // Rotate over time
+                float angle = i * angleStep + (timer * 180f);
                 float rad = (float) Math.toRadians(angle);
 
                 float innerRadius = radius * 0.2f;
@@ -870,6 +847,37 @@ public abstract class AbilityVisual {
             }
 
             batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // CONSECRATED GROUND VISUAL - Holy AOE with delayed damage
+    // =========================================================================
+    public static class ConsecratedGround extends AbilityVisual {
+        private Vector2 position;
+        private Texture texture;
+        private float radius;
+
+        private static final float VISUAL_DURATION = 0.5f;
+
+        public ConsecratedGround(Player player, float radius, float delay) {
+            super(VISUAL_DURATION);
+            this.position = new Vector2(player.getPosition());
+            this.radius = radius;
+
+            try {
+                this.texture = Storage.assetManager.get("character/abilities/Consecrate.png", Texture.class);
+            } catch (Exception e) {
+                this.texture = null;
+            }
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active || texture == null) return;
+
+            float size = radius * 2f;
+            batch.draw(texture, position.x - size / 2f, position.y - size / 2f, size, size);
         }
     }
 }

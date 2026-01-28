@@ -75,6 +75,10 @@ public class Storage {
         assetManager.load("icons/items/DexBuff.png", Texture.class);
         assetManager.load("icons/items/LuckBuff.png", Texture.class);
 
+        assetManager.load("icons/effects/Bleed.png", Texture.class);
+        assetManager.load("icons/effects/Stunned.png", Texture.class);
+        assetManager.load("icons/effects/Consecrated.png", Texture.class);
+
         assetManager.load("character/Spear.png", Texture.class);
         assetManager.load("icons/gear/ironHelmet.png", Texture.class);
         assetManager.load("icons/gear/ironChest.png", Texture.class);
@@ -92,6 +96,7 @@ public class Storage {
         assetManager.load("icons/abilities/Rend.png", Texture.class);
         assetManager.load("icons/abilities/Smite.png", Texture.class);
         assetManager.load("icons/abilities/Pull.png", Texture.class);
+        assetManager.load("icons/abilities/ConsecratedGround.png", Texture.class);
 
         assetManager.load("icons/abilities/Cone.png", Texture.class);
 
@@ -111,6 +116,8 @@ public class Storage {
         assetManager.load("character/abilities/Bubble.png", Texture.class);
         assetManager.load("character/abilities/Prayer.png", Texture.class);
         assetManager.load("character/abilities/Smite.png", Texture.class);
+        assetManager.load("character/abilities/Pull.png", Texture.class);
+        assetManager.load("character/abilities/Consecrate.png", Texture.class);
         
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
