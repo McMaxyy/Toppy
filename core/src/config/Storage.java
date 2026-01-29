@@ -78,6 +78,8 @@ public class Storage {
         assetManager.load("icons/effects/Bleed.png", Texture.class);
         assetManager.load("icons/effects/Stunned.png", Texture.class);
         assetManager.load("icons/effects/Consecrated.png", Texture.class);
+        assetManager.load("icons/effects/Fireball.png", Texture.class);
+        assetManager.load("icons/effects/PoisonBall.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         assetManager.load("icons/gear/ironHelmet.png", Texture.class);
@@ -131,6 +133,10 @@ public class Storage {
         assetManager.load("enemies/SkeletonRogue/Walking.png", Texture.class);
         assetManager.load("enemies/SkeletonRogue/Idle.png", Texture.class);
         assetManager.load("enemies/SkeletonRogue/Attacking.png", Texture.class);
+
+        assetManager.load("enemies/SkeletonMage/Walking.png", Texture.class);
+        assetManager.load("enemies/SkeletonMage/Idle.png", Texture.class);
+        assetManager.load("enemies/SkeletonMage/Attacking.png", Texture.class);
 
         assetManager.load("enemies/Wolfie/Walking.png", Texture.class);
         assetManager.load("enemies/Wolfie/Idle.png", Texture.class);

@@ -21,7 +21,7 @@ public class SoundManager implements Disposable {
     private Map<String, Sound> soundEffects;
 
     // Volume settings
-    private float musicVolume = 0.7f;
+    private float musicVolume = 0.0f;
     private float sfxVolume = 0.3f;
     private boolean musicEnabled = true;
     private boolean sfxEnabled = true;
@@ -142,7 +142,6 @@ public class SoundManager implements Disposable {
         if (currentMusic != null) {
             currentMusic.stop();
             currentMusic = null;
-            currentMusicKey = null;
         }
     }
 
@@ -288,8 +287,12 @@ public class SoundManager implements Disposable {
 
     public void toggleMusic() {
         setMusicEnabled(!musicEnabled);
-        if (musicEnabled && currentMusicKey != null) {
-            playMusic(currentMusicKey);
+        if (musicEnabled) {
+            if (currentMusicKey != null) {
+                playMusic(currentMusicKey);
+            } else {
+                playForestMusic();
+            }
         }
     }
 

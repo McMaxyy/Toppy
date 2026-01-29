@@ -183,7 +183,7 @@ public class EnemyStats {
                     1.0f,
                     0f,
                     0f,
-                    80f,
+                    90f,
                     0f
             );
         }
@@ -244,6 +244,26 @@ public class EnemyStats {
                     0f,
                     0f,
                     0f,
+                    0f
+            );
+        }
+
+        public static EnemyStats createSkeletonMageEnemy(int level) {
+            return new EnemyStats(
+                    "Skeleton Mage",
+                    30 + (level * 12),
+                    15 + (level * 6),
+                    1 + level,
+                    18 + (level * 12),
+                    level,
+                    AttackType.RANGED,
+                    "dungeon_enemy",
+                    2f,
+                    150f,
+                    1.0f,
+                    0f,
+                    0f,
+                    130f,
                     0f
             );
         }

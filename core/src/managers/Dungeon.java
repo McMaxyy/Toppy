@@ -46,6 +46,8 @@ public class Dungeon {
     private static final int WALL = 0;
     private static final int BOSS_PORTAL = 2;
 
+    private List<Room> generatedRooms;
+
     private Texture wallTexture;
     private Texture floorTexture;
     private Texture exitTexture;
@@ -81,21 +83,18 @@ public class Dungeon {
         loadTextures();
         generateDungeon(random);
         createWalls();
-        spawnEnemies(random);
+        spawnEnemies(random, generatedRooms);
     }
 
     private void loadTextures() {
-        // Load wall sprite sheet
         wallTexture = Storage.assetManager.get("tiles/wallSprite2.png", Texture.class);
         wallTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
-        // Split the sprite sheet - now 15 tiles horizontally (0-14)
         int tileWidth = wallTexture.getWidth() / 15;
         int tileHeight = wallTexture.getHeight();
 
         TextureRegion[][] wallFrames = TextureRegion.split(wallTexture, tileWidth, tileHeight);
 
-        // Extract each wall type from the sprite sheet
         wallSingleTexture = wallFrames[0][0];
         wallHorizontalTexture = wallFrames[0][1];
         wallVerticalTexture = wallFrames[0][2];
@@ -107,8 +106,6 @@ public class Dungeon {
         wallEndBTexture = wallFrames[0][8];
         wallEndLTexture = wallFrames[0][9];
         wallEndRTexture = wallFrames[0][10];
-
-        // T-junction textures
         wallTJunctionTTexture = wallFrames[0][11];
         wallTJunctionRTexture = wallFrames[0][12];
         wallTJunctionBTexture = wallFrames[0][13];
@@ -119,7 +116,6 @@ public class Dungeon {
     }
 
     private void generateDungeon(Random random) {
-        // Initialize all tiles as walls
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 tiles[x][y] = WALL;
@@ -172,6 +168,9 @@ public class Dungeon {
             Room furthestRoom = findFurthestRoom(rooms);
             placeBossPortal(furthestRoom);
         }
+
+        // Store rooms for enemy spawning
+        this.generatedRooms = rooms;
     }
 
     private void placeBossPortal(Room room) {
@@ -283,7 +282,6 @@ public class Dungeon {
         int edgeWallCount = (hasWallUp ? 1 : 0) + (hasWallDown ? 1 : 0) +
                 (hasWallLeft ? 1 : 0) + (hasWallRight ? 1 : 0);
 
-        // === T-JUNCTIONS ===
         if (edgeWallCount == 3) {
             if (hasWallLeft && hasWallRight && hasWallDown) return wallTJunctionTTexture;
             if (hasWallUp && hasWallDown && hasWallLeft) return wallTJunctionRTexture;
@@ -291,23 +289,19 @@ public class Dungeon {
             if (hasWallUp && hasWallDown && hasWallRight) return wallTJunctionLTexture;
         }
 
-        // === CORNERS ===
         if (hasWallDown && hasWallRight) return wallCornerTLTexture;
         if (hasWallDown && hasWallLeft) return wallCornerTRTexture;
         if (hasWallUp && hasWallRight) return wallCornerBLTexture;
         if (hasWallUp && hasWallLeft) return wallCornerBRTexture;
 
-        // === STRAIGHT WALLS ===
         if (hasWallLeft && hasWallRight) return wallHorizontalTexture;
         if (hasWallUp && hasWallDown) return wallVerticalTexture;
 
-        // === DEAD ENDS ===
         if (hasWallRight) return wallEndLTexture;
         if (hasWallLeft) return wallEndRTexture;
         if (hasWallDown) return wallEndTTexture;
         if (hasWallUp) return wallEndBTexture;
 
-        // === SINGLE WALL ===
         return wallSingleTexture;
     }
 
@@ -320,7 +314,6 @@ public class Dungeon {
         if (x < 0 || x >= width || y < 0 || y >= height) return false;
         if (tiles[x][y] != WALL) return false;
 
-        // Check 8 directions (including diagonals)
         int[][] allDirections = {
                 {-1, 1}, {0, 1}, {1, 1},
                 {-1, 0},         {1, 0},
@@ -331,12 +324,10 @@ public class Dungeon {
             int nx = x + dir[0];
             int ny = y + dir[1];
 
-            // If out of bounds, this is an edge (outside corner touching void)
             if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
                 return true;
             }
 
-            // If adjacent to floor or boss portal
             if (tiles[nx][ny] == FLOOR || tiles[nx][ny] == BOSS_PORTAL) {
                 return true;
             }
@@ -346,7 +337,6 @@ public class Dungeon {
     }
 
     private boolean isEdgeWallNeighbor(int x, int y) {
-        // Only check for edge walls, not interior walls
         if (x < 0 || x >= width || y < 0 || y >= height) return false;
         return isEdgeWall(x, y);
     }
@@ -362,7 +352,7 @@ public class Dungeon {
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.filter.categoryBits = CollisionFilter.WALL;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY | CollisionFilter.ITEM;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ENEMY | CollisionFilter.ITEM | CollisionFilter.PROJECTILE;
 
         Body body = world.createBody(bodyDef);
         body.createFixture(fixtureDef);
@@ -372,9 +362,14 @@ public class Dungeon {
     }
 
     private void spawnEnemies(Random random) {
+        spawnEnemies(random, null);
+    }
+
+    private void spawnEnemies(Random random, List<Room> rooms) {
         int clumpCount = 24 + random.nextInt(6);
-        int totalSkeletonsSpawned = 0;
-        int totalRoguesSpawned = 0;
+
+        // Track which rooms have enemies
+        HashSet<Room> roomsWithEnemies = new HashSet<>();
 
         for (int clump = 0; clump < clumpCount; clump++) {
             int attempts = 0;
@@ -392,63 +387,129 @@ public class Dungeon {
 
                     if (!isNearSpawn(centerWorldX, centerWorldY, 100f) &&
                             !isNearBossPortal(centerWorldX, centerWorldY, 80f)) {
-                        int enemiesInClump = 4 + random.nextInt(7);
 
-                        for (int i = 0; i < enemiesInClump; i++) {
-                            int enemyAttempts = 0;
-                            boolean enemyPlaced = false;
+                        spawnEnemyClump(random, centerX, centerY);
 
-                            while (!enemyPlaced && enemyAttempts < 10) {
-                                enemyAttempts++;
-
-                                int offsetX = random.nextInt(5) - 2;
-                                int offsetY = random.nextInt(5) - 2;
-
-                                int enemyX = centerX + offsetX;
-                                int enemyY = centerY + offsetY;
-
-                                if (enemyX >= 0 && enemyX < width && enemyY >= 0 && enemyY < height &&
-                                        tiles[enemyX][enemyY] == FLOOR) {
-
-                                    float worldX = enemyX * tileSize;
-                                    float worldY = enemyY * tileSize;
-
-                                    Body body = createEnemyBody(worldX, worldY);
-
-                                    // 40% chance to spawn Skeleton Rogue, 60% regular Skeleton
-                                    if (random.nextFloat() < 0.4f) {
-                                        EnemyStats stats = EnemyStats.Factory.createSkeletonRogueEnemy(2);
-                                        enemies.add(new DungeonEnemy(
-                                                new Rectangle(worldX, worldY, 16, 16),
-                                                body,
-                                                player,
-                                                animationManager,
-                                                this,
-                                                stats,
-                                                EnemyType.SKELETON_ROGUE
-                                        ));
-                                        totalRoguesSpawned++;
-                                    } else {
-                                        EnemyStats stats = EnemyStats.Factory.createSkeletonEnemy(2);
-                                        enemies.add(new DungeonEnemy(
-                                                new Rectangle(worldX, worldY, 16, 16),
-                                                body,
-                                                player,
-                                                animationManager,
-                                                this,
-                                                stats,
-                                                EnemyType.SKELETON
-                                        ));
-                                        totalSkeletonsSpawned++;
-                                    }
-
-                                    enemyPlaced = true;
+                        // Track which room this clump is in
+                        if (rooms != null) {
+                            for (Room room : rooms) {
+                                if (room.contains(centerX, centerY)) {
+                                    roomsWithEnemies.add(room);
+                                    break;
                                 }
                             }
                         }
 
                         clumpPlaced = true;
                     }
+                }
+            }
+        }
+
+        // Check for empty rooms and spawn additional clumps
+        if (rooms != null) {
+            for (Room room : rooms) {
+                if (!roomsWithEnemies.contains(room)) {
+                    // Skip spawn room and boss portal room
+                    float roomCenterWorldX = room.centerX() * tileSize;
+                    float roomCenterWorldY = room.centerY() * tileSize;
+
+                    if (isNearSpawn(roomCenterWorldX, roomCenterWorldY, 100f) ||
+                            isNearBossPortal(roomCenterWorldX, roomCenterWorldY, 80f)) {
+                        continue;
+                    }
+
+                    // Spawn 1-2 clumps in this empty room
+                    int clumpsToSpawn = 1 + random.nextInt(2);
+                    for (int c = 0; c < clumpsToSpawn; c++) {
+                        // Find a valid position within the room
+                        int spawnAttempts = 0;
+                        boolean spawned = false;
+
+                        while (!spawned && spawnAttempts < 15) {
+                            spawnAttempts++;
+
+                            int spawnX = room.x + 1 + random.nextInt(Math.max(1, room.width - 2));
+                            int spawnY = room.y + 1 + random.nextInt(Math.max(1, room.height - 2));
+
+                            if (spawnX >= 0 && spawnX < width && spawnY >= 0 && spawnY < height &&
+                                    tiles[spawnX][spawnY] == FLOOR) {
+
+                                spawnEnemyClump(random, spawnX, spawnY);
+                                spawned = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void spawnEnemyClump(Random random, int centerX, int centerY) {
+        int enemiesInClump = 4 + random.nextInt(7);
+
+        for (int i = 0; i < enemiesInClump; i++) {
+            int enemyAttempts = 0;
+            boolean enemyPlaced = false;
+
+            while (!enemyPlaced && enemyAttempts < 10) {
+                enemyAttempts++;
+
+                int offsetX = random.nextInt(5) - 2;
+                int offsetY = random.nextInt(5) - 2;
+
+                int enemyX = centerX + offsetX;
+                int enemyY = centerY + offsetY;
+
+                if (enemyX >= 0 && enemyX < width && enemyY >= 0 && enemyY < height &&
+                        tiles[enemyX][enemyY] == FLOOR) {
+
+                    float worldX = enemyX * tileSize;
+                    float worldY = enemyY * tileSize;
+
+                    Body body = createEnemyBody(worldX, worldY);
+
+                    // 20% chance Skeleton Mage, 30% chance Skeleton Rogue, 50% regular Skeleton
+                    float roll = random.nextFloat();
+                    if (roll < 0.2f) {
+                        // Skeleton Mage
+                        EnemyStats stats = EnemyStats.Factory.createSkeletonMageEnemy(2);
+                        enemies.add(new DungeonEnemy(
+                                new Rectangle(worldX, worldY, 16, 16),
+                                body,
+                                player,
+                                animationManager,
+                                this,
+                                stats,
+                                EnemyType.SKELETON_MAGE
+                        ));
+                    } else if (roll < 0.5f) {
+                        // Skeleton Rogue
+                        EnemyStats stats = EnemyStats.Factory.createSkeletonRogueEnemy(2);
+                        enemies.add(new DungeonEnemy(
+                                new Rectangle(worldX, worldY, 16, 16),
+                                body,
+                                player,
+                                animationManager,
+                                this,
+                                stats,
+                                EnemyType.SKELETON_ROGUE
+                        ));
+                    } else {
+                        // Regular Skeleton
+                        EnemyStats stats = EnemyStats.Factory.createSkeletonEnemy(2);
+                        enemies.add(new DungeonEnemy(
+                                new Rectangle(worldX, worldY, 16, 16),
+                                body,
+                                player,
+                                animationManager,
+                                this,
+                                stats,
+                                EnemyType.SKELETON
+                        ));
+                    }
+
+                    enemyPlaced = true;
                 }
             }
         }
@@ -502,7 +563,6 @@ public class Dungeon {
         return body;
     }
 
-    // A* Pathfinding implementation
     public List<Vector2> findPath(Vector2 start, Vector2 end) {
         int startX = (int) (start.x / tileSize);
         int startY = (int) (start.y / tileSize);
@@ -597,9 +657,7 @@ public class Dungeon {
             this.parent = parent;
         }
 
-        float f() {
-            return g + h;
-        }
+        float f() { return g + h; }
 
         @Override
         public int compareTo(Node other) {
@@ -648,9 +706,6 @@ public class Dungeon {
         enemies.removeIf(DungeonEnemy::isMarkedForRemoval);
     }
 
-    /**
-     * Check if player is at the boss room portal
-     */
     public boolean isPlayerAtBossPortal(Vector2 playerPos) {
         if (bossPortalPoint == null || bossRoomPortal == null) return false;
 
@@ -659,9 +714,6 @@ public class Dungeon {
         return Math.sqrt(dx * dx + dy * dy) < tileSize;
     }
 
-    /**
-     * Get the boss room portal
-     */
     public Portal getBossRoomPortal() {
         return bossRoomPortal;
     }
@@ -686,7 +738,6 @@ public class Dungeon {
     }
 
     public void dispose() {
-        // Destroy wall bodies
         for (Wall wall : walls) {
             if (wall.body != null) {
                 world.destroyBody(wall.body);
@@ -694,7 +745,6 @@ public class Dungeon {
         }
         walls.clear();
 
-        // Destroy enemy bodies and dispose enemies
         for (DungeonEnemy enemy : enemies) {
             if (enemy.getBody() != null) {
                 world.destroyBody(enemy.getBody());
@@ -704,7 +754,6 @@ public class Dungeon {
         }
         enemies.clear();
 
-        // Dispose boss room portal if exists
         if (bossRoomPortal != null) {
             bossRoomPortal.dispose(world);
             bossRoomPortal = null;
@@ -733,12 +782,11 @@ public class Dungeon {
             this.height = height;
         }
 
-        int centerX() {
-            return x + width / 2;
-        }
+        int centerX() { return x + width / 2; }
+        int centerY() { return y + height / 2; }
 
-        int centerY() {
-            return y + height / 2;
+        boolean contains(int px, int py) {
+            return px >= x && px < x + width && py >= y && py < y + height;
         }
 
         boolean intersects(Room other) {
@@ -748,11 +796,7 @@ public class Dungeon {
                     y + height + 2 > other.y;
         }
     }
-    public int getWidth() {
-        return width;
-    }
 
-    public int getHeight() {
-        return height;
-    }
+    public int getWidth() { return width; }
+    public int getHeight() { return height; }
 }

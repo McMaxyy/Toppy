@@ -93,6 +93,12 @@ public class GameProj implements Screen, ContactListener {
     private boolean merchantShopOpen = false;
     private Texture cursorTexture;
     private boolean useCustomCursor = true;
+    private boolean cursorConfined = true;
+    private float cursorX = 0;
+    private float cursorY = 0;
+    private int lastMouseX = 0;
+    private int lastMouseY = 0;
+
 
     private Map<Object, List<StatusEffect>> statusEffects;
 
@@ -125,23 +131,103 @@ public class GameProj implements Screen, ContactListener {
         chunkGenerator = Executors.newFixedThreadPool(2);
 
         createComponents();
+
         itemSpawner.spawnItem("valkyries_iron_helmet", player.getPosition());
         itemSpawner.spawnItem("berserkers_iron_sword", player.getPosition());
         itemSpawner.spawnItem("deceptors_iron_boots", player.getPosition());
         itemSpawner.spawnItem("protectors_iron_armor", player.getPosition());
         itemSpawner.spawnItem("barbarians_iron_shield", player.getPosition());
         itemSpawner.spawnItem("deceptors_iron_gloves", player.getPosition());
+
+        setupCursorConfinement();
+    }
+
+    private void setupCursorConfinement() {
+        try {
+            Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            pixmap.setColor(0, 0, 0, 0); // Transparent
+            pixmap.fill();
+            Cursor emptyCursor = Gdx.graphics.newCursor(pixmap, 0, 0);
+            Gdx.graphics.setCursor(emptyCursor);
+            pixmap.dispose();
+        } catch (Exception e) {
+            System.err.println("Failed to create empty cursor: " + e.getMessage());
+        }
+
+        int centerX = Gdx.graphics.getWidth() / 2;
+        int centerY = Gdx.graphics.getHeight() / 2;
+        Gdx.input.setCursorPosition(centerX, centerY);
+
+        cursorX = centerX;
+        cursorY = centerY;
+        lastMouseX = centerX;
+        lastMouseY = centerY;
+
+        Gdx.input.setCursorCatched(true);
+    }
+
+    public void updateCursorConfinement() {
+        if (!cursorConfined || isPaused || merchantShopOpen) {
+            cursorX = Gdx.input.getX();
+            cursorY = Gdx.graphics.getHeight() - Gdx.input.getY();
+            return;
+        }
+
+        int deltaX = Gdx.input.getDeltaX();
+        int deltaY = Gdx.input.getDeltaY();
+
+        cursorX += deltaX;
+        cursorY -= deltaY;
+
+        int windowWidth = Gdx.graphics.getWidth();
+        int windowHeight = Gdx.graphics.getHeight();
+
+        int borderMargin = 2;
+
+        cursorX = Math.max(borderMargin, Math.min(cursorX, windowWidth - borderMargin));
+        cursorY = Math.max(borderMargin, Math.min(cursorY, windowHeight - borderMargin));
+
+        lastMouseX = (int)cursorX;
+        lastMouseY = (int)cursorY;
+
+        if (cursorX <= borderMargin || cursorX >= windowWidth - borderMargin ||
+                cursorY <= borderMargin || cursorY >= windowHeight - borderMargin) {
+
+            Gdx.input.setCursorPosition((int)cursorX, windowHeight - (int)cursorY);
+        }
+
+        int currentMouseX = Gdx.input.getX();
+        int currentMouseY = Gdx.input.getY();
+        int maxDelta = 50;
+
+        if (Math.abs(currentMouseX - cursorX) > maxDelta ||
+                Math.abs(windowHeight - currentMouseY - cursorY) > maxDelta) {
+
+            cursorX = currentMouseX;
+            cursorY = windowHeight - currentMouseY;
+
+            cursorX = Math.max(borderMargin, Math.min(cursorX, windowWidth - borderMargin));
+            cursorY = Math.max(borderMargin, Math.min(cursorY, windowHeight - borderMargin));
+
+            Gdx.input.setCursorPosition((int)cursorX, windowHeight - (int)cursorY);
+        }
+    }
+
+    public GameScreen getGameScreen() {
+        return this.gameScreen;
+    }
+
+    private void setupCameraProjection() {
+        camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4),
+                viewport.getWorldHeight() / (TILE_SIZE / 4));
+        camera.update();
+
+        hudCamera.setToOrtho(false, hudViewport.getWorldWidth(), hudViewport.getWorldHeight());
+        hudCamera.update();
     }
 
     private void createComponents() {
         cursorTexture = Storage.assetManager.get("mouse.png", Texture.class);
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(0, 0, 0, 0);
-        pixmap.fill();
-        Cursor emptyCursor = Gdx.graphics.newCursor(pixmap, 0, 0);
-        Gdx.graphics.setCursor(emptyCursor);
-        pixmap.dispose();
-        Gdx.input.setCursorCatched(true);
 
         groundTexture = Storage.assetManager.get("tiles/grass.png", Texture.class);
 
@@ -166,7 +252,6 @@ public class GameProj implements Screen, ContactListener {
 
         player.initializeAbilityManager(this);
 
-        // Initialize merchant shop
         merchantShop = new MerchantShop();
         merchantShop.setPlayer(player);
 
@@ -624,6 +709,8 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        updateCursorConfinement();
+
         if (!isPaused && !merchantShopOpen) {
             world.getWorld().step(1 / 60f, 6, 2);
 
@@ -851,6 +938,7 @@ public class GameProj implements Screen, ContactListener {
                 player.getInventory().render(batch, false, player);
             }
 
+            batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
             player.renderSkillBar(batch);
             player.renderBuffIcons(batch);
@@ -939,6 +1027,7 @@ public class GameProj implements Screen, ContactListener {
                 player.getInventory().render(batch, false, player);
             }
 
+            batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
             player.renderSkillBar(batch);
             player.renderBuffIcons(batch);
@@ -1013,6 +1102,7 @@ public class GameProj implements Screen, ContactListener {
                 player.getInventory().render(batch, false, player);
             }
 
+            batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
             player.renderSkillBar(batch);
             player.renderBuffIcons(batch);
@@ -1243,8 +1333,16 @@ public class GameProj implements Screen, ContactListener {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
-        camera.setToOrtho(false, viewport.getWorldWidth(), viewport.getWorldHeight());
-        camera.update();
+        hudViewport.update(width, height, true);
+
+        setupCameraProjection();
+
+        if (stage != null) {
+            stage.getViewport().update(width, height, true);
+        }
+        if (hudStage != null) {
+            hudStage.getViewport().update(width, height, true);
+        }
     }
 
     @Override

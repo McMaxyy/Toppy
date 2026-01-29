@@ -45,15 +45,12 @@ public class GameScreen implements Screen {
 	public void setCurrentState(int newState) {
 		if (isDisposed) return;
 
-		// Dispose previous state resources BEFORE changing state
 		if (currentState == HOME && newState == START) {
-			// When switching from game to start screen, dispose game properly
 			if (gameP != null) {
 				gameP.dispose();
 				gameP = null;
 			}
 		} else if (currentState == START && newState == HOME) {
-			// When switching from start screen to game, dispose start screen
 			if (startScreen != null) {
 				startScreen.dispose();
 				startScreen = null;
@@ -62,7 +59,6 @@ public class GameScreen implements Screen {
 
 		currentState = newState;
 
-		// Create new state resources AFTER disposing old ones
 		switch (currentState) {
 			case START:
 				startScreen = new StartScreen(viewport, game, this);
@@ -81,7 +77,6 @@ public class GameScreen implements Screen {
 
 	@Override
 	public void show() {
-		// When screen is shown, set input processor based on current state
 		if (currentState == START && startScreen != null) {
 			Gdx.input.setInputProcessor(startScreen.getStage());
 		} else if (currentState == HOME && gameP != null) {
@@ -116,7 +111,6 @@ public class GameScreen implements Screen {
 		viewport.apply();
 		viewport.getCamera().update();
 
-		// Only resize the CURRENT state
 		if (currentState == START && startScreen != null && !startScreen.isDisposed()) {
 			startScreen.resize(width, height);
 		} else if (currentState == HOME && gameP != null) {

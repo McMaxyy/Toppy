@@ -3,6 +3,7 @@ package entities;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -13,9 +14,6 @@ import com.badlogic.gdx.physics.box2d.World;
 import config.Storage;
 import managers.CollisionFilter;
 
-/**
- * Projectile entity for ranged enemy attacks
- */
 public class Projectile {
     private Body body;
     private Vector2 velocity;
@@ -26,22 +24,33 @@ public class Projectile {
     private float size = 6f;
     private Color color;
     private Texture texture;
+    private Texture projectileTexture; // Custom projectile texture
     private Object owner; // The entity that fired this projectile
+    private float rotation; // Rotation angle in degrees
 
+    // Constructor for colored projectiles (legacy)
     public Projectile(World world, Vector2 startPos, Vector2 direction, float speed,
                       float maxDistance, int damage, Color color, Object owner) {
+        this(world, startPos, direction, speed, maxDistance, damage, color, owner, null);
+    }
+
+    // Constructor with custom texture
+    public Projectile(World world, Vector2 startPos, Vector2 direction, float speed,
+                      float maxDistance, int damage, Color color, Object owner, Texture projectileTexture) {
         this.startPosition = new Vector2(startPos);
         this.maxDistance = maxDistance;
         this.damage = damage;
         this.color = color;
         this.owner = owner;
         this.texture = Storage.assetManager.get("tiles/hpBar.png", Texture.class);
+        this.projectileTexture = projectileTexture;
 
-        // Create physics body
+        this.rotation = MathUtils.atan2(direction.y, direction.x) * MathUtils.radiansToDegrees;
+
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
         bodyDef.position.set(startPos);
-        bodyDef.bullet = true; // Enable CCD for fast-moving projectile
+        bodyDef.bullet = true;
 
         body = world.createBody(bodyDef);
 
@@ -53,13 +62,12 @@ public class Projectile {
         fixtureDef.density = 0.1f;
         fixtureDef.isSensor = true;
         fixtureDef.filter.categoryBits = CollisionFilter.PROJECTILE;
-        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.OBSTACLE | CollisionFilter.ABILITY;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.OBSTACLE | CollisionFilter.ABILITY | CollisionFilter.WALL;
 
         body.createFixture(fixtureDef);
         body.setUserData(this);
         shape.dispose();
 
-        // Set velocity
         this.velocity = new Vector2(direction).nor().scl(speed);
         body.setLinearVelocity(velocity);
     }
@@ -67,7 +75,6 @@ public class Projectile {
     public void update(float delta) {
         if (markForRemoval) return;
 
-        // Check if projectile has traveled too far
         float distance = body.getPosition().dst(startPosition);
         if (distance >= maxDistance) {
             markForRemoval();
@@ -78,21 +85,35 @@ public class Projectile {
         if (!markForRemoval) {
             Vector2 pos = body.getPosition();
 
-            // Draw a glowing circle effect
-            // Outer glow
-            batch.setColor(color.r, color.g, color.b, 0.3f);
-            batch.draw(texture, pos.x - size, pos.y - size, size * 2, size * 2);
+            if (projectileTexture != null) {
+                float width = projectileTexture.getWidth();
+                float height = projectileTexture.getHeight();
+                float scale = size * 2 / Math.max(width, height);
+                float drawWidth = width * scale;
+                float drawHeight = height * scale;
 
-            // Inner circle
-            batch.setColor(color.r, color.g, color.b, 0.8f);
-            batch.draw(texture, pos.x - size / 2, pos.y - size / 2, size, size);
+                batch.setColor(1, 1, 1, 1);
+                batch.draw(projectileTexture,
+                        pos.x - drawWidth / 2, pos.y - drawHeight / 2,
+                        drawWidth / 2, drawHeight / 2,
+                        drawWidth, drawHeight,
+                        1f, 1f,
+                        rotation,
+                        0, 0,
+                        (int) width, (int) height,
+                        false, false);
+            } else {
+                batch.setColor(color.r, color.g, color.b, 0.3f);
+                batch.draw(texture, pos.x - size, pos.y - size, size * 2, size * 2);
 
-            // Core (brighter)
-            batch.setColor(1f, 1f, 1f, 0.9f);
-            batch.draw(texture, pos.x - size / 4, pos.y - size / 4, size / 2, size / 2);
+                batch.setColor(color.r, color.g, color.b, 0.8f);
+                batch.draw(texture, pos.x - size / 2, pos.y - size / 2, size, size);
 
-            // Reset color
-            batch.setColor(1, 1, 1, 1);
+                batch.setColor(1f, 1f, 1f, 0.9f);
+                batch.draw(texture, pos.x - size / 4, pos.y - size / 4, size / 2, size / 2);
+
+                batch.setColor(1, 1, 1, 1);
+            }
         }
     }
 

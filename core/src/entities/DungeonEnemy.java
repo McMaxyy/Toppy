@@ -3,6 +3,7 @@ package entities;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -71,6 +72,12 @@ public class DungeonEnemy {
     private float hitFlashTimer = 0f;
     private static final float HIT_FLASH_DURATION = 0.2f;
 
+    // Projectile textures
+    private static Texture fireballTexture;
+    private static Texture poisonBallTexture;
+    private static final Color MUSHIE_PROJECTILE_COLOR = new Color(0.2f, 0.8f, 0.2f, 1f);
+    private static final Color MAGE_PROJECTILE_COLOR = new Color(1.0f, 0.5f, 0.0f, 1f);
+
     public DungeonEnemy(Rectangle bounds, Body body, Player player,
                         AnimationManager animationManager, Dungeon dungeon, int level) {
         this(bounds, body, player, animationManager, dungeon,
@@ -98,12 +105,32 @@ public class DungeonEnemy {
         this.healthBarTexture = Storage.assetManager.get("tiles/hpBar.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
 
+        // Load projectile textures
+        loadProjectileTextures();
+
         for (int i = 0; i < velocityHistory.length; i++) {
             velocityHistory[i] = new Vector2();
         }
 
         this.currentState = State.IDLE;
         this.animationTime = 0f;
+    }
+
+    private static void loadProjectileTextures() {
+        if (fireballTexture == null) {
+            try {
+                fireballTexture = Storage.assetManager.get("icons/effects/Fireball.png", Texture.class);
+            } catch (Exception e) {
+                fireballTexture = null;
+            }
+        }
+        if (poisonBallTexture == null) {
+            try {
+                poisonBallTexture = Storage.assetManager.get("icons/effects/PoisonBall.png", Texture.class);
+            } catch (Exception e) {
+                poisonBallTexture = null;
+            }
+        }
     }
 
     private static EnemyType determineEnemyType(String name) {
@@ -116,6 +143,9 @@ public class DungeonEnemy {
             case "skeleton rogue":
             case "skeletonrogue":
                 return EnemyType.SKELETON_ROGUE;
+            case "skeleton mage":
+            case "skeletonmage":
+                return EnemyType.SKELETON_MAGE;
             case "boss kitty":
             case "bosskitty":
                 return EnemyType.BOSS_KITTY;
@@ -193,6 +223,8 @@ public class DungeonEnemy {
             updateMovement(delta);
         }
 
+        updateProjectiles(delta);
+
         isFlipped = body.getPosition().x > player.getBody().getPosition().x;
         updateStuckDetection(delta);
     }
@@ -250,9 +282,18 @@ public class DungeonEnemy {
 
         if (isPlayerInRadius() || hasDetected) {
             hasDetected = true;
-            if (isPlayerInAttackRange() && attackCooldown <= 0) {
-                startAttack();
-                return;
+
+            // For ranged enemies (mage), check line of sight before attacking
+            if (stats.getAttackType() == AttackType.RANGED) {
+                if (isPlayerInAttackRange() && attackCooldown <= 0 && hasLineOfSightToPlayer()) {
+                    startAttack();
+                    return;
+                }
+            } else {
+                if (isPlayerInAttackRange() && attackCooldown <= 0) {
+                    startAttack();
+                    return;
+                }
             }
 
             boolean forceRecalc = pathUpdateTimer >= PATH_UPDATE_INTERVAL ||
@@ -301,6 +342,45 @@ public class DungeonEnemy {
         }
     }
 
+    private boolean hasLineOfSightToPlayer() {
+        Vector2 enemyPos = body.getPosition();
+        Vector2 playerPos = player.getPosition();
+
+        // Use Bresenham's line algorithm to check tiles between enemy and player
+        int x0 = (int) (enemyPos.x / dungeon.getTileSize());
+        int y0 = (int) (enemyPos.y / dungeon.getTileSize());
+        int x1 = (int) (playerPos.x / dungeon.getTileSize());
+        int y1 = (int) (playerPos.y / dungeon.getTileSize());
+
+        int dx = Math.abs(x1 - x0);
+        int dy = Math.abs(y1 - y0);
+        int sx = x0 < x1 ? 1 : -1;
+        int sy = y0 < y1 ? 1 : -1;
+        int err = dx - dy;
+
+        while (true) {
+            // Check if current tile is a wall
+            if (!dungeon.isWalkableWorld(x0 * dungeon.getTileSize() + dungeon.getTileSize() / 2f,
+                    y0 * dungeon.getTileSize() + dungeon.getTileSize() / 2f)) {
+                return false;
+            }
+
+            if (x0 == x1 && y0 == y1) break;
+
+            int e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x0 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y0 += sy;
+            }
+        }
+
+        return true;
+    }
+
     private boolean isFarFromPath() {
         if (currentPath == null || currentPath.isEmpty() || currentPathIndex >= currentPath.size()) {
             return true;
@@ -315,15 +395,91 @@ public class DungeonEnemy {
 
         boolean animationFinished = isCurrentAnimationFinished();
 
+        // For ranged attacks, fire projectile when animation finishes
         if (animationFinished && !hasDealtDamage) {
-            if (canDamagePlayer()) {
-                damagePlayer();
-            }
+            executeAttack();
             hasDealtDamage = true;
         }
 
         if (animationFinished) {
             endAttack();
+        }
+    }
+
+    private void executeAttack() {
+        switch (stats.getAttackType()) {
+            case RANGED:
+                createProjectile();
+                break;
+            case CONAL:
+                if (isPlayerInAttackCone()) {
+                    damagePlayer();
+                }
+                break;
+            case MELEE:
+            case DOT:
+                if (isPlayerInAttackRange()) {
+                    damagePlayer();
+                }
+                break;
+            case AOE:
+                if (isPlayerInAoeRange()) {
+                    damagePlayer();
+                }
+                break;
+            case CHARGE:
+                if (wasPlayerHitDuringCharge()) {
+                    damagePlayer();
+                }
+                break;
+            default:
+                if (isPlayerInAttackRange()) {
+                    damagePlayer();
+                }
+                break;
+        }
+    }
+
+    private void createProjectile() {
+        Vector2 startPos = new Vector2(body.getPosition());
+        Vector2 playerPos = player.getPosition();
+        Vector2 direction = new Vector2(playerPos.x - startPos.x, playerPos.y - startPos.y).nor();
+
+        Texture projectileTexture = fireballTexture;
+        Color projectileColor = MAGE_PROJECTILE_COLOR;
+
+        Projectile projectile = new Projectile(
+                body.getWorld(),
+                startPos,
+                direction,
+                stats.getProjectileSpeed(),
+                stats.getAttackRange() * 2f,
+                stats.getDamage(),
+                projectileColor,
+                this,
+                projectileTexture
+        );
+        projectiles.add(projectile);
+    }
+
+    private void updateProjectiles(float delta) {
+        for (int i = projectiles.size() - 1; i >= 0; i--) {
+            Projectile projectile = projectiles.get(i);
+            projectile.update(delta);
+
+            if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
+                float dist = projectile.getPosition().dst(player.getPosition());
+                if (dist < 10f) {
+                    player.getStats().takeDamage(projectile.getDamage());
+                    player.onTakeDamage();
+                    projectile.markForRemoval();
+                }
+            }
+
+            if (projectile.isMarkedForRemoval()) {
+                projectile.dispose(body.getWorld());
+                projectiles.remove(i);
+            }
         }
     }
 
@@ -506,6 +662,11 @@ public class DungeonEnemy {
             }
 
             renderHealthBar(batch);
+
+            // Render projectiles
+            for (Projectile projectile : projectiles) {
+                projectile.render(batch);
+            }
         }
     }
 

@@ -50,6 +50,9 @@ public class Enemy {
     private List<Projectile> projectiles = new ArrayList<>();
     private static final Color MUSHIE_PROJECTILE_COLOR = new Color(0.2f, 0.8f, 0.2f, 1f);
 
+    // Projectile textures
+    private static Texture poisonBallTexture;
+
     private boolean isJustHit = false;
     private float hitFlashTimer = 0f;
     private static final float HIT_FLASH_DURATION = 0.3f;
@@ -68,8 +71,21 @@ public class Enemy {
         this.healthBarTexture = Storage.assetManager.get("tiles/hpBar.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
 
+        // Load projectile texture
+        loadProjectileTextures();
+
         this.currentState = State.IDLE;
         this.animationTime = 0f;
+    }
+
+    private static void loadProjectileTextures() {
+        if (poisonBallTexture == null) {
+            try {
+                poisonBallTexture = Storage.assetManager.get("icons/effects/PoisonBall.png", Texture.class);
+            } catch (Exception e) {
+                poisonBallTexture = null;
+            }
+        }
     }
 
     private static EnemyType determineEnemyType(String name) {
@@ -277,7 +293,8 @@ public class Enemy {
                 stats.getAttackRange() * 2f,
                 stats.getDamage(),
                 MUSHIE_PROJECTILE_COLOR,
-                this
+                this,
+                poisonBallTexture
         );
         projectiles.add(projectile);
     }

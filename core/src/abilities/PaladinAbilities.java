@@ -168,31 +168,33 @@ class PullAbility extends Ability {
 
         float progress = pullTimer / PULL_DURATION;
 
-        for (Chunk chunk : currentGameProj.getChunks().values()) {
-            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
-                if (enemy.getBody() != null) {
-                    Vector2 enemyPos = enemy.getBody().getPosition();
-                    float dist = playerPos.dst(enemyPos);
+        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom()) {
+            for (Chunk chunk : currentGameProj.getChunks().values()) {
+                for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                    if (enemy.getBody() != null) {
+                        Vector2 enemyPos = enemy.getBody().getPosition();
+                        float dist = playerPos.dst(enemyPos);
 
-                    if (dist < PULL_RADIUS) {
-                        Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
+                        if (dist < PULL_RADIUS) {
+                            Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
 
-                        Vector2 targetPos = new Vector2(
-                                playerPos.x - direction.x * 10f,
-                                playerPos.y - direction.y * 10f
-                        );
+                            Vector2 targetPos = new Vector2(
+                                    playerPos.x - direction.x * 10f,
+                                    playerPos.y - direction.y * 10f
+                            );
 
-                        Vector2 newPos = new Vector2(
-                                enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.1f,
-                                enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.1f
-                        );
+                            Vector2 newPos = new Vector2(
+                                    enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.1f,
+                                    enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.1f
+                            );
 
-                        enemy.getBody().setTransform(newPos, enemy.getBody().getAngle());
-                        enemy.getBody().setLinearVelocity(0, 0);
+                            enemy.getBody().setTransform(newPos, enemy.getBody().getAngle());
+                            enemy.getBody().setLinearVelocity(0, 0);
 
-                        if (!affectedEnemies.contains(enemy)) {
-                            enemy.takeDamage(damage);
-                            affectedEnemies.add(enemy);
+                            if (!affectedEnemies.contains(enemy)) {
+                                enemy.takeDamage(damage);
+                                affectedEnemies.add(enemy);
+                            }
                         }
                     }
                 }
@@ -326,13 +328,15 @@ class SmiteAbility extends Ability {
 
         int enemiesHit = 0;
 
-        for (Chunk chunk : gameProj.getChunks().values()) {
-            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
-                if (enemy.getBody() != null) {
-                    float dist = playerPos.dst(enemy.getBody().getPosition());
-                    if (dist < SMITE_RADIUS) {
-                        enemy.takeDamage(damage + (player.getLevel() * 5));
-                        enemiesHit++;
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+            for (Chunk chunk : gameProj.getChunks().values()) {
+                for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                    if (enemy.getBody() != null) {
+                        float dist = playerPos.dst(enemy.getBody().getPosition());
+                        if (dist < SMITE_RADIUS) {
+                            enemy.takeDamage(damage + (player.getLevel() * 5));
+                            enemiesHit++;
+                        }
                     }
                 }
             }
@@ -462,14 +466,16 @@ class ConsecratedGroundAbility extends Ability {
 
         int scaledDamage = damage + (player.getLevel() * 10);
 
-        for (Chunk chunk : gameProj.getChunks().values()) {
-            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
-                if (enemy.getBody() != null) {
-                    float dist = playerPos.dst(enemy.getBody().getPosition());
-                    if (dist < CONSECRATE_RADIUS) {
-                        ConsecratedEffect effect = new ConsecratedEffect(enemy, CONSECRATE_DELAY, scaledDamage);
-                        effect.onApply();
-                        gameProj.addStatusEffect(enemy, effect);
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+            for (Chunk chunk : gameProj.getChunks().values()) {
+                for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                    if (enemy.getBody() != null) {
+                        float dist = playerPos.dst(enemy.getBody().getPosition());
+                        if (dist < CONSECRATE_RADIUS) {
+                            ConsecratedEffect effect = new ConsecratedEffect(enemy, CONSECRATE_DELAY, scaledDamage);
+                            effect.onApply();
+                            gameProj.addStatusEffect(enemy, effect);
+                        }
                     }
                 }
             }
