@@ -308,11 +308,64 @@ public class EnemyStats {
             );
         }
 
-        /**
-         * Create a custom enemy with specific attributes
-         */
-        public static EnemyStats createCustomEnemy(String name, int level, AttackType attackType, String lootTableType) {
-            return new EnemyStats(name, level, attackType, lootTableType);
+        public static EnemyStats createGhost(int level) {
+            return new EnemyStats(
+                    "Ghost",
+                    25 + (level * 12),
+                    12 + (level * 4),
+                    1 + level,
+                    15 + (level * 8),
+                    level,
+                    AttackType.AOE,
+                    "ghost_enemy",
+                    1.0f,
+                    60f,  // Explosion range
+                    1.0f,
+                    0f,
+                    60f,  // AOE radius for explosion
+                    0f,
+                    0f
+            );
+        }
+
+        public static EnemyStats createGhostling(int level) {
+            return new EnemyStats(
+                    "Ghostling",
+                    15 + (level * 8),
+                    10 + (level * 3),
+                    0,
+                    5 + (level * 3),
+                    level,
+                    AttackType.AOE,
+                    "ghost_enemy",
+                    1.0f,
+                    80f,
+                    1.0f,
+                    0f,
+                    80f,
+                    0f,
+                    0f
+            );
+        }
+
+        public static EnemyStats createGhostBoss(int level) {
+            return new EnemyStats(
+                    "Ghost Boss",
+                    550 + (level * 55),
+                    14 + (level * 5),
+                    4 + (level * 2),
+                    180 + (level * 55),
+                    level,
+                    AttackType.RANGED,
+                    "boss",
+                    1.0f,
+                    300f,
+                    0.8f,
+                    0f,
+                    0f,
+                    120f,
+                    0f
+            );
         }
     }
 }

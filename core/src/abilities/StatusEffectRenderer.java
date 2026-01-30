@@ -185,6 +185,11 @@ public class StatusEffectRenderer {
             if (e.getBody() != null) {
                 return e.getBody().getPosition();
             }
+        } else if (entity instanceof GhostBoss) {
+            GhostBoss e = (GhostBoss) entity;
+            if (e.getBody() != null) {
+                return e.getBody().getPosition();
+            }
         }
         return null;
     }
@@ -198,6 +203,8 @@ public class StatusEffectRenderer {
             return ((BossKitty) entity).bounds.height;
         } else if (entity instanceof Cyclops) {
             return ((Cyclops) entity).bounds.height;
+        } else if (entity instanceof GhostBoss) {
+            return ((GhostBoss) entity).bounds.height;
         }
         return 16f;
     }

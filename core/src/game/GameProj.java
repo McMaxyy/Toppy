@@ -66,7 +66,6 @@ public class GameProj implements Screen, ContactListener {
     private final int TILE_SIZE = 16;
     private final int PLAYER_TILE_SIZE = 32;
 
-    // Location states
     private boolean inDungeon = false;
     private boolean inBossRoom = false;
 
@@ -77,6 +76,8 @@ public class GameProj implements Screen, ContactListener {
     private final int NUM_DUNGEONS = 5;
 
     private boolean bossKittyDefeated = false;
+    private boolean cyclopsDefeated = false;
+    private boolean ghostBossDefeated = false;
 
     private MapBoundary mapBoundary;
     private Minimap minimap;
@@ -96,8 +97,6 @@ public class GameProj implements Screen, ContactListener {
     private boolean cursorConfined = true;
     private float cursorX = 0;
     private float cursorY = 0;
-    private int lastMouseX = 0;
-    private int lastMouseY = 0;
 
 
     private Map<Object, List<StatusEffect>> statusEffects;
@@ -160,8 +159,6 @@ public class GameProj implements Screen, ContactListener {
 
         cursorX = centerX;
         cursorY = centerY;
-        lastMouseX = centerX;
-        lastMouseY = centerY;
 
         Gdx.input.setCursorCatched(true);
     }
@@ -186,9 +183,6 @@ public class GameProj implements Screen, ContactListener {
 
         cursorX = Math.max(borderMargin, Math.min(cursorX, windowWidth - borderMargin));
         cursorY = Math.max(borderMargin, Math.min(cursorY, windowHeight - borderMargin));
-
-        lastMouseX = (int)cursorX;
-        lastMouseY = (int)cursorY;
 
         if (cursorX <= borderMargin || cursorX >= windowWidth - borderMargin ||
                 cursorY <= borderMargin || cursorY >= windowHeight - borderMargin) {
@@ -584,14 +578,24 @@ public class GameProj implements Screen, ContactListener {
         }
 
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
+        String bossName;
 
-        BossRoom.BossType bossType = bossKittyDefeated ? BossRoom.BossType.CYCLOPS : BossRoom.BossType.BOSS_KITTY;
-        currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, bossType);
+        if (bossKittyDefeated && cyclopsDefeated) {
+            currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, BossRoom.BossType.GHOST_BOSS);
+            bossName = "Vengeful Spirit";
+        }
+        else if (bossKittyDefeated) {
+            currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, BossRoom.BossType.CYCLOPS);
+            bossName = "Cyclops";
+        }
+        else {
+            currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, BossRoom.BossType.BOSS_KITTY);
+            bossName = "Freydis";
+        }
 
         Vector2 spawnPoint = currentBossRoom.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
-        String bossName = bossKittyDefeated ? "Cyclops" : "Boss Kitty";
         hudLabel.setText("Defeat the " + bossName + "!");
     }
 
@@ -616,7 +620,6 @@ public class GameProj implements Screen, ContactListener {
             mapBoundary.enable();
         }
 
-        // Re-enable merchant
         if (merchant != null) {
             merchant.enable();
         }
@@ -1215,7 +1218,7 @@ public class GameProj implements Screen, ContactListener {
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getBoss() == boss) {
                 bossKittyDefeated = true;
                 currentBossRoom.onBossDefeated();
-                hudLabel.setText("Boss Kitty defeated! Use the portal to return!");
+                hudLabel.setText("Freydis defeated! Use the portal to return!");
             } else {
                 bossSpawned = false;
             }
@@ -1229,11 +1232,25 @@ public class GameProj implements Screen, ContactListener {
             player.getStats().addExperience(cyclopsEnemy.getStats().getExpReward());
 
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getCyclops() == cyclopsEnemy) {
+                cyclopsDefeated = true;
                 currentBossRoom.onBossDefeated();
                 hudLabel.setText("Cyclops defeated! Use the portal to return!");
             }
 
-        } else if (enemy instanceof DungeonEnemy) {
+        } else if (enemy instanceof GhostBoss) {
+            GhostBoss ghostBoss = (GhostBoss) enemy;
+
+            String lootTable = ghostBoss.getStats().getLootTableType();
+            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
+
+            player.getStats().addExperience(ghostBoss.getStats().getExpReward());
+
+            if (inBossRoom && currentBossRoom != null && currentBossRoom.getGhostBoss() == ghostBoss) {
+                currentBossRoom.onBossDefeated();
+                hudLabel.setText("Vengeful Spirit defeated! Use the portal to return");
+            }
+        }
+        else if (enemy instanceof DungeonEnemy) {
             DungeonEnemy dungeonEnemy = (DungeonEnemy) enemy;
 
             String lootTable = dungeonEnemy.getStats().getLootTableType();
@@ -1295,6 +1312,14 @@ public class GameProj implements Screen, ContactListener {
                 cyclopsRoomBoss.clearBody();
                 currentBossRoom.setCyclops(null);
             }
+
+            GhostBoss ghostBoss = currentBossRoom.getGhostBoss();
+            if (ghostBoss != null && ghostBoss.isMarkedForRemoval() && ghostBoss.getBody() != null) {
+                handleEnemyDeath(ghostBoss, ghostBoss.getBody().getPosition(), true);
+                bodiesToDestroy.add(ghostBoss.getBody());
+                ghostBoss.clearBody();
+                currentBossRoom.setGhostBoss(null);
+            }
         }
 
         for (Body body : bodiesToDestroy) {
@@ -1320,14 +1345,6 @@ public class GameProj implements Screen, ContactListener {
 
     public boolean isInBossRoom() {
         return inBossRoom;
-    }
-
-    public boolean isBossKittyDefeated() {
-        return bossKittyDefeated;
-    }
-
-    public void setBossKittyDefeated(boolean defeated) {
-        this.bossKittyDefeated = defeated;
     }
 
     @Override

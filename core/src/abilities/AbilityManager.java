@@ -241,7 +241,6 @@ public class AbilityManager {
             }
         }
 
-        // Check dungeon enemies
         if (gameProj.getCurrentDungeon() != null) {
             for (entities.DungeonEnemy enemy : new ArrayList<>(gameProj.getCurrentDungeon().getEnemies())) {
                 if (enemy.getBody() != null) {
@@ -257,7 +256,6 @@ public class AbilityManager {
             }
         }
 
-        // Check boss room
         if (gameProj.getCurrentBossRoom() != null) {
             entities.BossKitty boss = gameProj.getCurrentBossRoom().getBoss();
             if (boss != null && boss.getBody() != null) {
@@ -280,6 +278,18 @@ public class AbilityManager {
 
                 if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
                     cyclops.takeDamage(playerDamage);
+                }
+            }
+
+            entities.GhostBoss ghostBoss = gameProj.getCurrentBossRoom().getGhostBoss();
+            if (ghostBoss != null && ghostBoss.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = ghostBoss.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    ghostBoss.takeDamage(playerDamage);
                 }
             }
         }
@@ -350,6 +360,53 @@ public class AbilityManager {
                         stun.onApply();
                         addStatusEffect(enemy, stun);
                     }
+                }
+            }
+        }
+
+        if (gameProj.getCurrentBossRoom() != null) {
+            entities.BossKitty boss = gameProj.getCurrentBossRoom().getBoss();
+            if (boss != null && boss.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = boss.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    boss.takeDamage(SHIELD_BASH_DAMAGE);
+                    StunEffect stun = new StunEffect(boss, 0.5f);
+                    stun.onApply();
+                    addStatusEffect(boss, stun);
+                }
+            }
+
+            entities.Cyclops cyclops = gameProj.getCurrentBossRoom().getCyclops();
+            if (cyclops != null && cyclops.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = cyclops.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    cyclops.takeDamage(SHIELD_BASH_DAMAGE);
+                    StunEffect stun = new StunEffect(cyclops, 0.5f);
+                    stun.onApply();
+                    addStatusEffect(cyclops, stun);
+                }
+            }
+
+            entities.GhostBoss ghostBoss = gameProj.getCurrentBossRoom().getGhostBoss();
+            if (ghostBoss != null && ghostBoss.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = ghostBoss.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    ghostBoss.takeDamage(SHIELD_BASH_DAMAGE);
+                    StunEffect stun = new StunEffect(ghostBoss, 0.5f);
+                    stun.onApply();
+                    addStatusEffect(ghostBoss, stun);
                 }
             }
         }

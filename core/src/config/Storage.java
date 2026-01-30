@@ -80,6 +80,7 @@ public class Storage {
         assetManager.load("icons/effects/Consecrated.png", Texture.class);
         assetManager.load("icons/effects/Fireball.png", Texture.class);
         assetManager.load("icons/effects/PoisonBall.png", Texture.class);
+        assetManager.load("icons/effects/ShadowBall.png", Texture.class);
 
         assetManager.load("character/Spear.png", Texture.class);
         assetManager.load("icons/gear/ironHelmet.png", Texture.class);
@@ -150,6 +151,14 @@ public class Storage {
         assetManager.load("enemies/Cyclops/Walking.png", Texture.class);
         assetManager.load("enemies/Cyclops/Idle.png", Texture.class);
         assetManager.load("enemies/Cyclops/Attacking.png", Texture.class);
+
+        assetManager.load("enemies/Ghost/Walking.png", Texture.class);
+        assetManager.load("enemies/Ghost/Idle.png", Texture.class);
+        assetManager.load("enemies/Ghost/Attacking.png", Texture.class);
+
+        assetManager.load("enemies/GhostBoss/Walking.png", Texture.class);
+        assetManager.load("enemies/GhostBoss/Idle.png", Texture.class);
+        assetManager.load("enemies/GhostBoss/Attacking.png", Texture.class);
 
         assetManager.load("enemies/Merchant/Idle.png", Texture.class);
         

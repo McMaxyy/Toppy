@@ -1,8 +1,5 @@
 package entities;
 
-/**
- * Enum representing different enemy types in the game
- */
 public enum EnemyType {
     MUSHIE("Mushie"),
     WOLFIE("Wolfie"),
@@ -11,7 +8,9 @@ public enum EnemyType {
     CYCLOPS("Cyclops"),
     MERCHANT("Merchant"),
     SKELETON_ROGUE("Skeleton Rogue"),
-    SKELETON_MAGE("Skeleton Mage");
+    SKELETON_MAGE("Skeleton Mage"),
+    GHOST("Ghost"),
+    GHOST_BOSS("GhostBoss");
 
     private final String animationKey;
 

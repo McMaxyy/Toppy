@@ -18,6 +18,8 @@ import config.Storage;
 import entities.BossKitty;
 import entities.Cyclops;
 import entities.EnemyStats;
+import entities.Ghost;
+import entities.GhostBoss;
 import entities.Player;
 import entities.Portal;
 
@@ -35,6 +37,7 @@ public class BossRoom {
     private Vector2 exitPoint;
     private BossKitty boss;
     private Cyclops cyclops;
+    private GhostBoss ghostBoss;
     private Portal exitPortal;
     private boolean bossDefeated = false;
 
@@ -50,7 +53,8 @@ public class BossRoom {
     // Boss type enum
     public enum BossType {
         BOSS_KITTY,
-        CYCLOPS
+        CYCLOPS,
+        GHOST_BOSS
     }
     private BossType currentBossType;
 
@@ -272,13 +276,27 @@ public class BossRoom {
             case CYCLOPS:
                 EnemyStats cyclopsStats = EnemyStats.Factory.createCyclops(3);
                 cyclops = new Cyclops(
-                        new Rectangle(bossX - 18, bossY - 18, 36, 36), // Slightly larger than BossKitty
+                        new Rectangle(bossX - 18, bossY - 18, 36, 36),
                         bossBody,
                         player,
                         animationManager,
                         cyclopsStats
                 );
                 bossBody.setUserData(cyclops);
+                break;
+
+            case GHOST_BOSS:
+                EnemyStats ghostBossStats = EnemyStats.Factory.createGhostBoss(3);
+                ghostBoss = new GhostBoss(
+                        new Rectangle(bossX - 16, bossY - 16, 32, 32),
+                        bossBody,
+                        player,
+                        animationManager,
+                        ghostBossStats
+                );
+                // Set room dimensions for corner positioning
+                ghostBoss.setRoomDimensions(width, height, tileSize);
+                bossBody.setUserData(ghostBoss);
                 break;
 
             case BOSS_KITTY:
@@ -302,7 +320,19 @@ public class BossRoom {
         bodyDef.position.set(x, y);
 
         PolygonShape shape = new PolygonShape();
-        float boxSize = (currentBossType == BossType.CYCLOPS) ? 14f : 12f;
+        float boxSize;
+        switch (currentBossType) {
+            case CYCLOPS:
+                boxSize = 14f;
+                break;
+            case GHOST_BOSS:
+                boxSize = 12f;
+                break;
+            case BOSS_KITTY:
+            default:
+                boxSize = 12f;
+                break;
+        }
         shape.setAsBox(boxSize, boxSize);
 
         FixtureDef fixtureDef = new FixtureDef();
@@ -325,6 +355,7 @@ public class BossRoom {
         bossDefeated = true;
         boss = null;
         cyclops = null;
+        ghostBoss = null;
 
         int tileX = (int) (exitPoint.x / tileSize);
         int tileY = (int) (exitPoint.y / tileSize);
@@ -374,6 +405,12 @@ public class BossRoom {
             }
             cyclops.render(batch);
         }
+        if (ghostBoss != null && !ghostBoss.isMarkedForRemoval()) {
+            if (delta > 0) {
+                ghostBoss.update(delta);
+            }
+            ghostBoss.render(batch);
+        }
     }
 
     public void update(float delta) {
@@ -382,6 +419,9 @@ public class BossRoom {
         }
         if (cyclops != null) {
             cyclops.update(delta);
+        }
+        if (ghostBoss != null) {
+            ghostBoss.update(delta);
         }
 
         if (exitPortal != null) {
@@ -420,8 +460,12 @@ public class BossRoom {
         return cyclops;
     }
 
+    public GhostBoss getGhostBoss() {
+        return ghostBoss;
+    }
+
     public boolean hasBoss() {
-        return (boss != null || cyclops != null) && !bossDefeated;
+        return (boss != null || cyclops != null || ghostBoss != null) && !bossDefeated;
     }
 
     public boolean isBossDefeated() {
@@ -436,12 +480,26 @@ public class BossRoom {
         this.cyclops = cyclops;
     }
 
+    public void setGhostBoss(GhostBoss ghostBoss) {
+        this.ghostBoss = ghostBoss;
+    }
+
     public BossType getCurrentBossType() {
         return currentBossType;
     }
 
     public Portal getExitPortal() {
         return exitPortal;
+    }
+
+    /**
+     * Get spawned ghostlings from the GhostBoss (for collision handling)
+     */
+    public java.util.List<Ghost> getGhostlings() {
+        if (ghostBoss != null) {
+            return ghostBoss.getSpawnedGhostlings();
+        }
+        return null;
     }
 
     public void dispose() {
@@ -465,6 +523,14 @@ public class BossRoom {
             }
             cyclops.dispose();
             cyclops = null;
+        }
+
+        if (ghostBoss != null) {
+            if (ghostBoss.getBody() != null) {
+                world.destroyBody(ghostBoss.getBody());
+            }
+            ghostBoss.dispose();
+            ghostBoss = null;
         }
 
         if (exitPortal != null) {

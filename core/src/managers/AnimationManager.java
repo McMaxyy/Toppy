@@ -43,6 +43,16 @@ public class AnimationManager {
 	private Animation<TextureRegion> skeletonMageRunningAnimation;
 	private Animation<TextureRegion> skeletonMageAttackingAnimation;
 
+	// Ghost animations
+	private Animation<TextureRegion> ghostIdleAnimation;
+	private Animation<TextureRegion> ghostRunningAnimation;
+	private Animation<TextureRegion> ghostAttackingAnimation;
+
+	// GhostBoss animations
+	private Animation<TextureRegion> ghostBossIdleAnimation;
+	private Animation<TextureRegion> ghostBossRunningAnimation;
+	private Animation<TextureRegion> ghostBossAttackingAnimation;
+
 	private float playerAnimationTime = 0f;
 	private float mushieAnimationTime = 0f;
 	private float bossKittyAnimationTime = 0f;
@@ -52,6 +62,8 @@ public class AnimationManager {
 	private float merchantAnimationTime = 0f;
 	private float skeletonRogueAnimationTime = 0f;
 	private float skeletonMageAnimationTime = 0f;
+	private float ghostAnimationTime = 0f;
+	private float ghostBossAnimationTime = 0f;
 
 	private PlayerClass currentPlayerClass = PlayerClass.MERCENARY;
 
@@ -68,6 +80,8 @@ public class AnimationManager {
 	private State merchantCurrentState = State.IDLE;
 	private State skeletonRogueCurrentState = State.IDLE;
 	private State skeletonMageCurrentState = State.IDLE;
+	private State ghostCurrentState = State.IDLE;
+	private State ghostBossCurrentState = State.IDLE;
 
 	public AnimationManager() {
 		loadAnimations();
@@ -307,6 +321,72 @@ public class AnimationManager {
 		Array<TextureRegion> skeletonMageAttackingFrame = new Array<>();
 		for (int i = 0; i < 4; i++) skeletonMageAttackingFrame.add(skeletonMageAttackingFrames[0][i]);
 		skeletonMageAttackingAnimation = new Animation<>(0.3f, skeletonMageAttackingFrame, Animation.PlayMode.NORMAL);
+
+		// Ghost
+		loadGhostAnimations();
+
+		// GhostBoss
+		loadGhostBossAnimations();
+	}
+
+	private void loadGhostAnimations() {
+		try {
+			Texture ghostWalkingTexture = Storage.assetManager.get("enemies/Ghost/Walking.png", Texture.class);
+			ghostWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] ghostWalkFrames = TextureRegion.split(ghostWalkingTexture, ghostWalkingTexture.getWidth() / 4, ghostWalkingTexture.getHeight());
+			Array<TextureRegion> ghostWalkingFrames = new Array<>();
+			for (int i = 0; i < 4; i++) ghostWalkingFrames.add(ghostWalkFrames[0][i]);
+			ghostRunningAnimation = new Animation<>(0.3f, ghostWalkingFrames, Animation.PlayMode.LOOP);
+
+			Texture ghostIdleTexture = Storage.assetManager.get("enemies/Ghost/Idle.png", Texture.class);
+			ghostIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] ghostIdleFrames = TextureRegion.split(ghostIdleTexture, ghostIdleTexture.getWidth() / 4, ghostIdleTexture.getHeight());
+			Array<TextureRegion> ghostIdleFrame = new Array<>();
+			for (int i = 0; i < 4; i++) ghostIdleFrame.add(ghostIdleFrames[0][i]);
+			ghostIdleAnimation = new Animation<>(0.4f, ghostIdleFrame, Animation.PlayMode.LOOP);
+
+			Texture ghostAttackingTexture = Storage.assetManager.get("enemies/Ghost/Attacking.png", Texture.class);
+			ghostAttackingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] ghostAttackingFrames = TextureRegion.split(ghostAttackingTexture, ghostAttackingTexture.getWidth() / 4, ghostAttackingTexture.getHeight());
+			Array<TextureRegion> ghostAttackingFrame = new Array<>();
+			for (int i = 0; i < 4; i++) ghostAttackingFrame.add(ghostAttackingFrames[0][i]);
+			ghostAttackingAnimation = new Animation<>(0.25f, ghostAttackingFrame, Animation.PlayMode.NORMAL);
+		} catch (Exception e) {
+			System.err.println("Failed to load Ghost animations, using Mushie as fallback: " + e.getMessage());
+			ghostIdleAnimation = mushieIdleAnimation;
+			ghostRunningAnimation = mushieRunningAnimation;
+			ghostAttackingAnimation = mushieAttackingAnimation;
+		}
+	}
+
+	private void loadGhostBossAnimations() {
+		try {
+			Texture ghostBossWalkingTexture = Storage.assetManager.get("enemies/GhostBoss/Walking.png", Texture.class);
+			ghostBossWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] ghostBossWalkFrames = TextureRegion.split(ghostBossWalkingTexture, ghostBossWalkingTexture.getWidth() / 4, ghostBossWalkingTexture.getHeight());
+			Array<TextureRegion> ghostBossWalkingFrames = new Array<>();
+			for (int i = 0; i < 4; i++) ghostBossWalkingFrames.add(ghostBossWalkFrames[0][i]);
+			ghostBossRunningAnimation = new Animation<>(0.4f, ghostBossWalkingFrames, Animation.PlayMode.LOOP);
+
+			Texture ghostBossIdleTexture = Storage.assetManager.get("enemies/GhostBoss/Idle.png", Texture.class);
+			ghostBossIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] ghostBossIdleFrames = TextureRegion.split(ghostBossIdleTexture, ghostBossIdleTexture.getWidth() / 4, ghostBossIdleTexture.getHeight());
+			Array<TextureRegion> ghostBossIdleFrame = new Array<>();
+			for (int i = 0; i < 4; i++) ghostBossIdleFrame.add(ghostBossIdleFrames[0][i]);
+			ghostBossIdleAnimation = new Animation<>(0.4f, ghostBossIdleFrame, Animation.PlayMode.LOOP);
+
+			Texture ghostBossAttackingTexture = Storage.assetManager.get("enemies/GhostBoss/Attacking.png", Texture.class);
+			ghostBossAttackingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] ghostBossAttackingFrames = TextureRegion.split(ghostBossAttackingTexture, ghostBossAttackingTexture.getWidth() / 4, ghostBossAttackingTexture.getHeight());
+			Array<TextureRegion> ghostBossAttackingFrame = new Array<>();
+			for (int i = 0; i < 4; i++) ghostBossAttackingFrame.add(ghostBossAttackingFrames[0][i]);
+			ghostBossAttackingAnimation = new Animation<>(0.3f, ghostBossAttackingFrame, Animation.PlayMode.NORMAL);
+		} catch (Exception e) {
+			System.err.println("Failed to load GhostBoss animations, using BossKitty as fallback: " + e.getMessage());
+			ghostBossIdleAnimation = bossKittyRunningAnimation;
+			ghostBossRunningAnimation = bossKittyRunningAnimation;
+			ghostBossAttackingAnimation = bossKittyDyingAnimation;
+		}
 	}
 
 	public void update(float delta) {
@@ -319,6 +399,8 @@ public class AnimationManager {
 		merchantAnimationTime += delta;
 		skeletonRogueAnimationTime += delta;
 		skeletonMageAnimationTime += delta;
+		ghostAnimationTime += delta;
+		ghostBossAnimationTime += delta;
 	}
 
 	public Animation<TextureRegion> getAnimationForState(EnemyType enemyType, State state) {
@@ -373,6 +455,20 @@ public class AnimationManager {
 					case IDLE:
 					default: return skeletonMageIdleAnimation;
 				}
+			case GHOST:
+				switch (state) {
+					case RUNNING: return ghostRunningAnimation;
+					case ATTACKING: return ghostAttackingAnimation;
+					case IDLE:
+					default: return ghostIdleAnimation;
+				}
+			case GHOST_BOSS:
+				switch (state) {
+					case RUNNING: return ghostBossRunningAnimation;
+					case ATTACKING: return ghostBossAttackingAnimation;
+					case IDLE:
+					default: return ghostBossIdleAnimation;
+				}
 			default:
 				return mushieIdleAnimation;
 		}
@@ -407,6 +503,12 @@ public class AnimationManager {
 			case "SkeletonMage":
 				if (skeletonMageCurrentState != newState) { skeletonMageCurrentState = newState; skeletonMageAnimationTime = 0f; }
 				break;
+			case "Ghost":
+				if (ghostCurrentState != newState) { ghostCurrentState = newState; ghostAnimationTime = 0f; }
+				break;
+			case "GhostBoss":
+				if (ghostBossCurrentState != newState) { ghostBossCurrentState = newState; ghostBossAnimationTime = 0f; }
+				break;
 		}
 	}
 
@@ -421,6 +523,8 @@ public class AnimationManager {
 			case "Merchant": return merchantCurrentState;
 			case "SkeletonRogue": return skeletonRogueCurrentState;
 			case "SkeletonMage": return skeletonMageCurrentState;
+			case "Ghost": return ghostCurrentState;
+			case "GhostBoss": return ghostBossCurrentState;
 			default: return null;
 		}
 	}
@@ -569,5 +673,47 @@ public class AnimationManager {
 
 	public boolean isMerchantAnimationFinished() {
 		return merchantIdleAnimation.isAnimationFinished(merchantAnimationTime);
+	}
+
+	// Ghost animation methods
+	public TextureRegion getGhostCurrentFrame() {
+		Animation<TextureRegion> currentAnimation;
+		switch (ghostCurrentState) {
+			case RUNNING: currentAnimation = ghostRunningAnimation; break;
+			case ATTACKING: currentAnimation = ghostAttackingAnimation; break;
+			case IDLE:
+			default: currentAnimation = ghostIdleAnimation; break;
+		}
+		return currentAnimation.getKeyFrame(ghostAnimationTime);
+	}
+
+	public boolean isGhostAnimationFinished() {
+		switch (ghostCurrentState) {
+			case RUNNING: return ghostRunningAnimation.isAnimationFinished(ghostAnimationTime);
+			case ATTACKING: return ghostAttackingAnimation.isAnimationFinished(ghostAnimationTime);
+			case IDLE:
+			default: return ghostIdleAnimation.isAnimationFinished(ghostAnimationTime);
+		}
+	}
+
+	// GhostBoss animation methods
+	public TextureRegion getGhostBossCurrentFrame() {
+		Animation<TextureRegion> currentAnimation;
+		switch (ghostBossCurrentState) {
+			case RUNNING: currentAnimation = ghostBossRunningAnimation; break;
+			case ATTACKING: currentAnimation = ghostBossAttackingAnimation; break;
+			case IDLE:
+			default: currentAnimation = ghostBossIdleAnimation; break;
+		}
+		return currentAnimation.getKeyFrame(ghostBossAnimationTime);
+	}
+
+	public boolean isGhostBossAnimationFinished() {
+		switch (ghostBossCurrentState) {
+			case RUNNING: return ghostBossRunningAnimation.isAnimationFinished(ghostBossAnimationTime);
+			case ATTACKING: return ghostBossAttackingAnimation.isAnimationFinished(ghostBossAnimationTime);
+			case IDLE:
+			default: return ghostBossIdleAnimation.isAnimationFinished(ghostBossAnimationTime);
+		}
 	}
 }

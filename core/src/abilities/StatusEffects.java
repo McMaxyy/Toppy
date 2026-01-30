@@ -2,11 +2,7 @@ package abilities;
 
 import com.badlogic.gdx.graphics.Texture;
 import config.Storage;
-import entities.Player;
-import entities.Enemy;
-import entities.DungeonEnemy;
-import entities.BossKitty;
-import entities.Cyclops;
+import entities.*;
 
 public abstract class StatusEffects {}
 
@@ -213,6 +209,8 @@ class ConsecratedEffect extends StatusEffect {
                 ((BossKitty) target).takeDamage(damage);
             } else if (target instanceof Cyclops && !((Cyclops) target).isMarkedForRemoval()) {
                 ((Cyclops) target).takeDamage(damage);
+            } else if (target instanceof GhostBoss && !((GhostBoss) target).isMarkedForRemoval()) {
+                ((GhostBoss) target).takeDamage(damage);
             }
             damageDealt = true;
         }

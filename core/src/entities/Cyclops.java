@@ -73,7 +73,6 @@ public class Cyclops {
                 EnemyStats.Factory.createCyclops(level));
     }
 
-    // Constructor with custom stats
     public Cyclops(Rectangle bounds, Body body, Player player,
                    AnimationManager animationManager, EnemyStats stats) {
         this.animationManager = animationManager;

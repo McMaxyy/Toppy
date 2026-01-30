@@ -291,6 +291,33 @@ class PullAbility extends Ability {
                     }
                 }
             }
+
+            GhostBoss ghostBoss = currentGameProj.getCurrentBossRoom().getGhostBoss();
+            if (ghostBoss != null && ghostBoss.getBody() != null) {
+                Vector2 enemyPos = ghostBoss.getBody().getPosition();
+                float dist = playerPos.dst(enemyPos);
+
+                if (dist < PULL_RADIUS) {
+                    Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
+                    Vector2 targetPos = new Vector2(
+                            playerPos.x - direction.x * 20f,
+                            playerPos.y - direction.y * 20f
+                    );
+
+                    Vector2 newPos = new Vector2(
+                            enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.03f,
+                            enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.03f
+                    );
+
+                    ghostBoss.getBody().setTransform(newPos, ghostBoss.getBody().getAngle());
+                    ghostBoss.getBody().setLinearVelocity(0, 0);
+
+                    if (!affectedEnemies.contains(ghostBoss)) {
+                        ghostBoss.takeDamage(damage);
+                        affectedEnemies.add(ghostBoss);
+                    }
+                }
+            }
         }
     }
 
@@ -369,6 +396,15 @@ class SmiteAbility extends Ability {
                 float dist = playerPos.dst(cyclopsRoomBoss.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
                     cyclopsRoomBoss.takeDamage(damage + (player.getLevel() * 5));
+                    enemiesHit++;
+                }
+            }
+
+            GhostBoss ghostBoss = gameProj.getCurrentBossRoom().getGhostBoss();
+            if (ghostBoss != null && ghostBoss.getBody() != null) {
+                float dist = playerPos.dst(ghostBoss.getBody().getPosition());
+                if (dist < SMITE_RADIUS) {
+                    ghostBoss.takeDamage(damage + (player.getLevel() * 5));
                     enemiesHit++;
                 }
             }
@@ -512,6 +548,16 @@ class ConsecratedGroundAbility extends Ability {
                     ConsecratedEffect effect = new ConsecratedEffect(cyclopsRoomBoss, CONSECRATE_DELAY, scaledDamage);
                     effect.onApply();
                     gameProj.addStatusEffect(cyclopsRoomBoss, effect);
+                }
+            }
+
+            GhostBoss ghostBoss = gameProj.getCurrentBossRoom().getGhostBoss();
+            if (ghostBoss != null && ghostBoss.getBody() != null) {
+                float dist = playerPos.dst(ghostBoss.getBody().getPosition());
+                if (dist < CONSECRATE_RADIUS) {
+                    ConsecratedEffect effect = new ConsecratedEffect(ghostBoss, CONSECRATE_DELAY, scaledDamage);
+                    effect.onApply();
+                    gameProj.addStatusEffect(ghostBoss, effect);
                 }
             }
         }
