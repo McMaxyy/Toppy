@@ -10,7 +10,8 @@ public enum EnemyType {
     SKELETON_ROGUE("Skeleton Rogue"),
     SKELETON_MAGE("Skeleton Mage"),
     GHOST("Ghost"),
-    GHOST_BOSS("GhostBoss");
+    GHOST_BOSS("GhostBoss"),
+    HERMAN("Herman");
 
     private final String animationKey;
 

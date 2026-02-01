@@ -74,6 +74,10 @@ class BleedEffect extends StatusEffect {
                 ((BossKitty) target).takeDamage(damagePerTick);
             } else if (target instanceof Cyclops) {
                 ((Cyclops) target).takeDamage(damagePerTick);
+            } else if (target instanceof GhostBoss) {
+                ((GhostBoss) target).takeDamage(damagePerTick);
+            } else if (target instanceof Herman) {
+                ((Herman) target).takeDamage(damagePerTick);
             }
 
             tickTimer = 0f;
@@ -120,6 +124,10 @@ class StunEffect extends StatusEffect {
             ((BossKitty) target).setStunned(true);
         } else if (target instanceof Cyclops) {
             ((Cyclops) target).setStunned(true);
+        } else if (target instanceof GhostBoss) {
+            ((GhostBoss) target).setStunned(true);
+        } else if (target instanceof Herman) {
+            ((Herman) target).setStunned(true);
         }
 
         if (target instanceof Enemy && ((Enemy) target).getBody() != null) {
@@ -130,6 +138,10 @@ class StunEffect extends StatusEffect {
             ((BossKitty) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof Cyclops && ((Cyclops) target).getBody() != null) {
             ((Cyclops) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof GhostBoss && ((GhostBoss) target).getBody() != null) {
+            ((GhostBoss) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof Herman && ((Herman) target).getBody() != null) {
+            ((Herman) target).getBody().setLinearVelocity(0, 0);
         }
     }
 
@@ -143,6 +155,10 @@ class StunEffect extends StatusEffect {
             ((BossKitty) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof Cyclops && ((Cyclops) target).getBody() != null) {
             ((Cyclops) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof GhostBoss && ((GhostBoss) target).getBody() != null) {
+            ((GhostBoss) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof Herman && ((Herman) target).getBody() != null) {
+            ((Herman) target).getBody().setLinearVelocity(0, 0);
         }
     }
 
@@ -156,6 +172,10 @@ class StunEffect extends StatusEffect {
             ((BossKitty) target).setStunned(false);
         } else if (target instanceof Cyclops) {
             ((Cyclops) target).setStunned(false);
+        } else if (target instanceof GhostBoss) {
+            ((GhostBoss) target).setStunned(false);
+        } else if (target instanceof Herman) {
+            ((Herman) target).setStunned(false);
         }
     }
 
@@ -211,6 +231,8 @@ class ConsecratedEffect extends StatusEffect {
                 ((Cyclops) target).takeDamage(damage);
             } else if (target instanceof GhostBoss && !((GhostBoss) target).isMarkedForRemoval()) {
                 ((GhostBoss) target).takeDamage(damage);
+            } else if (target instanceof Herman && !((Herman) target).isMarkedForRemoval()) {
+                ((Herman) target).takeDamage(damage);
             }
             damageDealt = true;
         }

@@ -439,6 +439,25 @@ public class Chunk {
         return false;
     }
 
+    public void removeObstaclesInRadius(World world, Vector2 center, float radius) {
+        List<Obstacle> toRemove = new ArrayList<>();
+
+        for (Obstacle obstacle : obstacles) {
+            float obstacleX = obstacle.bounds.x + obstacle.bounds.width / 2f;
+            float obstacleY = obstacle.bounds.y + obstacle.bounds.height / 2f;
+            float distance = center.dst(obstacleX, obstacleY);
+
+            if (distance <= radius) {
+                if (obstacle.body != null) {
+                    world.destroyBody(obstacle.body);
+                }
+                toRemove.add(obstacle);
+            }
+        }
+
+        obstacles.removeAll(toRemove);
+    }
+
     public void renderGround(SpriteBatch batch, Texture groundTexture) {
         for (int x = 0; x < chunkSize; x++) {
             for (int y = 0; y < chunkSize; y++) {

@@ -1,7 +1,6 @@
 package entities;
 
 public class PlayerStats {
-    // Core stats
     private int maxHealth;
     private int currentHealth;
     private int baseDamage;
@@ -167,20 +166,15 @@ public class PlayerStats {
     private void recalculateStats() {
         int oldMaxHealth = maxHealth;
 
-        // Calculate max health from total VIT
         maxHealth = getTotalVit() * HEALTH_PER_VIT;
 
-        // Calculate damage
         baseDamage = BASE_DAMAGE + (level - 1) + (allocatedAttackPoints * ATTACK_PER_POINT);
 
-        // Calculate defense
         defense = BASE_DEFENSE + (allocatedDefensePoints * DEFENSE_PER_POINT);
 
-        // Calculate speed from total DEX
         float oldSpeed = baseSpeed;
         baseSpeed = getTotalDex() * SPEED_PER_DEX;
 
-        // Maintain health percentage when max health changes
         if (oldMaxHealth > 0 && maxHealth != oldMaxHealth) {
             float healthPercent = (float) currentHealth / oldMaxHealth;
             currentHealth = Math.max(1, (int) (maxHealth * healthPercent));
@@ -188,18 +182,15 @@ public class PlayerStats {
 
         currentHealth = Math.min(currentHealth, maxHealth);
 
-        // Notify listener of speed change
         if (speedChangeListener != null && oldSpeed != baseSpeed) {
             speedChangeListener.onSpeedChanged(baseSpeed);
         }
     }
 
-    // Get total VIT points (base + allocated + gear)
     public int getTotalVit() {
         return BASE_VIT + allocatedHealthPoints + gearVitality + ((level - 1) * 5);
     }
 
-    // Get total DEX points (base + allocated + gear)
     public int getTotalDex() {
         return BASE_DEX + allocatedDexPoints + gearDex;
     }
@@ -213,13 +204,13 @@ public class PlayerStats {
     }
 
     public void takeDamage(int damage) {
-        int actualDamage = Math.max(1, damage - getTotalDefense());
+        int actualDamage = Math.max(1, damage - (getTotalDefense() / 3));
         currentHealth = Math.max(0, currentHealth - actualDamage);
     }
 
     public void heal(int amount) {
         int oldHealth = currentHealth;
-        currentHealth = Math.min(maxHealth, currentHealth + amount);
+        currentHealth = Math.min(maxHealth, currentHealth + amount + (level * 5));
     }
 
     public void fullHeal() {

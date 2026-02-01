@@ -199,6 +199,60 @@ class PullAbility extends Ability {
                     }
                 }
             }
+
+            Herman herman = currentGameProj.getHerman();
+            if (herman != null && herman.getBody() != null) {
+                Vector2 enemyPos = herman.getBody().getPosition();
+                float dist = playerPos.dst(enemyPos);
+
+                if (dist < PULL_RADIUS) {
+                    Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
+                    Vector2 targetPos = new Vector2(
+                            playerPos.x - direction.x * 20f,
+                            playerPos.y - direction.y * 20f
+                    );
+
+                    Vector2 newPos = new Vector2(
+                            enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.03f,
+                            enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.03f
+                    );
+
+                    herman.getBody().setTransform(newPos, herman.getBody().getAngle());
+                    herman.getBody().setLinearVelocity(0, 0);
+
+                    if (!affectedEnemies.contains(herman)) {
+                        herman.takeDamage(damage);
+                        affectedEnemies.add(herman);
+                    }
+                }
+            }
+
+            Herman hermanDuplicate = currentGameProj.getHermanDuplicate();
+            if (hermanDuplicate != null && hermanDuplicate.getBody() != null) {
+                Vector2 enemyPos = hermanDuplicate.getBody().getPosition();
+                float dist = playerPos.dst(enemyPos);
+
+                if (dist < PULL_RADIUS) {
+                    Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
+                    Vector2 targetPos = new Vector2(
+                            playerPos.x - direction.x * 20f,
+                            playerPos.y - direction.y * 20f
+                    );
+
+                    Vector2 newPos = new Vector2(
+                            enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.03f,
+                            enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.03f
+                    );
+
+                    hermanDuplicate.getBody().setTransform(newPos, hermanDuplicate.getBody().getAngle());
+                    hermanDuplicate.getBody().setLinearVelocity(0, 0);
+
+                    if (!affectedEnemies.contains(hermanDuplicate)) {
+                        hermanDuplicate.takeDamage(damage);
+                        affectedEnemies.add(hermanDuplicate);
+                    }
+                }
+            }
         }
 
         if (currentGameProj.getCurrentDungeon() != null) {
@@ -367,6 +421,24 @@ class SmiteAbility extends Ability {
                     }
                 }
             }
+
+            Herman herman = gameProj.getHerman();
+            if (herman != null && herman.getBody() != null) {
+                float dist = playerPos.dst(herman.getBody().getPosition());
+                if (dist < SMITE_RADIUS) {
+                    herman.takeDamage(damage + (player.getLevel() * 5));
+                    enemiesHit++;
+                }
+            }
+
+            Herman hermanDuplicate = gameProj.getHermanDuplicate();
+            if (hermanDuplicate != null && hermanDuplicate.getBody() != null) {
+                float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
+                if (dist < SMITE_RADIUS) {
+                    hermanDuplicate.takeDamage(damage + (player.getLevel() * 5));
+                    enemiesHit++;
+                }
+            }
         }
 
         if (gameProj.getCurrentDungeon() != null) {
@@ -513,6 +585,26 @@ class ConsecratedGroundAbility extends Ability {
                             gameProj.addStatusEffect(enemy, effect);
                         }
                     }
+                }
+            }
+
+            Herman herman = gameProj.getHerman();
+            if (herman != null && herman.getBody() != null) {
+                float dist = playerPos.dst(herman.getBody().getPosition());
+                if (dist < CONSECRATE_RADIUS) {
+                    ConsecratedEffect effect = new ConsecratedEffect(herman, CONSECRATE_DELAY, scaledDamage);
+                    effect.onApply();
+                    gameProj.addStatusEffect(herman, effect);
+                }
+            }
+
+            Herman hermanDuplicate = gameProj.getHermanDuplicate();
+            if (hermanDuplicate != null && hermanDuplicate.getBody() != null) {
+                float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
+                if (dist < CONSECRATE_RADIUS) {
+                    ConsecratedEffect effect = new ConsecratedEffect(hermanDuplicate, CONSECRATE_DELAY, scaledDamage);
+                    effect.onApply();
+                    gameProj.addStatusEffect(hermanDuplicate, effect);
                 }
             }
         }

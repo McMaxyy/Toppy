@@ -34,7 +34,7 @@ public class BuffManager {
         }
     }
 
-    private static final float BUFF_DURATION = 30f;
+    private static final float BUFF_DURATION = 180f;
     private static final int ICON_SIZE = 28;
     private static final int ICON_PADDING = 6;
     private static final int UI_MARGIN = 10;

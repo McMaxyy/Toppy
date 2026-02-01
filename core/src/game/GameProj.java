@@ -78,6 +78,11 @@ public class GameProj implements Screen, ContactListener {
     private boolean bossKittyDefeated = false;
     private boolean cyclopsDefeated = false;
     private boolean ghostBossDefeated = false;
+    private Herman herman;
+    private Herman hermanDuplicate;
+    private boolean hermanSpawned = false;
+    private boolean hermanDefeated = false;
+    private List<Body> hermanArenaBarriers = new ArrayList<>();
 
     private MapBoundary mapBoundary;
     private Minimap minimap;
@@ -580,7 +585,7 @@ public class GameProj implements Screen, ContactListener {
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
         String bossName;
 
-        if (bossKittyDefeated && cyclopsDefeated) {
+        if (!bossKittyDefeated && !cyclopsDefeated) {
             currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, BossRoom.BossType.GHOST_BOSS);
             bossName = "Vengeful Spirit";
         }
@@ -626,6 +631,10 @@ public class GameProj implements Screen, ContactListener {
 
         if (overworldPlayerPosition != null) {
             player.getBody().setTransform(overworldPlayerPosition.x, overworldPlayerPosition.y, 0);
+        }
+
+        if (!hermanSpawned && ghostBossDefeated) {
+            spawnHerman();
         }
 
         hudLabel.setText("Enemies killed: " + enemiesKilled);
@@ -884,25 +893,18 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        if (Storage.isStageClear() && !bossSpawned) {
-            Vector2 playerChunkCoord = new Vector2(
-                    (int) Math.floor(player.getPosition().x / (CHUNK_SIZE * TILE_SIZE)),
-                    (int) Math.floor(player.getPosition().y / (CHUNK_SIZE * TILE_SIZE))
-            );
-
-            Chunk playerChunk = chunks.get(playerChunkCoord);
-
-            if (playerChunk != null) {
-                playerChunk.spawnBossKitty(150f);
-                bossSpawned = true;
+        if (herman != null && !herman.isMarkedForRemoval()) {
+            if (delta > 0) {
+                herman.update(delta);
             }
+            herman.render(batch);
         }
 
-        if (bossSpawned) {
-            for (Chunk chunk : chunks.values()) {
-                chunk.addBodiesToWorld(world.getWorld());
-                chunk.renderBossKitty(batch);
+        if (hermanDuplicate != null && !hermanDuplicate.isMarkedForRemoval()) {
+            if (delta > 0) {
+                hermanDuplicate.update(delta);
             }
+            hermanDuplicate.render(batch);
         }
 
         if (delta > 0) {
@@ -1246,10 +1248,21 @@ public class GameProj implements Screen, ContactListener {
             player.getStats().addExperience(ghostBoss.getStats().getExpReward());
 
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getGhostBoss() == ghostBoss) {
+                ghostBossDefeated = true;
                 currentBossRoom.onBossDefeated();
                 hudLabel.setText("Vengeful Spirit defeated! Use the portal to return");
             }
         }
+
+        else if (enemy instanceof Herman) {
+            Herman hermanBoss = (Herman) enemy;
+
+            String lootTable = hermanBoss.getStats().getLootTableType();
+            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
+
+            player.getStats().addExperience(hermanBoss.getStats().getExpReward());
+        }
+
         else if (enemy instanceof DungeonEnemy) {
             DungeonEnemy dungeonEnemy = (DungeonEnemy) enemy;
 
@@ -1274,14 +1287,23 @@ public class GameProj implements Screen, ContactListener {
                     }
                 }
 
-                for (BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
-                    if (boss.isMarkedForRemoval() && boss.getBody() != null) {
-                        handleEnemyDeath(boss, boss.getBody().getPosition(), true);
-                        bodiesToDestroy.add(boss.getBody());
-                        boss.clearBody();
-                        chunk.getBossKitty().remove(boss);
+                if (herman != null) {
+                    if (herman.isMarkedForRemoval() && herman.getBody() != null) {
+                        handleEnemyDeath(herman, herman.getBody().getPosition(), true);
+                        bodiesToDestroy.add(herman.getBody());
+                        herman.clearBody();
                     }
                 }
+
+                if (hermanDuplicate != null) {
+                    if (hermanDuplicate.isMarkedForRemoval() && hermanDuplicate.getBody() != null) {
+                        handleEnemyDeath(hermanDuplicate, hermanDuplicate.getBody().getPosition(), true);
+                        bodiesToDestroy.add(hermanDuplicate.getBody());
+                        hermanDuplicate.clearBody();
+                    }
+                }
+
+                checkHermanFullyDefeated();
             }
         }
 
@@ -1327,6 +1349,176 @@ public class GameProj implements Screen, ContactListener {
                 world.getWorld().destroyBody(body);
             }
         }
+    }
+
+    private void spawnHerman() {
+        if (hermanSpawned) return;
+
+        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
+        int minChunk = -halfMapChunks;
+
+        Vector2 playerSpawn = player.getPosition();
+        float minDistanceFromSpawn = CHUNK_SIZE * TILE_SIZE * 1.5f;
+
+        int attempts = 0;
+        int maxAttempts = 100;
+        boolean validPosition = false;
+        float hermanX = 0, hermanY = 0;
+
+        while (!validPosition && attempts < maxAttempts) {
+            attempts++;
+
+            int hermanChunkX = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+            int hermanChunkY = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+
+            float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+            float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+
+            hermanX = hermanChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+            hermanY = hermanChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+            float distanceFromPlayer = (float) Math.sqrt(
+                    Math.pow(hermanX - playerSpawn.x, 2) +
+                            Math.pow(hermanY - playerSpawn.y, 2)
+            );
+
+            boolean tooCloseToPortals = false;
+            for (Portal portal : dungeonPortals) {
+                Vector2 portalPos = new Vector2(
+                        portal.getBounds().x + portal.getBounds().width / 2f,
+                        portal.getBounds().y + portal.getBounds().height / 2f
+                );
+                float distanceToPortal = (float) Math.sqrt(
+                        Math.pow(hermanX - portalPos.x, 2) +
+                                Math.pow(hermanY - portalPos.y, 2)
+                );
+                if (distanceToPortal < CHUNK_SIZE * TILE_SIZE) {
+                    tooCloseToPortals = true;
+                    break;
+                }
+            }
+
+            if (distanceFromPlayer >= minDistanceFromSpawn && !tooCloseToPortals) {
+                validPosition = true;
+            }
+        }
+
+        Body hermanBody = createHermanBody(hermanX, hermanY);
+
+        EnemyStats hermanStats = EnemyStats.Factory.createHerman(4); // Level 4 mega boss
+        herman = new Herman(
+                new Rectangle(hermanX - 24, hermanY - 24, 48, 48),
+                hermanBody,
+                player,
+                animationManager,
+                hermanStats
+        );
+        hermanBody.setUserData(herman);
+
+        herman.setDuplicateSpawnCallback((position, health) -> {
+            spawnHermanDuplicate(position, health);
+        });
+
+        hermanSpawned = true;
+        hudLabel.setText("A powerful presence awakens in the forest...");
+
+        if (minimap != null) {
+             minimap.setHerman(herman);
+        }
+    }
+
+    private void spawnHermanDuplicate(Vector2 position, int health) {
+        if (hermanDuplicate != null) return; // Already spawned
+
+        Body duplicateBody = createHermanBody(position.x, position.y);
+
+        EnemyStats duplicateStats = EnemyStats.Factory.createHerman(4);
+        duplicateStats.setCurrentHealth(health);
+
+        hermanDuplicate = new Herman(
+                new Rectangle(position.x - 24, position.y - 24, 48, 48),
+                duplicateBody,
+                player,
+                animationManager,
+                duplicateStats,
+                true,
+                herman
+        );
+        duplicateBody.setUserData(hermanDuplicate);
+
+        // Duplicate is already activated since it spawns during combat
+        hudLabel.setText("Herman has split in two!");
+    }
+
+    private Body createHermanBody(float x, float y) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.StaticBody; // Herman is stationary
+        bodyDef.position.set(x, y);
+
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(16f, 16f);
+
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+        fixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
+        fixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR | CollisionFilter.ABILITY;
+
+        Body body = world.getWorld().createBody(bodyDef);
+        body.createFixture(fixtureDef);
+        body.setFixedRotation(true);
+        shape.dispose();
+
+        return body;
+    }
+
+    private void onHermanFullyDefeated() {
+        hermanDefeated = true;
+        hudLabel.setText("Herman has been defeated! The forest is at peace.");
+
+        // Remove arena barriers
+        for (Body barrier : hermanArenaBarriers) {
+            if (barrier != null) {
+                world.getWorld().destroyBody(barrier);
+            }
+        }
+        hermanArenaBarriers.clear();
+
+         SoundManager.getInstance().playForestMusic();
+    }
+
+    private void checkHermanFullyDefeated() {
+        if (!hermanSpawned || hermanDefeated) return;
+
+        boolean mainDead = (herman == null) ||
+                (herman.isMarkedForRemoval()) ||
+                (herman.getStats().isDead());
+
+        // If main hasn't duplicated yet, only check main
+        boolean duplicateDead = true;
+        if (herman != null && herman.hasDuplicated()) {
+            duplicateDead = (hermanDuplicate == null) ||
+                    (hermanDuplicate.isMarkedForRemoval()) ||
+                    (hermanDuplicate.getStats().isDead());
+        }
+
+        if (mainDead && duplicateDead) {
+            onHermanFullyDefeated();
+            // Now we can null them out
+            herman = null;
+            hermanDuplicate = null;
+        }
+    }
+
+    public Herman getHerman() {
+        return herman;
+    }
+
+    public Herman getHermanDuplicate() {
+        return hermanDuplicate;
+    }
+
+    public boolean isHermanSpawned () {
+        return hermanSpawned;
     }
 
     public void safeExit() {
@@ -1446,6 +1638,21 @@ public class GameProj implements Screen, ContactListener {
                 dungeonPortals.clear();
             }
 
+            if (herman != null) {
+                if (herman.getBody() != null) {
+                    world.getWorld().destroyBody(herman.getBody());
+                }
+                herman.dispose();
+                herman = null;
+            }
+
+            for (Body barrier : hermanArenaBarriers) {
+                if (barrier != null) {
+                    world.getWorld().destroyBody(barrier);
+                }
+            }
+            hermanArenaBarriers.clear();
+
             if (statusEffects != null) {
                 statusEffects.clear();
             }
@@ -1467,6 +1674,22 @@ public class GameProj implements Screen, ContactListener {
             if (world != null) {
                 world.dispose();
                 world = null;
+            }
+
+            if (herman != null) {
+                if (herman.getBody() != null) {
+                    world.getWorld().destroyBody(herman.getBody());
+                }
+                herman.dispose();
+                herman = null;
+            }
+
+            if (hermanDuplicate != null) {
+                if (hermanDuplicate.getBody() != null) {
+                    world.getWorld().destroyBody(hermanDuplicate.getBody());
+                }
+                hermanDuplicate.dispose();
+                hermanDuplicate = null;
             }
 
             SoundManager.getInstance().dispose();

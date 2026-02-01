@@ -93,7 +93,6 @@ public class GhostBoss {
     private int roomHeight;
     private int tileSize;
 
-    // Projectile management
     private List<Projectile> projectiles = new ArrayList<>();
     private World world;
 
@@ -101,7 +100,6 @@ public class GhostBoss {
     private float hitFlashTimer = 0f;
     private static final float HIT_FLASH_DURATION = 0.3f;
 
-    // Inner class for duplicates (visual only, no collision)
     public static class GhostBossDuplicate {
         public Vector2 position;
         public boolean isFlipped;
@@ -152,12 +150,11 @@ public class GhostBoss {
         this.roomHeight = height;
         this.tileSize = tileSize;
 
-        // Calculate corner positions (inside the room, away from walls)
         float margin = tileSize * 3;
-        roomCorners[0] = new Vector2(margin, margin); // Bottom-left
-        roomCorners[1] = new Vector2(width * tileSize - margin, margin); // Bottom-right
-        roomCorners[2] = new Vector2(margin, height * tileSize - margin); // Top-left
-        roomCorners[3] = new Vector2(width * tileSize - margin, height * tileSize - margin); // Top-right
+        roomCorners[0] = new Vector2(margin, margin);
+        roomCorners[1] = new Vector2(width * tileSize - margin, margin);
+        roomCorners[2] = new Vector2(margin, height * tileSize - margin);
+        roomCorners[3] = new Vector2(width * tileSize - margin, height * tileSize - margin);
     }
 
     private void setState(State newState) {
@@ -206,7 +203,6 @@ public class GhostBoss {
             }
         }
 
-        // Update cooldowns ALWAYS, even during special phases
         if (attackCooldown > 0) {
             attackCooldown -= delta;
         }
@@ -214,10 +210,8 @@ public class GhostBoss {
             summonCooldown -= delta;
         }
 
-        // Update projectiles
         updateProjectiles(delta);
 
-        // Update ghostlings
         updateGhostlings(delta);
 
         isFlipped = body.getPosition().x > player.getBody().getPosition().x;
@@ -225,13 +219,11 @@ public class GhostBoss {
         bounds.setPosition(body.getPosition().x - bounds.width / 2f,
                 body.getPosition().y - bounds.height / 2f);
 
-        // Check for duplication at 50% HP
         if (!hasDuplicated && duplicationPhase == DuplicationPhase.NONE &&
                 stats.getCurrentHealth() <= stats.getMaxHealth() * 0.5f) {
             startDuplication();
         }
 
-        // Update states
         if (duplicationPhase != DuplicationPhase.NONE) {
             updateDuplication(delta);
         } else if (summonPhase != SummonPhase.NONE) {
@@ -246,7 +238,6 @@ public class GhostBoss {
             Projectile projectile = projectiles.get(i);
             projectile.update(delta);
 
-            // Check collision with player
             if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
                 float dist = projectile.getPosition().dst(player.getPosition());
                 if (dist < 10f) {
@@ -284,16 +275,13 @@ public class GhostBoss {
         if (isPlayerInRadius()) {
             float distanceToPlayer = getDistanceToPlayer();
 
-            // Check for summon attack (priority if available and far enough)
             if (summonCooldown <= 0 && spawnedGhostlings.isEmpty()) {
                 startSummon();
             }
-            // Basic projectile attack
             else if (attackCooldown <= 0) {
                 fireProjectile();
                 attackCooldown = PROJECTILE_COOLDOWN;
             }
-            // Move towards player if not attacking
             else if (distanceToPlayer > 80f) {
                 moveTowardsPlayer();
                 isMoving = true;
@@ -352,11 +340,9 @@ public class GhostBoss {
         spawnTimer = 0f;
         totalSpawnTime = 0f;
 
-        // Find the corner furthest from player
         int furthestCorner = getFurthestCornerFromPlayer();
         cornerPosition.set(roomCorners[furthestCorner]);
 
-        // Teleport to corner
         body.setTransform(cornerPosition, 0f);
         body.setLinearVelocity(0, 0);
 
@@ -384,7 +370,6 @@ public class GhostBoss {
 
         switch (summonPhase) {
             case TELEPORTING:
-                // Brief pause before spawning
                 if (summonTimer >= 0.5f) {
                     summonPhase = SummonPhase.SPAWNING;
                     summonTimer = 0f;
@@ -394,16 +379,15 @@ public class GhostBoss {
                 break;
 
             case SPAWNING:
+                body.setLinearVelocity(0, 0);
                 totalSpawnTime += delta;
                 spawnTimer += delta;
 
-                // Spawn 3 ghosts every 0.5 seconds
                 if (spawnTimer >= SPAWN_INTERVAL) {
                     spawnGhostlingBatch();
                     spawnTimer = 0f;
                 }
 
-                // After 3 seconds of spawning, transition to shooting while waiting
                 if (totalSpawnTime >= SPAWN_DURATION) {
                     summonPhase = SummonPhase.SHOOTING_WHILE_WAITING;
                     summonTimer = 0f;
@@ -412,14 +396,13 @@ public class GhostBoss {
                 break;
 
             case SHOOTING_WHILE_WAITING:
-                // Shoot at player while waiting for ghostlings to die
+                body.setLinearVelocity(0, 0);
                 shootWhileWaitingTimer += delta;
                 if (shootWhileWaitingTimer >= SHOOT_WHILE_WAITING_INTERVAL) {
                     fireProjectile();
                     shootWhileWaitingTimer = 0f;
                 }
 
-                // Check if all ghostlings are dead
                 if (spawnedGhostlings.isEmpty()) {
                     endSummon();
                 }
@@ -506,7 +489,6 @@ public class GhostBoss {
     }
 
     public void onGhostlingDeath(Ghost ghost) {
-        // Called by Ghost when it dies - removal happens in updateGhostlings
     }
 
     // =========================================================================
@@ -518,13 +500,11 @@ public class GhostBoss {
         duplicationTimer = 0f;
         isInvulnerableDuringDuplication = true;
 
-        // Clear any ongoing summon
         summonPhase = SummonPhase.NONE;
 
         body.setLinearVelocity(0, 0);
         setState(State.ATTACKING);
 
-        // Create 3 duplicates (boss + 3 = 4 total)
         duplicates.clear();
         for (int i = 0; i < 3; i++) {
             duplicates.add(new GhostBossDuplicate(new Vector2()));
@@ -537,7 +517,6 @@ public class GhostBoss {
 
         switch (duplicationPhase) {
             case DUPLICATING:
-                // Teleport boss and duplicates to corners
                 if (duplicationTimer >= 0.3f) {
                     teleportToCorners();
                     duplicationPhase = DuplicationPhase.SHOOTING;
@@ -546,14 +525,11 @@ public class GhostBoss {
                 break;
 
             case SHOOTING:
-                // All 4 entities shoot at player for 3 seconds
-                // Boss shoots
                 if (attackCooldown <= 0) {
                     fireProjectile();
-                    attackCooldown = 0.5f;
+                    attackCooldown = 0.3f;
                 }
 
-                // Duplicates shoot
                 for (GhostBossDuplicate duplicate : duplicates) {
                     duplicate.isFlipped = duplicate.position.x > player.getPosition().x;
                     if (duplicate.shouldShoot(delta)) {

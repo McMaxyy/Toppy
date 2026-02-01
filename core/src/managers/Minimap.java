@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
 import config.Storage;
+import entities.Herman;
 import entities.Merchant;
 import entities.Player;
 import entities.Portal;
@@ -25,6 +26,8 @@ public class Minimap {
     private final Player player;
     private List<Portal> portals;
     private Merchant merchant;
+    private Herman herman;
+    private Herman hermanDuplicate;
 
     private final Set<String> exploredTiles;
     private final int EXPLORATION_RADIUS = 50;
@@ -32,6 +35,7 @@ public class Minimap {
     private boolean mapOpen = false;
     private boolean showPortal = true;
     private boolean showMerchant = true;
+    private boolean showHerman = true;
     private final int MAP_PADDING = 50;
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
@@ -42,6 +46,8 @@ public class Minimap {
     private final Color PLAYER_COLOR = new Color(0.2f, 0.8f, 1f, 1f);
     private final Color PORTAL_COLOR = new Color(0.8f, 0.2f, 1f, 1f);
     private final Color MERCHANT_COLOR = new Color(1f, 0.84f, 0f, 1f); // Gold color for merchant
+    private final Color HERMAN_COLOR = new Color(0.4f, 0.8f, 0.2f, 1f); // Green color for Herman (tree boss)
+    private final Color HERMAN_DUPLICATE_COLOR = new Color(0.6f, 0.9f, 0.4f, 1f); // Lighter green for duplicate
     private final Color WALL_COLOR = new Color(0.5f, 0.5f, 0.5f, 1f);
     private final Color BACKGROUND_COLOR = new Color(0.02f, 0.02f, 0.02f, 0.98f);
 
@@ -65,6 +71,14 @@ public class Minimap {
         this.merchant = merchant;
     }
 
+    public void setHerman(Herman herman) {
+        this.herman = herman;
+    }
+
+    public void setHermanDuplicate(Herman hermanDuplicate) {
+        this.hermanDuplicate = hermanDuplicate;
+    }
+
     public void toggleMap() {
         mapOpen = !mapOpen;
     }
@@ -75,6 +89,10 @@ public class Minimap {
 
     public void toggleMerchantDisplay() {
         showMerchant = !showMerchant;
+    }
+
+    public void toggleHermanDisplay() {
+        showHerman = !showHerman;
     }
 
     public boolean isMapOpen() {
@@ -231,6 +249,72 @@ public class Minimap {
                     shapeRenderer.rect(
                             merchantDisplayX - pulseOffset,
                             merchantDisplayY - pulseOffset,
+                            pulseSize,
+                            pulseSize
+                    );
+                }
+            }
+        }
+
+        // Draw Herman (main boss)
+        if (showHerman && herman != null && !herman.isMarkedForRemoval() && herman.getBody() != null) {
+            Vector2 hermanPos = herman.getBody().getPosition();
+
+            int worldHermanTileX = (int) (hermanPos.x / tileSize);
+            int worldHermanTileY = (int) (hermanPos.y / tileSize);
+            String hermanTileKey = worldHermanTileX + "," + worldHermanTileY;
+
+            if (exploredTiles.contains(hermanTileKey)) {
+                int hermanTileX = worldHermanTileX - worldMinTileX;
+                int hermanTileY = worldHermanTileY - worldMinTileY;
+
+                if (hermanTileX >= 0 && hermanTileX < totalTilesX &&
+                        hermanTileY >= 0 && hermanTileY < totalTilesY) {
+
+                    float hermanDisplayX = mapStartX + hermanTileX * tileDisplaySize;
+                    float hermanDisplayY = mapStartY + hermanTileY * tileDisplaySize;
+
+                    // Pulsing green marker for Herman - larger to indicate boss
+                    float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 250.0) * 0.25f;
+                    shapeRenderer.setColor(HERMAN_COLOR.r, HERMAN_COLOR.g, HERMAN_COLOR.b, 0.9f);
+                    float pulseSize = tileDisplaySize * 2.0f * pulse;
+                    float pulseOffset = (pulseSize - tileDisplaySize) / 2f;
+                    shapeRenderer.rect(
+                            hermanDisplayX - pulseOffset,
+                            hermanDisplayY - pulseOffset,
+                            pulseSize,
+                            pulseSize
+                    );
+                }
+            }
+        }
+
+        // Draw Herman Duplicate
+        if (showHerman && hermanDuplicate != null && !hermanDuplicate.isMarkedForRemoval() && hermanDuplicate.getBody() != null) {
+            Vector2 duplicatePos = hermanDuplicate.getBody().getPosition();
+
+            int worldDuplicateTileX = (int) (duplicatePos.x / tileSize);
+            int worldDuplicateTileY = (int) (duplicatePos.y / tileSize);
+            String duplicateTileKey = worldDuplicateTileX + "," + worldDuplicateTileY;
+
+            if (exploredTiles.contains(duplicateTileKey)) {
+                int duplicateTileX = worldDuplicateTileX - worldMinTileX;
+                int duplicateTileY = worldDuplicateTileY - worldMinTileY;
+
+                if (duplicateTileX >= 0 && duplicateTileX < totalTilesX &&
+                        duplicateTileY >= 0 && duplicateTileY < totalTilesY) {
+
+                    float duplicateDisplayX = mapStartX + duplicateTileX * tileDisplaySize;
+                    float duplicateDisplayY = mapStartY + duplicateTileY * tileDisplaySize;
+
+                    // Pulsing lighter green marker for duplicate - same size as main
+                    float pulse = 1f + (float) Math.sin(System.currentTimeMillis() / 250.0 + Math.PI) * 0.25f; // Offset pulse
+                    shapeRenderer.setColor(HERMAN_DUPLICATE_COLOR.r, HERMAN_DUPLICATE_COLOR.g, HERMAN_DUPLICATE_COLOR.b, 0.9f);
+                    float pulseSize = tileDisplaySize * 2.0f * pulse;
+                    float pulseOffset = (pulseSize - tileDisplaySize) / 2f;
+                    shapeRenderer.rect(
+                            duplicateDisplayX - pulseOffset,
+                            duplicateDisplayY - pulseOffset,
                             pulseSize,
                             pulseSize
                     );

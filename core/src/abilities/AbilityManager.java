@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import config.Storage;
+import entities.Herman;
 import entities.Player;
 import entities.PlayerClass;
 import game.GameProj;
@@ -213,30 +214,30 @@ public class AbilityManager {
                     }
                 }
             }
+        }
 
-            for (entities.BossKitty boss : new ArrayList<>(chunk.getBossKitty())) {
-                if (boss.getBody() != null) {
-                    com.badlogic.gdx.math.Vector2 enemyPos = boss.getBody().getPosition();
-                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
-                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
-                    );
+        if (gameProj.isHermanSpawned()) {
+            Herman herman = gameProj.getHerman();
+            if (herman != null && herman.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = herman.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
 
-                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        boss.takeDamage(playerDamage);
-                    }
+                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    herman.takeDamage(playerDamage);
                 }
             }
 
-            for (entities.Cyclops cyclops : new ArrayList<>(chunk.getCyclopsList())) {
-                if (cyclops.getBody() != null) {
-                    com.badlogic.gdx.math.Vector2 enemyPos = cyclops.getBody().getPosition();
-                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
-                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
-                    );
+            Herman hermanDuplicate = gameProj.getHermanDuplicate();
+            if (hermanDuplicate != null && hermanDuplicate.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = hermanDuplicate.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
 
-                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        cyclops.takeDamage(playerDamage);
-                    }
+                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    hermanDuplicate.takeDamage(playerDamage);
                 }
             }
         }

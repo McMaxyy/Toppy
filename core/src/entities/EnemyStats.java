@@ -367,5 +367,25 @@ public class EnemyStats {
                     0f
             );
         }
+
+        public static EnemyStats createHerman(int level) {
+            return new EnemyStats(
+                    "Herman",
+                    800 + (level * 80),
+                    20 + (level * 8),
+                    8 + (level * 4),
+                    300 + (level * 100),
+                    level,
+                    AttackType.RANGED,
+                    "boss",
+                    0.5f,
+                    400f,
+                    0.5f,
+                    0f,
+                    40f,
+                    120f,
+                    0f
+            );
+        }
     }
 }
