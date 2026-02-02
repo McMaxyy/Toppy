@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.utils.Array;
 import config.Storage;
 import entities.Player;
 import game.GameProj;
@@ -195,7 +196,6 @@ public abstract class AbilityVisual {
         private int swingCount;
         private float swingSpeed = 2.5f;
 
-        // Cone texture
         private static Texture coneTexture;
 
         private static final float DEFAULT_CONE_ANGLE = 60f;
@@ -211,7 +211,6 @@ public abstract class AbilityVisual {
             this.swingProgress = 0f;
             this.swingCount = 1;
 
-            // Load cone texture if not already loaded
             if (coneTexture == null) {
                 try {
                     coneTexture = Storage.assetManager.get("icons/abilities/Cone.png", Texture.class);
@@ -237,7 +236,6 @@ public abstract class AbilityVisual {
         protected void onUpdate(float delta) {
             super.onUpdate(delta);
 
-            // Update swing animation progress
             if (isSwingAnimation && swingProgress < 1f) {
                 swingProgress += delta * swingSpeed;
                 if (swingProgress > 1f) {
@@ -267,22 +265,20 @@ public abstract class AbilityVisual {
         }
 
         private void renderTexturedConeStatic(SpriteBatch batch, Vector2 playerPos, float facingAngle) {
-            // Draw the full cone texture
             float coneWidth = range;
-            float coneHeight = range * 0.8f; // Adjust aspect ratio as needed
+            float coneHeight = range * 0.8f;
 
             batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.5f);
 
-            // Draw cone with origin at left center (tip of cone)
             batch.draw(coneTexture,
-                    playerPos.x, playerPos.y - coneHeight / 2f,  // position
-                    0, coneHeight / 2f,                           // origin (left center - cone tip)
-                    coneWidth, coneHeight,                        // size
-                    1f, 1f,                                       // scale
-                    facingAngle,                                  // rotation
-                    0, 0,                                         // src position
-                    coneTexture.getWidth(), coneTexture.getHeight(), // src size
-                    false, false);                                // flip
+                    playerPos.x, playerPos.y - coneHeight / 2f,
+                    0, coneHeight / 2f,
+                    coneWidth, coneHeight,
+                    1f, 1f,
+                    facingAngle,
+                    0, 0,
+                    coneTexture.getWidth(), coneTexture.getHeight(),
+                    false, false);
 
             batch.setColor(1f, 1f, 1f, 1f);
         }
@@ -353,7 +349,6 @@ public abstract class AbilityVisual {
             this.fillProgress = 0f;
             this.fillSpeed = fillSpeed;
 
-            // Load cone texture if not already loaded
             if (coneTexture == null) {
                 try {
                     coneTexture = Storage.assetManager.get("tiles/Cone.png", Texture.class);
@@ -452,7 +447,6 @@ public abstract class AbilityVisual {
                 drawLine(batch, position.x, position.y, x1, y1, 2f);
             }
 
-            // Draw arc
             batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.2f);
             for (int i = 0; i < segmentsToDraw - 1; i++) {
                 float angle1 = facingAngle - halfCone + (i * angleStep);
@@ -552,7 +546,7 @@ public abstract class AbilityVisual {
     // =========================================================================
     public static class ChargeTrail extends AbilityVisual {
         private Player player;
-        private com.badlogic.gdx.utils.Array<TrailPoint> trailPoints;
+        private Array<TrailPoint> trailPoints;
         private float spawnInterval = 0.02f;
         private float spawnTimer = 0f;
         private float trailPointLifetime = 0.3f;
@@ -574,19 +568,17 @@ public abstract class AbilityVisual {
         public ChargeTrail(Player player, float duration) {
             super(duration);
             this.player = player;
-            this.trailPoints = new com.badlogic.gdx.utils.Array<>();
+            this.trailPoints = new Array<>();
         }
 
         @Override
         protected void onUpdate(float delta) {
-            // Spawn new trail points while charging
             spawnTimer += delta;
             if (spawnTimer >= spawnInterval && timer < duration * 0.8f) {
                 trailPoints.add(new TrailPoint(player.getPosition(), trailPointLifetime));
                 spawnTimer = 0f;
             }
 
-            // Update existing trail points
             for (int i = trailPoints.size - 1; i >= 0; i--) {
                 TrailPoint point = trailPoints.get(i);
                 point.lifetime -= delta;
@@ -600,14 +592,12 @@ public abstract class AbilityVisual {
         public void render(SpriteBatch batch) {
             if (!active && trailPoints.size == 0) return;
 
-            // Get player's current animation frame for the trail
-            com.badlogic.gdx.graphics.g2d.TextureRegion frame = player.getAnimationManager().getCurrentFrame();
-            float size = 16f; // Trail sprite size
+            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            float size = 16f;
 
             for (TrailPoint point : trailPoints) {
                 float alpha = TRAIL_ALPHA * (point.lifetime / point.maxLifetime);
 
-                // Red tint for charge trail
                 batch.setColor(1f, 0.3f, 0.3f, alpha);
                 batch.draw(frame,
                         point.position.x - size / 2f,
@@ -759,7 +749,7 @@ public abstract class AbilityVisual {
         private float radius;
         private float flashTimer = 0f;
 
-        private static final Color SMITE_COLOR = new Color(1f, 0.9f, 0.4f, 1f); // Golden divine color
+        private static final Color SMITE_COLOR = new Color(1f, 0.9f, 0.4f, 1f);
         private static final float FLASH_SPEED = 15f;
 
         public Smite(Player player, float radius, float duration) {
@@ -767,7 +757,6 @@ public abstract class AbilityVisual {
             this.player = player;
             this.radius = radius;
 
-            // Try to load the smite texture
             try {
                 this.texture = Storage.assetManager.get("character/abilities/Smite.png", Texture.class);
             } catch (Exception e) {
@@ -787,22 +776,18 @@ public abstract class AbilityVisual {
             Vector2 pos = player.getPosition();
             float progress = timer / duration;
 
-            // Calculate alpha with flash effect
             float baseAlpha = 0.7f * (1f - progress);
             float flashAlpha = baseAlpha + 0.2f * (float) Math.sin(flashTimer);
 
             if (texture != null) {
-                // Render texture
                 batch.setColor(1f, 1f, 1f, flashAlpha);
                 float size = radius * 2f;
                 batch.draw(texture, pos.x - size / 2f, pos.y - size / 2f, size, size);
                 batch.setColor(1f, 1f, 1f, 1f);
             } else {
-                // Fallback: render circle effect
                 renderSmiteCircle(batch, pos, radius, flashAlpha);
             }
 
-            // Always render the golden ring
             renderSmiteRing(batch, pos, radius, baseAlpha);
         }
 
@@ -812,7 +797,6 @@ public abstract class AbilityVisual {
             int segments = 32;
             float angleStep = 360f / segments;
 
-            // Draw filled circle using lines from center
             for (int i = 0; i < segments; i++) {
                 float angle = i * angleStep;
                 float rad = (float) Math.toRadians(angle);
@@ -878,6 +862,493 @@ public abstract class AbilityVisual {
 
             float size = radius * 2f;
             batch.draw(texture, position.x - size / 2f, position.y - size / 2f, size, size);
+        }
+    }
+
+    // =========================================================================
+    // SHADOW STEP TRAIL - Dark/purple trail for backwards dash
+    // =========================================================================
+    public static class ShadowStepTrail extends AbilityVisual {
+        private Player player;
+        private Array<TrailPoint> trailPoints;
+        private float spawnInterval = 0.02f;
+        private float spawnTimer = 0f;
+        private float trailPointLifetime = 0.25f;
+
+        private static final float TRAIL_ALPHA = 0.5f;
+        private static final Color SHADOW_COLOR = new Color(0.3f, 0.1f, 0.4f, 1f);
+
+        private static class TrailPoint {
+            Vector2 position;
+            float lifetime;
+            float maxLifetime;
+
+            TrailPoint(Vector2 pos, float lifetime) {
+                this.position = new Vector2(pos);
+                this.lifetime = lifetime;
+                this.maxLifetime = lifetime;
+            }
+        }
+
+        public ShadowStepTrail(Player player, float duration) {
+            super(duration);
+            this.player = player;
+            this.trailPoints = new Array<>();
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            spawnTimer += delta;
+            if (spawnTimer >= spawnInterval && timer < duration * 0.8f) {
+                trailPoints.add(new TrailPoint(player.getPosition(), trailPointLifetime));
+                spawnTimer = 0f;
+            }
+
+            for (int i = trailPoints.size - 1; i >= 0; i--) {
+                TrailPoint point = trailPoints.get(i);
+                point.lifetime -= delta;
+                if (point.lifetime <= 0) {
+                    trailPoints.removeIndex(i);
+                }
+            }
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active && trailPoints.size == 0) return;
+
+            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            float size = 16f;
+
+            for (TrailPoint point : trailPoints) {
+                float alpha = TRAIL_ALPHA * (point.lifetime / point.maxLifetime);
+                batch.setColor(SHADOW_COLOR.r, SHADOW_COLOR.g, SHADOW_COLOR.b, alpha);
+                batch.draw(frame,
+                        point.position.x - size / 2f,
+                        point.position.y - size / 2f,
+                        size, size);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        @Override
+        public void dispose() {
+            trailPoints.clear();
+            super.dispose();
+        }
+    }
+
+    // =========================================================================
+    // VAULT TRAIL - Golden/white trail for vault through enemies
+    // =========================================================================
+    public static class VaultTrail extends AbilityVisual {
+        private Player player;
+        private Array<TrailPoint> trailPoints;
+        private float spawnInterval = 0.015f;
+        private float spawnTimer = 0f;
+        private float trailPointLifetime = 0.3f;
+
+        private static final float TRAIL_ALPHA = 0.6f;
+        private static final Color VAULT_COLOR = new Color(1f, 0.9f, 0.5f, 1f);
+
+        private static class TrailPoint {
+            Vector2 position;
+            float lifetime;
+            float maxLifetime;
+
+            TrailPoint(Vector2 pos, float lifetime) {
+                this.position = new Vector2(pos);
+                this.lifetime = lifetime;
+                this.maxLifetime = lifetime;
+            }
+        }
+
+        public VaultTrail(Player player, float duration) {
+            super(duration);
+            this.player = player;
+            this.trailPoints = new Array<>();
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            spawnTimer += delta;
+            if (spawnTimer >= spawnInterval && timer < duration * 0.9f) {
+                trailPoints.add(new TrailPoint(player.getPosition(), trailPointLifetime));
+                spawnTimer = 0f;
+            }
+
+            for (int i = trailPoints.size - 1; i >= 0; i--) {
+                TrailPoint point = trailPoints.get(i);
+                point.lifetime -= delta;
+                if (point.lifetime <= 0) {
+                    trailPoints.removeIndex(i);
+                }
+            }
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active && trailPoints.size == 0) return;
+
+            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            float size = 16f;
+
+            for (TrailPoint point : trailPoints) {
+                float alpha = TRAIL_ALPHA * (point.lifetime / point.maxLifetime);
+                batch.setColor(VAULT_COLOR.r, VAULT_COLOR.g, VAULT_COLOR.b, alpha);
+                batch.draw(frame,
+                        point.position.x - size / 2f,
+                        point.position.y - size / 2f,
+                        size, size);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        @Override
+        public void dispose() {
+            trailPoints.clear();
+            super.dispose();
+        }
+    }
+
+    // =========================================================================
+    // SPRINT AURA - Blue tint overlay on player while sprinting
+    // =========================================================================
+    public static class SprintAura extends AbilityVisual {
+        private Player player;
+        private float pulseTimer = 0f;
+
+        private static final Color SPRINT_COLOR = new Color(0.3f, 0.5f, 1f, 1f);
+        private static final float PULSE_SPEED = 4f;
+
+        public SprintAura(Player player, float duration) {
+            super(duration);
+            this.player = player;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            pulseTimer += delta * PULSE_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+            float pulseAlpha = 0.3f + 0.15f * (float) Math.sin(pulseTimer);
+            float size = 20f;
+
+            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+
+            batch.setColor(SPRINT_COLOR.r, SPRINT_COLOR.g, SPRINT_COLOR.b, pulseAlpha);
+            batch.draw(frame,
+                    pos.x - size / 2f,
+                    pos.y - size / 2f,
+                    size, size);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // SMOKE BOMB ZONE - Circle on the floor
+    // =========================================================================
+    public static class SmokeBombZone extends AbilityVisual {
+        private Vector2 position;
+        private float radius;
+
+        private static final Color SMOKE_COLOR = new Color(0.4f, 0.4f, 0.4f, 1f);
+        private static final int CIRCLE_SEGMENTS = 32;
+
+        public SmokeBombZone(Vector2 position, float radius, float duration) {
+            super(duration);
+            this.position = new Vector2(position);
+            this.radius = radius;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            float progress = timer / duration;
+            float alpha = 0.5f * (1f - progress * 0.3f);
+
+            renderFilledCircle(batch, position, radius, alpha * 0.4f);
+            renderCircle(batch, position, radius, alpha);
+
+            float innerRadius = radius * 0.6f * (1f + 0.1f * (float) Math.sin(timer * 3f));
+            renderCircle(batch, position, innerRadius, alpha * 0.6f);
+        }
+
+        private void renderCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(SMOKE_COLOR.r, SMOKE_COLOR.g, SMOKE_COLOR.b, alpha);
+
+            float angleStep = 360f / CIRCLE_SEGMENTS;
+
+            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
+                float angle = i * angleStep;
+                float nextAngle = (i + 1) * angleStep;
+                float rad = (float) Math.toRadians(angle);
+                float nextRad = (float) Math.toRadians(nextAngle);
+
+                float x1 = center.x + (float) Math.cos(rad) * radius;
+                float y1 = center.y + (float) Math.sin(rad) * radius;
+                float x2 = center.x + (float) Math.cos(nextRad) * radius;
+                float y2 = center.y + (float) Math.sin(nextRad) * radius;
+
+                drawLine(batch, x1, y1, x2, y2, 3f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderFilledCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(SMOKE_COLOR.r, SMOKE_COLOR.g, SMOKE_COLOR.b, alpha);
+
+            float angleStep = 360f / CIRCLE_SEGMENTS;
+
+            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
+                float angle = i * angleStep;
+                float rad = (float) Math.toRadians(angle);
+
+                float x = center.x + (float) Math.cos(rad) * radius;
+                float y = center.y + (float) Math.sin(rad) * radius;
+
+                drawLine(batch, center.x, center.y, x, y, 2f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // LIFE LEECH AURA - Red/green pulsing aura
+    // =========================================================================
+    public static class LifeLeechAura extends AbilityVisual {
+        private Player player;
+        private float pulseTimer = 0f;
+
+        private static final Color LEECH_COLOR = new Color(0.8f, 0.2f, 0.3f, 1f);
+        private static final Color HEAL_COLOR = new Color(0.2f, 0.8f, 0.3f, 1f);
+        private static final float PULSE_SPEED = 5f;
+
+        public LifeLeechAura(Player player, float duration) {
+            super(duration);
+            this.player = player;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            pulseTimer += delta * PULSE_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+            float pulse = (float) Math.sin(pulseTimer);
+            float alpha = 0.25f + 0.1f * Math.abs(pulse);
+            float size = 22f;
+
+            float t = (pulse + 1f) / 2f;
+            Color currentColor = new Color(
+                    LEECH_COLOR.r * (1 - t) + HEAL_COLOR.r * t,
+                    LEECH_COLOR.g * (1 - t) + HEAL_COLOR.g * t,
+                    LEECH_COLOR.b * (1 - t) + HEAL_COLOR.b * t,
+                    1f
+            );
+
+            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+
+            batch.setColor(currentColor.r, currentColor.g, currentColor.b, alpha);
+            batch.draw(frame,
+                    pos.x - size / 2f,
+                    pos.y - size / 2f,
+                    size, size);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // HOLY AURA - Golden circle that damages enemies
+    // =========================================================================
+    public static class HolyAura extends AbilityVisual {
+        private Player player;
+        private float radius;
+        private float pulseTimer = 0f;
+
+        private static final Color HOLY_COLOR = new Color(1f, 0.9f, 0.4f, 1f);
+        private static final int CIRCLE_SEGMENTS = 32;
+        private static final float PULSE_SPEED = 3f;
+
+        public HolyAura(Player player, float radius, float duration) {
+            super(duration);
+            this.player = player;
+            this.radius = radius;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            pulseTimer += delta * PULSE_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+            float progress = timer / duration;
+            float pulse = 0.6f + 0.2f * (float) Math.sin(pulseTimer);
+            float alpha = pulse * (1f - progress * 0.3f);
+
+            float currentRadius = radius * (0.95f + 0.05f * (float) Math.sin(pulseTimer * 2f));
+
+            renderCircle(batch, pos, currentRadius, alpha);
+            renderFilledCircle(batch, pos, currentRadius * 0.3f, alpha * 0.3f);
+            renderHolyRays(batch, pos, currentRadius, alpha * 0.5f);
+        }
+
+        private void renderCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(HOLY_COLOR.r, HOLY_COLOR.g, HOLY_COLOR.b, alpha);
+
+            float angleStep = 360f / CIRCLE_SEGMENTS;
+
+            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
+                float angle = i * angleStep;
+                float nextAngle = (i + 1) * angleStep;
+                float rad = (float) Math.toRadians(angle);
+                float nextRad = (float) Math.toRadians(nextAngle);
+
+                float x1 = center.x + (float) Math.cos(rad) * radius;
+                float y1 = center.y + (float) Math.sin(rad) * radius;
+                float x2 = center.x + (float) Math.cos(nextRad) * radius;
+                float y2 = center.y + (float) Math.sin(nextRad) * radius;
+
+                drawLine(batch, x1, y1, x2, y2, 3f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderFilledCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(HOLY_COLOR.r, HOLY_COLOR.g, HOLY_COLOR.b, alpha);
+
+            float angleStep = 360f / CIRCLE_SEGMENTS;
+
+            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
+                float angle = i * angleStep;
+                float rad = (float) Math.toRadians(angle);
+
+                float x = center.x + (float) Math.cos(rad) * radius;
+                float y = center.y + (float) Math.sin(rad) * radius;
+
+                drawLine(batch, center.x, center.y, x, y, 2f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderHolyRays(SpriteBatch batch, Vector2 center, float radius, float alpha) {
+            batch.setColor(HOLY_COLOR.r, HOLY_COLOR.g, HOLY_COLOR.b, alpha);
+
+            int numRays = 8;
+            float angleStep = 360f / numRays;
+
+            for (int i = 0; i < numRays; i++) {
+                float angle = i * angleStep + (timer * 30f);
+                float rad = (float) Math.toRadians(angle);
+
+                float innerRadius = radius * 0.4f;
+                float x1 = center.x + (float) Math.cos(rad) * innerRadius;
+                float y1 = center.y + (float) Math.sin(rad) * innerRadius;
+                float x2 = center.x + (float) Math.cos(rad) * radius;
+                float y2 = center.y + (float) Math.sin(rad) * radius;
+
+                drawLine(batch, x1, y1, x2, y2, 2f);
+            }
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // HOLY BLESSING AURA - Yellow pulsing glow on player
+    // =========================================================================
+    public static class HolyBlessingAura extends AbilityVisual {
+        private Player player;
+        private float pulseTimer = 0f;
+
+        private static final Color BLESSING_COLOR = new Color(1f, 0.95f, 0.4f, 1f);
+        private static final float PULSE_SPEED = 6f;
+
+        public HolyBlessingAura(Player player, float duration) {
+            super(duration);
+            this.player = player;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            pulseTimer += delta * PULSE_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+            float pulse = 0.4f + 0.2f * (float) Math.sin(pulseTimer);
+            float size = 24f + 4f * (float) Math.sin(pulseTimer * 0.5f);
+
+            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+
+            batch.setColor(BLESSING_COLOR.r, BLESSING_COLOR.g, BLESSING_COLOR.b, pulse);
+            batch.draw(frame,
+                    pos.x - size / 2f,
+                    pos.y - size / 2f,
+                    size, size);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // HOLY SWORD AURA - Golden glow for empowered sword attacks
+    // =========================================================================
+    public static class HolySwordAura extends AbilityVisual {
+        private Player player;
+        private float pulseTimer = 0f;
+
+        private static final Color SWORD_COLOR = new Color(1f, 0.85f, 0.2f, 1f);
+        private static final float PULSE_SPEED = 8f;
+
+        public HolySwordAura(Player player, float duration) {
+            super(duration);
+            this.player = player;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            pulseTimer += delta * PULSE_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+            float pulse = 0.3f + 0.15f * (float) Math.sin(pulseTimer);
+            float size = 20f;
+
+            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+
+            batch.setColor(SWORD_COLOR.r, SWORD_COLOR.g, SWORD_COLOR.b, pulse);
+            batch.draw(frame,
+                    pos.x - size / 2f,
+                    pos.y - size / 2f,
+                    size, size);
+            batch.setColor(1f, 1f, 1f, 1f);
         }
     }
 }

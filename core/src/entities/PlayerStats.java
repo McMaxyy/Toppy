@@ -21,6 +21,9 @@ public class PlayerStats {
     private int allocatedDefensePoints;
     private int allocatedDexPoints;
     private int availableStatPoints;
+
+    private int availableSkillPoints;
+    private int totalSkillPointsEarned;
     private static final int STAT_POINTS_PER_LEVEL = 5;
     private static final int ATTACK_PER_POINT = 2;
     private static final int DEFENSE_PER_POINT = 1;
@@ -55,6 +58,8 @@ public class PlayerStats {
         this.experienceToNextLevel = 1000;
         this.healthRegenRate = 1f;
         this.regenTimer = 0f;
+        this.availableSkillPoints = 1;
+        this.totalSkillPointsEarned = 1;
 
         this.allocatedDexPoints = 0;
         this.allocatedHealthPoints = 0;
@@ -233,6 +238,7 @@ public class PlayerStats {
         experienceToNextLevel = (int) (experienceToNextLevel * 2f);
 
         availableStatPoints += STAT_POINTS_PER_LEVEL;
+        awardSkillPoint();
 
         recalculateStats();
 
@@ -280,9 +286,29 @@ public class PlayerStats {
         recalculateStats();
     }
 
+    public boolean useSkillPoint() {
+        if (availableSkillPoints > 0) {
+            availableSkillPoints--;
+            return true;
+        }
+        return false;
+    }
+
+    public void refundSkillPoint() {
+        availableSkillPoints++;
+    }
+
+    public void awardSkillPoint() {
+        availableSkillPoints++;
+        totalSkillPointsEarned++;
+    }
+
     public float getHealthPercentage() {
         return (float) currentHealth / maxHealth;
     }
+    public int getAvailableSkillPoints() { return availableSkillPoints; }
+
+    public int getTotalSkillPointsEarned() { return totalSkillPointsEarned; }
 
     // Getters
     public int getMaxHealth() { return maxHealth; }

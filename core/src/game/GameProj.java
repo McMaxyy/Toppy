@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import abilities.SkillTree;
 import abilities.StatusEffectRenderer;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -275,6 +276,14 @@ public class GameProj implements Screen, ContactListener {
         float spawnY = spawnChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
 
         player.getBody().setTransform(spawnX, spawnY, 0);
+    }
+
+    public boolean isSkillTreeOpen() {
+        if (player != null && player.getAbilityManager() != null) {
+            SkillTree skillTree = player.getAbilityManager().getSkillTree();
+            return skillTree != null && skillTree.isOpen();
+        }
+        return false;
     }
 
     private void spawnMerchant() {
@@ -774,7 +783,6 @@ public class GameProj implements Screen, ContactListener {
             hudStage.draw();
         }
 
-        // Render merchant shop UI
         if (merchantShopOpen && merchantShop != null) {
             merchantShop.render(batch, false);
         }
@@ -938,13 +946,15 @@ public class GameProj implements Screen, ContactListener {
 
         if (batch != null) {
             batch.setProjectionMatrix(hudCamera.combined);
-
             if (player.getInventory().isOpen()) {
                 player.getInventory().render(batch, false, player);
             }
 
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
+            if (player != null && player.getAbilityManager() != null) {
+                player.getAbilityManager().renderSkillTree(batch);
+            }
             player.renderSkillBar(batch);
             player.renderBuffIcons(batch);
             renderExpBar(batch);
@@ -1032,6 +1042,10 @@ public class GameProj implements Screen, ContactListener {
                 player.getInventory().render(batch, false, player);
             }
 
+            if (player != null && player.getAbilityManager() != null) {
+                player.getAbilityManager().renderSkillTree(batch);
+            }
+
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
             player.renderSkillBar(batch);
@@ -1105,6 +1119,10 @@ public class GameProj implements Screen, ContactListener {
 
             if (player.getInventory().isOpen()) {
                 player.getInventory().render(batch, false, player);
+            }
+
+            if (player != null && player.getAbilityManager() != null) {
+                player.getAbilityManager().renderSkillTree(batch);
             }
 
             batch.setProjectionMatrix(hudCamera.combined);

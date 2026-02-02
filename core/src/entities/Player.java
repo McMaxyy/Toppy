@@ -31,6 +31,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private float speed, maxDistance = 80f;
     private AnimationManager animationManager;
     private int direction;
+    private static String movementAbility = "";
     private GameProj gameP;
     private Box2DWorld world;
     private Array<Boolean> spearMarkedForRemoval = new Array<>();
@@ -50,6 +51,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private boolean invulnerable;
     private short originalMaskBits;
     private short notOriginalMaskBits;
+    private short vaultMaskBits;
     private boolean dyingAnimationStarted = false;
     private Inventory inventory;
     private ItemSpawner itemSpawner;
@@ -67,8 +69,25 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private boolean isJustHit = false;
     private float hitFlashTimer = 0f;
     private static final float HIT_FLASH_DURATION = 0.3f;
-
     private boolean playerBuffs[] = new boolean[4];
+    // Vault ability state
+    private boolean isVaulting = false;
+    private float vaultTimer = 0f;
+    private Vector2 vaultVelocity = new Vector2();
+
+    // Sprint visual state
+    private boolean isSprinting = false;
+
+    // Holy Blessing visual state
+    private boolean isHolyBlessingActive = false;
+
+    // Holy Sword state
+    private boolean isHolySwordActive = false;
+    private float holySwordConeMultiplier = 1.0f;
+
+    // Life Leech state
+    private boolean isLifeLeechActive = false;
+    private int lifeLeechHealAmount = 0;
 
     private class Trail {
         Vector2 position;
@@ -131,6 +150,9 @@ public class Player implements PlayerStats.SpeedChangeListener {
 
         fixtureDef.filter.maskBits = CollisionFilter.ENEMY;
         notOriginalMaskBits = fixtureDef.filter.maskBits;
+
+        fixtureDef.filter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.WALL;
+        vaultMaskBits = fixtureDef.filter.maskBits;
 
         shape.dispose();
     }
@@ -235,8 +257,33 @@ public class Player implements PlayerStats.SpeedChangeListener {
             Filter filter = fixture.getFilterData();
 
             if (invulnerable && !gameP.isInDungeon() && !gameP.isInBossRoom()) {
-                filter.maskBits = invulnerable ? notOriginalMaskBits : originalMaskBits;
-            } else {
+                switch (movementAbility) {
+                    case "Charge":
+                        filter.maskBits = notOriginalMaskBits;
+                        break;
+                    case "ShadowStep":
+                    case "Vault":
+                        filter.maskBits = 0;
+                        break;
+                    case "":
+                    default:
+                        filter.maskBits = originalMaskBits;
+                        break;
+                }
+            } else if (invulnerable && (gameP.isInDungeon() || gameP.isInBossRoom())) {
+                switch (movementAbility) {
+                    case "ShadowStep":
+                    case "Vault":
+                        filter.maskBits = vaultMaskBits;
+                        break;
+                    case "Charge":
+                    case "":
+                    default:
+                        filter.maskBits = originalMaskBits;
+                        break;
+                }
+            }
+            else {
                 filter.maskBits = originalMaskBits;
             }
 
@@ -261,6 +308,30 @@ public class Player implements PlayerStats.SpeedChangeListener {
 
         float moveX = 0;
         float moveY = 0;
+
+        if (abilityManager != null && abilityManager.getSkillTree() != null &&
+                abilityManager.getSkillTree().isOpen()) {
+            body.setLinearVelocity(0, 0);
+            return;
+        }
+
+        if (isVaulting) {
+            vaultTimer -= delta;
+
+            body.setLinearVelocity(vaultVelocity.x, vaultVelocity.y);
+
+            trailTimer += delta;
+            if (trailTimer >= trailSpawnInterval) {
+                trails.add(new Trail(body.getPosition(), trailLifetime));
+                trailTimer = 0f;
+            }
+
+            if (vaultTimer <= 0) {
+                endVault();
+            }
+
+            return;
+        }
 
         if (isCharging) {
             chargeTimer -= delta;
@@ -524,6 +595,70 @@ public class Player implements PlayerStats.SpeedChangeListener {
         return chargeHitEnemies;
     }
 
+    public void startVault(Vector2 velocity, float duration) {
+        isVaulting = true;
+        vaultTimer = duration;
+        vaultVelocity = velocity;
+    }
+
+    public void endVault() {
+        isVaulting = false;
+        vaultTimer = 0f;
+        body.setLinearVelocity(0, 0);
+    }
+
+    public boolean isVaulting() {
+        return isVaulting;
+    }
+
+    public void setSprinting(boolean sprinting) {
+        this.isSprinting = sprinting;
+    }
+
+    public boolean isSprinting() {
+        return isSprinting;
+    }
+
+    public void setHolyBlessingActive(boolean active) {
+        this.isHolyBlessingActive = active;
+    }
+
+    public boolean isHolyBlessingActive() {
+        return isHolyBlessingActive;
+    }
+
+    public void setHolySwordActive(boolean active, float coneMultiplier) {
+        this.isHolySwordActive = active;
+        this.holySwordConeMultiplier = coneMultiplier;
+    }
+
+    public boolean isHolySwordActive() {
+        return isHolySwordActive;
+    }
+
+    public float getHolySwordConeMultiplier() {
+        return holySwordConeMultiplier;
+    }
+
+    public void setLifeLeechActive(boolean active, int healAmount) {
+        this.isLifeLeechActive = active;
+        this.lifeLeechHealAmount = healAmount;
+    }
+
+    public boolean isLifeLeechActive() {
+        return isLifeLeechActive;
+    }
+
+    public int getLifeLeechHealAmount() {
+        return lifeLeechHealAmount;
+    }
+
+    public void onBasicAttackHit() {
+        if (isLifeLeechActive && lifeLeechHealAmount > 0) {
+            stats.heal(lifeLeechHealAmount);
+        }
+    }
+
     public void setPlayerBuff(String buff) {
         switch (buff) {
             case "Attack Potion":
@@ -775,5 +910,13 @@ public class Player implements PlayerStats.SpeedChangeListener {
     }
     public BuffManager getBuffManager() {
         return buffManager;
+    }
+
+    public void setMovementAbility(String movementAbility) {
+        this.movementAbility = movementAbility;
+    }
+
+    public boolean isFlipped() {
+        return isFlipped;
     }
 }

@@ -23,6 +23,7 @@ import java.util.Map;
 
 /**
  * Manages player abilities, cooldowns, and status effects
+ * Now integrated with SkillTree for dynamic ability slotting
  */
 public class AbilityManager {
     private static final int NUM_ABILITY_SLOTS = 5;
@@ -31,28 +32,25 @@ public class AbilityManager {
     private Player player;
     private GameProj gameProj;
     private PlayerClass playerClass;
+    private SkillTree skillTree;
 
-    // Status effects tracking
+    private Map<String, Ability> abilityRegistry;
+
     private Map<Object, List<StatusEffect>> activeEffects;
 
-    // Visual effects list (unified)
     private List<AbilityVisual> activeVisuals;
 
-    // UI components
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
 
-    // Skill bar settings
     private static final int SLOT_SIZE = 45;
     private static final int SLOT_PADDING = 5;
     private static final int SEPARATOR_SPACE = 15;
 
-    // Offhand attack cooldown
     private float offhandCooldown = 0f;
     private static final float OFFHAND_COOLDOWN_TIME = 2.0f;
     private static final int SHIELD_BASH_DAMAGE = 40;
 
-    // Sword attack cooldown (for Paladin)
     private float swordCooldown = 0f;
     private static final float SWORD_COOLDOWN_TIME = 0.5f;
     private static final float SWORD_ATTACK_RANGE = 45f;
@@ -65,33 +63,82 @@ public class AbilityManager {
         this.activeEffects = new HashMap<>();
         this.shapeRenderer = new ShapeRenderer();
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
-
         this.activeVisuals = new ArrayList<>();
+        this.abilityRegistry = new HashMap<>();
 
+        this.skillTree = new SkillTree(player, playerClass);
+
+        initializeAbilityRegistry();
+    }
+
+    private void initializeAbilityRegistry() {
+        // Load textures
+        Texture blinkIcon = loadIcon("icons/abilities/Blink.png");
+        Texture chargeIcon = loadIcon("icons/abilities/Charge.png");
+        Texture bubbleIcon = loadIcon("icons/abilities/Bubble.png");
+        Texture pullIcon = loadIcon("icons/abilities/Pull.png");
+        Texture smiteIcon = loadIcon("icons/abilities/Smite.png");
+        Texture prayerIcon = loadIcon("icons/abilities/Prayer.png");
+        Texture consecrateIcon = loadIcon("icons/abilities/ConsecratedGround.png");
+        Texture defaultIcon = loadIcon("icons/abilities/DoubleSwing.png");
+        Texture rendIcon = loadIcon("icons/abilities/Rend.png");
+        Texture doubleSwingIcon = loadIcon("icons/abilities/DoubleSwing.png");
+
+        // Movement abilities
+        abilityRegistry.put("blink", new PaladinBlinkAbility(blinkIcon));
+        abilityRegistry.put("charge", new ChargeAbility(chargeIcon));
+        abilityRegistry.put("shadow_step", new ShadowStepAbility(defaultIcon));
+        abilityRegistry.put("vault", new VaultAbility(defaultIcon));
+
+        // Utility abilities
+        abilityRegistry.put("bubble", new PaladinBubbleAbility(bubbleIcon));
+        abilityRegistry.put("pull", new PullAbility(pullIcon));
+        abilityRegistry.put("sprint", new SprintAbility(defaultIcon));
+        abilityRegistry.put("full_heal", new FullHealAbility(prayerIcon));
+        abilityRegistry.put("smoke_bomb", new SmokeBombAbility(defaultIcon));
+        abilityRegistry.put("life_leech", new LifeLeechAbility(defaultIcon));
+
+        // Class abilities - Paladin
         if (playerClass == PlayerClass.PALADIN) {
-            initializePaladinAbilities();
-        } else {
-            initializeMercenaryAbilities();
+            abilityRegistry.put("smite", new SmiteAbility(smiteIcon));
+            abilityRegistry.put("prayer", new PaladinPrayerAbility(prayerIcon));
+            abilityRegistry.put("consecrated_ground", new ConsecratedGroundAbility(consecrateIcon));
+            abilityRegistry.put("holy_aura", new HolyAuraAbility(defaultIcon));
+            abilityRegistry.put("holy_blessing", new HolyBlessingAbility(defaultIcon));
+            abilityRegistry.put("holy_sword", new HolySwordAbility(defaultIcon));
+        }
+
+        // Class abilities - Mercenary
+        if (playerClass == PlayerClass.MERCENARY) {
+            abilityRegistry.put("double_swing", new DoubleSwingAbility(doubleSwingIcon));
+            abilityRegistry.put("rend", new RendAbility(rendIcon));
         }
     }
 
-    private void initializeMercenaryAbilities() {
-        abilities[0] = new ChargeAbility(Storage.assetManager.get("icons/abilities/Charge.png", Texture.class));
-        abilities[1] = new DoubleSwingAbility(Storage.assetManager.get("icons/abilities/DoubleSwing.png", Texture.class));
-        abilities[2] = new BubbleAbility(Storage.assetManager.get("icons/abilities/Bubble.png", Texture.class));
-        abilities[3] = new RendAbility(Storage.assetManager.get("icons/abilities/Rend.png", Texture.class));
-        abilities[4] = new PrayerAbility(Storage.assetManager.get("icons/abilities/Prayer.png", Texture.class));
+    private Texture loadIcon(String path) {
+        try {
+            return Storage.assetManager.get(path, Texture.class);
+        } catch (Exception e) {
+            return Storage.assetManager.get("icons/abilities/DoubleSwing.png", Texture.class);
+        }
     }
 
-    private void initializePaladinAbilities() {
-        abilities[0] = new PaladinBlinkAbility(Storage.assetManager.get("icons/abilities/Blink.png", Texture.class));
-        abilities[1] = new ConsecratedGroundAbility(Storage.assetManager.get("icons/abilities/ConsecratedGround.png", Texture.class));
-        abilities[2] = new PullAbility(Storage.assetManager.get("icons/abilities/Pull.png", Texture.class));
-        abilities[3] = new SmiteAbility(Storage.assetManager.get("icons/abilities/Smite.png", Texture.class));
-        abilities[4] = new PaladinPrayerAbility(Storage.assetManager.get("icons/abilities/Prayer.png", Texture.class));
+    private void syncAbilitiesWithSkillTree() {
+        for (int i = 0; i < NUM_ABILITY_SLOTS; i++) {
+            String skillId = skillTree.getSlottedSkillId(i);
+            if (skillId != null) {
+                abilities[i] = abilityRegistry.get(skillId);
+            } else {
+                abilities[i] = null;
+            }
+        }
     }
 
     public void update(float delta) {
+        // Sync abilities with skill tree
+        syncAbilitiesWithSkillTree();
+
+        // Update abilities
         for (Ability ability : abilities) {
             if (ability != null) {
                 ability.update(delta);
@@ -106,6 +153,7 @@ public class AbilityManager {
             swordCooldown -= delta;
         }
 
+        // Update status effects
         for (Map.Entry<Object, List<StatusEffect>> entry : new HashMap<>(activeEffects).entrySet()) {
             List<StatusEffect> effects = entry.getValue();
             List<StatusEffect> toRemove = new ArrayList<>();
@@ -125,10 +173,12 @@ public class AbilityManager {
         }
 
         updateVisualEffects(delta);
+
+        // Update skill tree
+        skillTree.update(delta, gameProj);
     }
 
     private void updateVisualEffects(float delta) {
-        // Update all visuals and remove inactive ones
         for (int i = activeVisuals.size() - 1; i >= 0; i--) {
             AbilityVisual visual = activeVisuals.get(i);
             visual.update(delta);
@@ -140,6 +190,11 @@ public class AbilityManager {
     }
 
     public void handleInput() {
+        // Don't handle ability input if skill tree is open
+        if (skillTree.isOpen()) {
+            return;
+        }
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             useAbility(0);
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
@@ -157,7 +212,7 @@ public class AbilityManager {
         }
 
         if (playerClass == PlayerClass.PALADIN && Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
-            if (!gameProj.isPaused() && !player.getInventory().isOpen()) {
+            if (!gameProj.isPaused() && !player.getInventory().isOpen() && !skillTree.isOpen()) {
                 performSwordAttack();
             }
         }
@@ -188,7 +243,13 @@ public class AbilityManager {
 
         SoundManager.getInstance().playHitSound();
 
-        player.addAbilityVisual(AbilityVisual.ConalAttack.createGolden(player, gameProj, 0.15f, SWORD_ATTACK_RANGE));
+        // Check for Holy Sword buff - bigger cone
+        float attackRange = SWORD_ATTACK_RANGE;
+        if (player.isHolySwordActive()) {
+            attackRange *= player.getHolySwordConeMultiplier();
+        }
+
+        player.addAbilityVisual(AbilityVisual.ConalAttack.createGolden(player, gameProj, 0.15f, attackRange));
 
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
         int playerDamage = player.getStats().getTotalDamage();
@@ -209,8 +270,9 @@ public class AbilityManager {
                             enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                     );
 
-                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(playerDamage);
+                        player.onBasicAttackHit(); // Life leech
                     }
                 }
             }
@@ -224,8 +286,9 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
 
-                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                     herman.takeDamage(playerDamage);
+                    player.onBasicAttackHit();
                 }
             }
 
@@ -236,8 +299,9 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
 
-                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                     hermanDuplicate.takeDamage(playerDamage);
+                    player.onBasicAttackHit();
                 }
             }
         }
@@ -250,8 +314,9 @@ public class AbilityManager {
                             enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                     );
 
-                    if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                         enemy.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
                     }
                 }
             }
@@ -265,8 +330,9 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
 
-                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                     boss.takeDamage(playerDamage);
+                    player.onBasicAttackHit();
                 }
             }
 
@@ -277,8 +343,9 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
 
-                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                     cyclops.takeDamage(playerDamage);
+                    player.onBasicAttackHit();
                 }
             }
 
@@ -289,8 +356,9 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
 
-                if (toEnemy.len() < SWORD_ATTACK_RANGE && toEnemy.nor().dot(attackDir) > 0.5f) {
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                     ghostBoss.takeDamage(playerDamage);
+                    player.onBasicAttackHit();
                 }
             }
         }
@@ -325,6 +393,7 @@ public class AbilityManager {
                         StunEffect stun = new StunEffect(enemy, 0.5f);
                         stun.onApply();
                         addStatusEffect(enemy, stun);
+                        player.onBasicAttackHit();
                     }
                 }
             }
@@ -341,6 +410,7 @@ public class AbilityManager {
                         StunEffect stun = new StunEffect(boss, 0.5f);
                         stun.onApply();
                         addStatusEffect(boss, stun);
+                        player.onBasicAttackHit();
                     }
                 }
             }
@@ -360,6 +430,7 @@ public class AbilityManager {
                         StunEffect stun = new StunEffect(enemy, 0.5f);
                         stun.onApply();
                         addStatusEffect(enemy, stun);
+                        player.onBasicAttackHit();
                     }
                 }
             }
@@ -378,6 +449,7 @@ public class AbilityManager {
                     StunEffect stun = new StunEffect(boss, 0.5f);
                     stun.onApply();
                     addStatusEffect(boss, stun);
+                    player.onBasicAttackHit();
                 }
             }
 
@@ -393,6 +465,7 @@ public class AbilityManager {
                     StunEffect stun = new StunEffect(cyclops, 0.5f);
                     stun.onApply();
                     addStatusEffect(cyclops, stun);
+                    player.onBasicAttackHit();
                 }
             }
 
@@ -408,6 +481,7 @@ public class AbilityManager {
                     StunEffect stun = new StunEffect(ghostBoss, 0.5f);
                     stun.onApply();
                     addStatusEffect(ghostBoss, stun);
+                    player.onBasicAttackHit();
                 }
             }
         }
@@ -434,18 +508,24 @@ public class AbilityManager {
         return playerClass;
     }
 
+    public SkillTree getSkillTree() {
+        return skillTree;
+    }
+
+    public void renderSkillTree(SpriteBatch batch) {
+        skillTree.render(batch);
+    }
+
     public void renderSkillBar(SpriteBatch batch) {
         int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
 
-        // Calculate total width: 5 abilities + space + 3 inventory + space + 2 attacks
         int totalSlots = 7;
         int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (2 * SEPARATOR_SPACE);
 
         float startX = (screenWidth - totalWidth) / 2f;
         float startY = 35f;
 
-        // End batch for shape rendering
         batch.end();
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -458,8 +538,6 @@ public class AbilityManager {
 
         // Separator space
         float inventoryStartX = startX + (NUM_ABILITY_SLOTS * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
-
-        // Separator space
         float attackStartX = inventoryStartX;
 
         // Render LMB and RMB slots
@@ -469,15 +547,12 @@ public class AbilityManager {
 
         shapeRenderer.end();
 
-        // Resume batch for icon rendering
         batch.begin();
 
         // Render ability icons and cooldowns
         for (int i = 0; i < NUM_ABILITY_SLOTS; i++) {
-            if (abilities[i] != null) {
-                float slotX = startX + i * (SLOT_SIZE + SLOT_PADDING);
-                renderAbilityIcon(batch, slotX, startY, abilities[i], i + 1);
-            }
+            float slotX = startX + i * (SLOT_SIZE + SLOT_PADDING);
+            renderAbilityIcon(batch, slotX, startY, i);
         }
 
         // Render equipped weapon/offhand icons
@@ -511,8 +586,10 @@ public class AbilityManager {
             shapeRenderer.setColor(0.5f, 0.8f, 0.5f, 0.8f); // Green while casting
         } else if (ability != null && ability.isOnCooldown()) {
             shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f); // Dark when on cooldown
-        } else {
+        } else if (ability != null) {
             shapeRenderer.setColor(0.3f, 0.3f, 0.4f, 0.8f); // Normal
+        } else {
+            shapeRenderer.setColor(0.2f, 0.2f, 0.25f, 0.6f); // Empty slot
         }
         shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE);
 
@@ -520,7 +597,11 @@ public class AbilityManager {
         shapeRenderer.end();
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         Gdx.gl.glLineWidth(2);
-        shapeRenderer.setColor(0.6f, 0.6f, 0.7f, 1f);
+        if (ability != null) {
+            shapeRenderer.setColor(0.6f, 0.6f, 0.7f, 1f);
+        } else {
+            shapeRenderer.setColor(0.4f, 0.4f, 0.5f, 0.6f);
+        }
         shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE);
         shapeRenderer.end();
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -530,9 +611,9 @@ public class AbilityManager {
     private void renderAttackSlot(float x, float y, String label, Item equippedItem) {
         // Background
         if (label.equals("RMB") && offhandCooldown > 0) {
-            shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f); // Dark when on cooldown
+            shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f);
         } else if (label.equals("LMB") && playerClass == PlayerClass.PALADIN && swordCooldown > 0) {
-            shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f); // Dark when on cooldown
+            shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f);
         } else {
             shapeRenderer.setColor(0.35f, 0.3f, 0.3f, 0.8f);
         }
@@ -549,7 +630,28 @@ public class AbilityManager {
         Gdx.gl.glLineWidth(1);
     }
 
-    private void renderAbilityIcon(SpriteBatch batch, float x, float y, Ability ability, int keyNumber) {
+    private void renderAbilityIcon(SpriteBatch batch, float x, float y, int index) {
+        Ability ability = abilities[index];
+        int keyNumber = index == 0 ? 1 : index + 1; // Slot 0 = key 1 (SPACE), but display as 1
+
+        // Render key number (always show, even for empty slots)
+        font.setColor(ability != null ? Color.WHITE : Color.GRAY);
+        font.getData().setScale(0.6f);
+
+        // Display key binding
+        String keyLabel = index == 0 ? "SP" : String.valueOf(index + 1);
+        font.draw(batch, keyLabel, x + 3, y + SLOT_SIZE - 3);
+        font.getData().setScale(1.0f);
+
+        if (ability == null) {
+            // Empty slot - show "+" or empty indicator
+            font.setColor(0.5f, 0.5f, 0.5f, 0.5f);
+            font.getData().setScale(1.2f);
+            font.draw(batch, "+", x + SLOT_SIZE / 2f - 8, y + SLOT_SIZE / 2f + 10);
+            font.getData().setScale(1.0f);
+            return;
+        }
+
         // Render icon
         if (ability.getIconTexture() != null) {
             batch.draw(ability.getIconTexture(), x + 3, y + 3, SLOT_SIZE - 6, SLOT_SIZE - 6);
@@ -564,12 +666,6 @@ public class AbilityManager {
         if (ability.isCasting()) {
             renderCastBar(batch, x, y, ability.getCastProgress());
         }
-
-        // Render key number
-        font.setColor(Color.WHITE);
-        font.getData().setScale(0.6f);
-        font.draw(batch, String.valueOf(keyNumber), x + 5, y + SLOT_SIZE - 5);
-        font.getData().setScale(1.0f);
 
         // Render cooldown time
         if (ability.isOnCooldown()) {
@@ -609,10 +705,14 @@ public class AbilityManager {
         batch.begin();
     }
 
+    public Map<Object, List<StatusEffect>> getActiveEffects() {
+        return activeEffects;
+    }
+
     public void dispose() {
         shapeRenderer.dispose();
+        skillTree.dispose();
 
-        // Dispose all visual effects
         for (AbilityVisual visual : activeVisuals) {
             visual.dispose();
         }
