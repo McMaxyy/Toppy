@@ -210,8 +210,6 @@ class ConsecratedGroundAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        SoundManager.getInstance().playAbilitySound("Consecrate");
-
         Vector2 playerPos = player.getPosition();
 
         AbilityVisual.ConsecratedGround consecrateVisual = new AbilityVisual.ConsecratedGround(
@@ -333,8 +331,6 @@ class HolyAuraAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        SoundManager.getInstance().playAbilitySound("Smite");
-
         auraPlayer = player;
         currentGameProj = gameProj;
         auraTimer = 0f;

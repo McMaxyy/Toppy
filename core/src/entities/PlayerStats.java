@@ -58,8 +58,8 @@ public class PlayerStats {
         this.experienceToNextLevel = 1000;
         this.healthRegenRate = 1f;
         this.regenTimer = 0f;
-        this.availableSkillPoints = 1;
-        this.totalSkillPointsEarned = 1;
+        this.availableSkillPoints = 5;
+        this.totalSkillPointsEarned = 5;
 
         this.allocatedDexPoints = 0;
         this.allocatedHealthPoints = 0;

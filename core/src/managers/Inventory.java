@@ -97,8 +97,9 @@ public class Inventory {
             int coinValue = (int)(item.getBuyValue() * coinMultiplier);
             coins += coinValue;
             return true;
-        } else
+        } else {
             SoundManager.getInstance().playPickupSound();
+        }
 
         for (int i = 0; i < MAX_SLOTS; i++) {
             if (items[i] != null && items[i].canStackWith(item)) {
@@ -206,6 +207,7 @@ public class Inventory {
     }
 
     public void addCoins(int amount) {
+        SoundManager.getInstance().playPickupCoinSound();
         coins += amount;
     }
 

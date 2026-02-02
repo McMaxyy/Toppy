@@ -36,7 +36,9 @@ public class SoundManager implements Disposable {
 
     // SFX keys
     public static final String SFX_ENTITY_HIT = "entity_hit";
+    public static final String SFX_CONSECRATE = "consecrated_ground";
     public static final String SFX_PICKUP_ITEM = "pickup_item";
+    public static final String SFX_PICKUP_COIN = "pickup_coin";
     public static final String SFX_PULL_ABILITY = "pull_sound";
     public static final String SFX_SMITE_ABILITY = "smite_sound";
     public static final String SFX_BLINK_ABILITY = "blink_sound";
@@ -90,6 +92,12 @@ public class SoundManager implements Disposable {
 
             Sound prayerSound = Gdx.audio.newSound(Gdx.files.internal("sounds/PrayerSound.mp3"));
             soundEffects.put(SFX_PRAYER_ABILITY, prayerSound);
+
+            Sound coinSound = Gdx.audio.newSound(Gdx.files.internal("sounds/CoinPickup.wav"));
+            soundEffects.put(SFX_PICKUP_COIN, coinSound);
+
+            Sound consecrateSound = Gdx.audio.newSound(Gdx.files.internal("sounds/ConsecratedGround.wav"));
+            soundEffects.put(SFX_CONSECRATE, consecrateSound);
 
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
@@ -195,6 +203,15 @@ public class SoundManager implements Disposable {
         }
     }
 
+    public void playPickupCoinSound() {
+        if (!sfxEnabled) return;
+
+        if (hitSoundCooldown <= 0) {
+            playSound(SFX_PICKUP_COIN);
+            hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+        }
+    }
+
     public void playAbilitySound(String ability) {
         if (!sfxEnabled) return;
 
@@ -206,10 +223,17 @@ public class SoundManager implements Disposable {
                 playSound(SFX_PULL_ABILITY);
                 break;
             case "Blink":
-                playSound(SFX_BLINK_ABILITY);
+                playSound(SFX_BLINK_ABILITY, 0.2f);
                 break;
             case "Prayer":
                 playSound(SFX_PRAYER_ABILITY);
+                break;
+            case "Consecrate":
+                if (hitSoundCooldown <= 0) {
+                    playSound(SFX_CONSECRATE, 1.5f);
+                    hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+                }
+//                playSound(SFX_CONSECRATE);
                 break;
         }
     }
@@ -218,7 +242,7 @@ public class SoundManager implements Disposable {
         if (!sfxEnabled) return;
 
         if (grassRunningSound != null && !isGrassRunningPlaying) {
-            grassRunningSound.setVolume(sfxVolume * 0.6f); // Slightly quieter than other SFX
+            grassRunningSound.setVolume(sfxVolume * 0.6f);
             grassRunningSound.play();
             isGrassRunningPlaying = true;
         }

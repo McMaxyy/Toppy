@@ -77,6 +77,7 @@ public class AbilityManager {
         Texture chargeIcon = loadIcon("icons/abilities/Charge.png");
         Texture bubbleIcon = loadIcon("icons/abilities/Bubble.png");
         Texture pullIcon = loadIcon("icons/abilities/Pull.png");
+        Texture holyAuraIcon = loadIcon("icons/abilities/HolyAura.png");
         Texture smiteIcon = loadIcon("icons/abilities/Smite.png");
         Texture prayerIcon = loadIcon("icons/abilities/Prayer.png");
         Texture consecrateIcon = loadIcon("icons/abilities/ConsecratedGround.png");
@@ -103,7 +104,7 @@ public class AbilityManager {
             abilityRegistry.put("smite", new SmiteAbility(smiteIcon));
             abilityRegistry.put("prayer", new PaladinPrayerAbility(prayerIcon));
             abilityRegistry.put("consecrated_ground", new ConsecratedGroundAbility(consecrateIcon));
-            abilityRegistry.put("holy_aura", new HolyAuraAbility(defaultIcon));
+            abilityRegistry.put("holy_aura", new HolyAuraAbility(holyAuraIcon));
             abilityRegistry.put("holy_blessing", new HolyBlessingAbility(defaultIcon));
             abilityRegistry.put("holy_sword", new HolySwordAbility(defaultIcon));
         }

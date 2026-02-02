@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import config.Storage;
 import entities.*;
+import managers.SoundManager;
 
 public abstract class StatusEffects {}
 
@@ -236,6 +237,8 @@ class ConsecratedEffect extends StatusEffect {
                 ((Herman) target).takeDamage(damage);
             }
             damageDealt = true;
+
+            SoundManager.getInstance().playAbilitySound("Consecrate");
         }
     }
 

@@ -137,7 +137,7 @@ public class SkillTree {
         addSkill(new Skill("consecrated_ground", "Consecrated Ground", "Mark enemies with holy light. After 3s, they take massive damage",
                 SkillCategory.CLASS, loadIcon("icons/abilities/ConsecratedGround.png")));
         addSkill(new Skill("holy_aura", "Holy Aura", "Damages nearby enemies every second for 10 seconds",
-                SkillCategory.CLASS, defaultIcon));
+                SkillCategory.CLASS, loadIcon("icons/abilities/HolyAura.png")));
         addSkill(new Skill("holy_blessing", "Holy Blessing", "+20 defense, +10 attack, +100 health for 6 seconds",
                 SkillCategory.CLASS, defaultIcon));
         addSkill(new Skill("holy_sword", "Holy Sword", "Bigger sword attacks and +10 damage for 6 seconds",

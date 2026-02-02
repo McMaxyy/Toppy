@@ -146,7 +146,6 @@ public class ItemSpawner {
             if (worldItem.item.isPlayerNear(playerPos, PICKUP_RADIUS)) {
                 boolean added = false;
 
-                // Apply coin multiplier for coin items
                 if (worldItem.item.getType() == Item.ItemType.COIN) {
                     added = addCoinWithMultiplier(inventory, worldItem.item, coinMultiplier);
                 } else {
@@ -170,9 +169,6 @@ public class ItemSpawner {
         return pickedUpItems;
     }
 
-    /**
-     * Adds coins to inventory with the Lucky Clover multiplier applied
-     */
     private boolean addCoinWithMultiplier(Inventory inventory, Item coinItem, float multiplier) {
         int baseValue = coinItem.getBuyValue();
         int multipliedValue = (int)(baseValue * multiplier);

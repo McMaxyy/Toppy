@@ -102,6 +102,7 @@ public class Storage {
         assetManager.load("icons/abilities/Smite.png", Texture.class);
         assetManager.load("icons/abilities/Pull.png", Texture.class);
         assetManager.load("icons/abilities/ConsecratedGround.png", Texture.class);
+        assetManager.load("icons/abilities/HolyAura.png", Texture.class);
 
         assetManager.load("icons/abilities/Cone.png", Texture.class);
 
@@ -123,7 +124,9 @@ public class Storage {
         assetManager.load("character/abilities/Smite.png", Texture.class);
         assetManager.load("character/abilities/Pull.png", Texture.class);
         assetManager.load("character/abilities/Consecrate.png", Texture.class);
-        
+        assetManager.load("character/abilities/HolyAura.png", Texture.class);
+
+
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
         assetManager.load("enemies/Mushie/Dying.png", Texture.class);

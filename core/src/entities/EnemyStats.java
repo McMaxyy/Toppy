@@ -378,12 +378,12 @@ public class EnemyStats {
                     level,
                     AttackType.RANGED,
                     "boss",
-                    0.5f,
+                    0.25f,
                     400f,
-                    0.5f,
+                    0.25f,
                     0f,
                     40f,
-                    120f,
+                    150f,
                     0f
             );
         }

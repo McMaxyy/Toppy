@@ -221,9 +221,9 @@ public class Ghost {
             }
 
             // Add ghostly transparency effect
-            float alpha = isExploding ? Math.max(0.3f, 1f - (explosionTimer / 1.0f)) : 0.85f;
+//            float alpha = isExploding ? Math.max(0.3f, 1f - (explosionTimer / 1.0f)) : 0.85f;
             if (!isJustHit) {
-                batch.setColor(1f, 1f, 1f, alpha);
+                batch.setColor(1f, 1f, 1f, 1f);
             }
 
             batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);

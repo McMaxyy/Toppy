@@ -1179,6 +1179,7 @@ public abstract class AbilityVisual {
         private Player player;
         private float radius;
         private float pulseTimer = 0f;
+        private Texture holyAuraTexture;
 
         private static final Color HOLY_COLOR = new Color(1f, 0.9f, 0.4f, 1f);
         private static final int CIRCLE_SEGMENTS = 32;
@@ -1188,6 +1189,12 @@ public abstract class AbilityVisual {
             super(duration);
             this.player = player;
             this.radius = radius;
+
+            try {
+                this.holyAuraTexture = Storage.assetManager.get("character/abilities/HolyAura.png", Texture.class);
+            } catch (Exception e) {
+                this.holyAuraTexture = null;
+            }
         }
 
         @Override
@@ -1202,13 +1209,44 @@ public abstract class AbilityVisual {
             Vector2 pos = player.getPosition();
             float progress = timer / duration;
             float pulse = 0.6f + 0.2f * (float) Math.sin(pulseTimer);
-            float alpha = pulse * (1f - progress * 0.3f);
+            float alpha = pulse * (0.5f - progress * 0.3f);
 
             float currentRadius = radius * (0.95f + 0.05f * (float) Math.sin(pulseTimer * 2f));
 
-            renderCircle(batch, pos, currentRadius, alpha);
-            renderFilledCircle(batch, pos, currentRadius * 0.3f, alpha * 0.3f);
-            renderHolyRays(batch, pos, currentRadius, alpha * 0.5f);
+            if (holyAuraTexture != null) {
+                float size = currentRadius * 2f;
+
+                batch.setColor(1f, 1f, 1f, alpha);
+                batch.draw(holyAuraTexture,
+                        pos.x - size / 2f,
+                        pos.y - size / 2f,
+                        size / 2f, size / 2f,  // origin for rotation
+                        size, size,
+                        1f, 1f,
+                        timer * 30f,  // slow rotation
+                        0, 0,
+                        holyAuraTexture.getWidth(), holyAuraTexture.getHeight(),
+                        false, false);
+
+                batch.setColor(HOLY_COLOR.r, HOLY_COLOR.g, HOLY_COLOR.b, alpha * 0.2f);
+                float innerSize = size * 0.7f;
+                batch.draw(holyAuraTexture,
+                        pos.x - innerSize / 2f,
+                        pos.y - innerSize / 2f,
+                        innerSize / 2f, innerSize / 2f,
+                        innerSize, innerSize,
+                        1f, 1f,
+                        -timer * 45f,
+                        0, 0,
+                        holyAuraTexture.getWidth(), holyAuraTexture.getHeight(),
+                        false, false);
+
+                batch.setColor(1f, 1f, 1f, 1f);
+            } else {
+                renderCircle(batch, pos, currentRadius, alpha);
+                renderFilledCircle(batch, pos, currentRadius * 0.3f, alpha * 0.3f);
+                renderHolyRays(batch, pos, currentRadius, alpha * 0.5f);
+            }
         }
 
         private void renderCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
