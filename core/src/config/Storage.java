@@ -103,6 +103,17 @@ public class Storage {
         assetManager.load("icons/abilities/Pull.png", Texture.class);
         assetManager.load("icons/abilities/ConsecratedGround.png", Texture.class);
         assetManager.load("icons/abilities/HolyAura.png", Texture.class);
+        assetManager.load("icons/abilities/SmokeBomb.png", Texture.class);
+
+        assetManager.load("character/abilities/Bubble.png", Texture.class);
+        assetManager.load("character/abilities/Prayer.png", Texture.class);
+        assetManager.load("character/abilities/Smite.png", Texture.class);
+        assetManager.load("character/abilities/Pull.png", Texture.class);
+        assetManager.load("character/abilities/Consecrate.png", Texture.class);
+        assetManager.load("character/abilities/HolyAura.png", Texture.class);
+        assetManager.load("character/abilities/SwordAttack.png", Texture.class);
+        assetManager.load("character/abilities/ShieldAttack.png", Texture.class);
+        assetManager.load("character/abilities/SmokeBomb.png", Texture.class);
 
         assetManager.load("icons/abilities/Cone.png", Texture.class);
 
@@ -118,15 +129,6 @@ public class Storage {
         assetManager.load("character/Paladin/Walking.png", Texture.class);
         assetManager.load("character/Paladin/Idle.png", Texture.class);
         assetManager.load("character/Paladin/Dying.png", Texture.class);
-
-        assetManager.load("character/abilities/Bubble.png", Texture.class);
-        assetManager.load("character/abilities/Prayer.png", Texture.class);
-        assetManager.load("character/abilities/Smite.png", Texture.class);
-        assetManager.load("character/abilities/Pull.png", Texture.class);
-        assetManager.load("character/abilities/Consecrate.png", Texture.class);
-        assetManager.load("character/abilities/HolyAura.png", Texture.class);
-        assetManager.load("character/abilities/SwordAttack.png", Texture.class);
-        assetManager.load("character/abilities/ShieldAttack.png", Texture.class);
 
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
@@ -176,7 +178,8 @@ public class Storage {
         assetManager.load("title.png", Texture.class);
         assetManager.load("white_pixel.png", Texture.class);
         assetManager.load("mouse.png", Texture.class);
-        
+        assetManager.load("MainMenu.png", Texture.class);
+
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
         
         assetManager.finishLoading();

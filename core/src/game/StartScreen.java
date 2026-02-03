@@ -222,7 +222,7 @@ public class StartScreen extends Game{
     private void createUI() {
         mainTable = new Table();
         mainTable.setFillParent(true);
-        mainTable.center();
+        mainTable.left();
 
         classSelectionTable = new Table();
         classSelectionTable.setFillParent(true);
@@ -235,7 +235,7 @@ public class StartScreen extends Game{
         settingsTable.setVisible(false);
 
         try {
-            Texture bgTexture = Storage.assetManager.get("tiles/stoneFloor4.png", Texture.class);
+            Texture bgTexture = Storage.assetManager.get("MainMenu.png", Texture.class);
             if (bgTexture != null) {
                 backgroundImage = new Image(bgTexture);
                 backgroundImage.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
@@ -257,7 +257,6 @@ public class StartScreen extends Game{
             System.err.println("Title texture not available: " + e.getMessage());
         }
 
-        // Main menu buttons
         playButton = new TextButton("PLAY", skin);
         playButton.getLabel().setFontScale(1.5f);
         playButton.addListener(new ClickListener() {
@@ -289,17 +288,14 @@ public class StartScreen extends Game{
         mainTable.add(settingsButton).size(300, 80).padBottom(20).row();
         mainTable.add(exitButton).size(300, 80).row();
 
-        // Class selection UI
         createClassSelectionUI();
 
-        // Settings UI
         createSettingsUI();
 
         stage.addActor(mainTable);
         stage.addActor(classSelectionTable);
         stage.addActor(settingsTable);
 
-        // Highlight default selection
         updateClassSelection();
     }
 

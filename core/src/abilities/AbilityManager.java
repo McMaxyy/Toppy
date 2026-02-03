@@ -85,11 +85,12 @@ public class AbilityManager {
         Texture defaultIcon = loadIcon("icons/abilities/DoubleSwing.png");
         Texture rendIcon = loadIcon("icons/abilities/Rend.png");
         Texture doubleSwingIcon = loadIcon("icons/abilities/DoubleSwing.png");
+        Texture smokeBombIcon = loadIcon(("icons/abilities/SmokeBomb.png"));
 
         // Movement abilities
+        abilityRegistry.put("shadow_step", new ShadowStepAbility(defaultIcon));
         abilityRegistry.put("blink", new PaladinBlinkAbility(blinkIcon));
         abilityRegistry.put("charge", new ChargeAbility(chargeIcon));
-        abilityRegistry.put("shadow_step", new ShadowStepAbility(defaultIcon));
         abilityRegistry.put("vault", new VaultAbility(defaultIcon));
 
         // Utility abilities
@@ -97,7 +98,7 @@ public class AbilityManager {
         abilityRegistry.put("pull", new PullAbility(pullIcon));
         abilityRegistry.put("sprint", new SprintAbility(defaultIcon));
         abilityRegistry.put("full_heal", new FullHealAbility(prayerIcon));
-        abilityRegistry.put("smoke_bomb", new SmokeBombAbility(defaultIcon));
+        abilityRegistry.put("smoke_bomb", new SmokeBombAbility(smokeBombIcon));
         abilityRegistry.put("life_leech", new LifeLeechAbility(defaultIcon));
 
         // Class abilities - Paladin
@@ -769,6 +770,10 @@ public class AbilityManager {
     }
 
     public Map<Object, List<StatusEffect>> getActiveEffects() { return activeEffects; }
+
+    public List<AbilityVisual> getActiveVisuals() {
+        return activeVisuals;
+    }
 
     public void dispose() {
         shapeRenderer.dispose();

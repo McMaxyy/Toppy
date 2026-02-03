@@ -32,6 +32,11 @@ public class DungeonEnemy {
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
     private List<Projectile> projectiles = new ArrayList<>();
+    private boolean isKnockedBack = false;
+    private float knockbackTimer = 0f;
+    private Vector2 knockbackVelocity = new Vector2();
+    private static final float KNOCKBACK_DURATION = 0.15f;
+    private static final float KNOCKBACK_FORCE = 150f;
 
     private EnemyType enemyType;
 
@@ -180,6 +185,39 @@ public class DungeonEnemy {
 
     public void update(float delta) {
         if (markForRemoval) {
+            return;
+        }
+
+        if (isKnockedBack) {
+            knockbackTimer -= delta;
+
+            float knockbackProgress = knockbackTimer / KNOCKBACK_DURATION;
+            body.setLinearVelocity(
+                    knockbackVelocity.x * knockbackProgress,
+                    knockbackVelocity.y * knockbackProgress
+            );
+
+            if (knockbackTimer <= 0) {
+                isKnockedBack = false;
+                body.setLinearVelocity(0, 0);
+            }
+
+            animationTime += delta;
+            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
+                    body.getPosition().y - bounds.height / 2f);
+
+            isFlipped = body.getPosition().x > player.getBody().getPosition().x;
+            return;
+        }
+
+        if (player.isInvisible()) {
+            body.setLinearVelocity(0, 0);
+            if (currentState != State.IDLE) {
+                setState(State.IDLE);
+            }
+            animationTime += delta;
+            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
+                    body.getPosition().y - bounds.height / 2f);
             return;
         }
 
@@ -709,11 +747,32 @@ public class DungeonEnemy {
         batch.setColor(1f, 1f, 1f, 1f);
     }
 
+    private void applyKnockback() {
+        if (body == null || player == null || player.getPosition() == null) return;
+
+        Vector2 enemyPos = body.getPosition();
+        Vector2 playerPos = player.getPosition();
+
+        Vector2 knockbackDir = new Vector2(
+                enemyPos.x - playerPos.x,
+                enemyPos.y - playerPos.y
+        );
+
+        if (knockbackDir.len() > 0) {
+            knockbackDir.nor();
+            knockbackVelocity.set(knockbackDir.x * KNOCKBACK_FORCE, knockbackDir.y * KNOCKBACK_FORCE);
+            isKnockedBack = true;
+            knockbackTimer = KNOCKBACK_DURATION;
+        }
+    }
+
     public void takeDamage(int damage) {
         if (damage > 0) {
             stats.takeDamage(damage);
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
+
+            applyKnockback();
         }
 
         combatTimer = COMBAT_TIMER;

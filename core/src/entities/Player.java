@@ -41,6 +41,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private GameScreen gameScreen;
     public static boolean gameStarted = false;
     private boolean isFlipped = false;
+    private boolean isInvisible = false;
     private float dashSpeed = 3000f;
     private float dashDuration = 0.5f;
     private float dashCooldown = 1f;
@@ -207,6 +208,8 @@ public class Player implements PlayerStats.SpeedChangeListener {
             }
         }
 
+        setInvisible(isPlayerInSmokeBomb());
+
         if (!isPaused) {
             input(delta);
         }
@@ -251,6 +254,20 @@ public class Player implements PlayerStats.SpeedChangeListener {
         }
     }
 
+    private boolean isPlayerInSmokeBomb() {
+        if (abilityManager == null) return false;
+
+        for (AbilityVisual visual : abilityManager.getActiveVisuals()) {
+            if (visual instanceof AbilityVisual.SmokeBombZone) {
+                AbilityVisual.SmokeBombZone smoke = (AbilityVisual.SmokeBombZone) visual;
+                if (smoke.isActive() && smoke.contains(getPosition())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private void updateMaskBits() {
         if (body != null && body.getFixtureList().size > 0) {
             Fixture fixture = body.getFixtureList().first();
@@ -286,6 +303,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
             else {
                 filter.maskBits = originalMaskBits;
             }
+
 
             fixture.setFilterData(filter);
         }
@@ -718,6 +736,10 @@ public class Player implements PlayerStats.SpeedChangeListener {
         }
     }
 
+    public boolean isPlayerFlipped() {
+        return isFlipped;
+    }
+
     public void render(SpriteBatch batch, int TILE_SIZE) {
         Vector2 position = body.getPosition();
 
@@ -911,12 +933,12 @@ public class Player implements PlayerStats.SpeedChangeListener {
     public BuffManager getBuffManager() {
         return buffManager;
     }
-
     public void setMovementAbility(String movementAbility) {
         this.movementAbility = movementAbility;
     }
 
-    public boolean isFlipped() {
-        return isFlipped;
+    public boolean isInvisible() { return isInvisible; }
+    public void setInvisible(boolean invisible) {
+        this.isInvisible = invisible;
     }
 }

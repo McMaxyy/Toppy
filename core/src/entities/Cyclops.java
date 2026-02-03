@@ -96,6 +96,17 @@ public class Cyclops {
             return;
         }
 
+        if (player.isInvisible()) {
+            body.setLinearVelocity(0, 0);
+            if (getAnimationManager().getState("Cyclops") != State.IDLE) {
+                getAnimationManager().setState(State.IDLE, "Cyclops");
+            }
+
+            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
+                    body.getPosition().y - bounds.height / 2f);
+            return;
+        }
+
         if (isStunned) {
             body.setLinearVelocity(0, 0);
             if (getAnimationManager().getState("Cyclops") != State.IDLE) {

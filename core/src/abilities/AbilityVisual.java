@@ -1219,7 +1219,18 @@ public abstract class AbilityVisual {
             float pulseAlpha = 0.3f + 0.15f * (float) Math.sin(pulseTimer);
             float size = 20f;
 
-            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion currentFrame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion frame = new TextureRegion(currentFrame);
+
+            if (player.isPlayerFlipped()) {
+                if (!frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            } else {
+                if (frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            }
 
             batch.setColor(SPRINT_COLOR.r, SPRINT_COLOR.g, SPRINT_COLOR.b, pulseAlpha);
             batch.draw(frame,
@@ -1236,14 +1247,37 @@ public abstract class AbilityVisual {
     public static class SmokeBombZone extends AbilityVisual {
         private Vector2 position;
         private float radius;
+        private Texture smokeTexture;
+        private float rotationTimer = 0f;
 
         private static final Color SMOKE_COLOR = new Color(0.4f, 0.4f, 0.4f, 1f);
-        private static final int CIRCLE_SEGMENTS = 32;
+        private static final float ROTATION_SPEED = 15f;
 
         public SmokeBombZone(Vector2 position, float radius, float duration) {
             super(duration);
             this.position = new Vector2(position);
             this.radius = radius;
+
+            try {
+                this.smokeTexture = Storage.assetManager.get("character/abilities/SmokeBomb.png", Texture.class);
+            } catch (Exception e) {
+                this.smokeTexture = null;
+            }
+        }
+
+        public boolean contains(Vector2 point) {
+            if (!active) return false;
+            if (point == null) return false;
+            return position.dst(point) <= radius;
+        }
+
+        public Vector2 getPosition() {
+            return position;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            rotationTimer += delta * ROTATION_SPEED;
         }
 
         @Override
@@ -1251,53 +1285,52 @@ public abstract class AbilityVisual {
             if (!active) return;
 
             float progress = timer / duration;
-            float alpha = 0.5f * (1f - progress * 0.3f);
 
-            renderFilledCircle(batch, position, radius, alpha * 0.4f);
-            renderCircle(batch, position, radius, alpha);
-
-            float innerRadius = radius * 0.6f * (1f + 0.1f * (float) Math.sin(timer * 3f));
-            renderCircle(batch, position, innerRadius, alpha * 0.6f);
-        }
-
-        private void renderCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
-            batch.setColor(SMOKE_COLOR.r, SMOKE_COLOR.g, SMOKE_COLOR.b, alpha);
-
-            float angleStep = 360f / CIRCLE_SEGMENTS;
-
-            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
-                float angle = i * angleStep;
-                float nextAngle = (i + 1) * angleStep;
-                float rad = (float) Math.toRadians(angle);
-                float nextRad = (float) Math.toRadians(nextAngle);
-
-                float x1 = center.x + (float) Math.cos(rad) * radius;
-                float y1 = center.y + (float) Math.sin(rad) * radius;
-                float x2 = center.x + (float) Math.cos(nextRad) * radius;
-                float y2 = center.y + (float) Math.sin(nextRad) * radius;
-
-                drawLine(batch, x1, y1, x2, y2, 3f);
+            float alpha;
+            if (progress < 0.1f) {
+                alpha = 0.7f * (progress / 0.1f);
+            } else if (progress > 0.7f) {
+                alpha = 0.7f * (1f - (progress - 0.7f) / 0.3f);
+            } else {
+                alpha = 0.7f;
             }
 
-            batch.setColor(1f, 1f, 1f, 1f);
+            float pulse = 1f + 0.05f * (float) Math.sin(timer * 3f);
+            float currentRadius = radius * pulse;
+
+            if (smokeTexture != null) {
+                renderTexturedSmoke(batch, currentRadius, alpha);
+            }
         }
 
-        private void renderFilledCircle(SpriteBatch batch, Vector2 center, float radius, float alpha) {
-            batch.setColor(SMOKE_COLOR.r, SMOKE_COLOR.g, SMOKE_COLOR.b, alpha);
+        private void renderTexturedSmoke(SpriteBatch batch, float currentRadius, float alpha) {
+            float size = currentRadius * 2f;
 
-            float angleStep = 360f / CIRCLE_SEGMENTS;
+            // Main smoke layer - slow rotation
+            batch.setColor(1f, 1f, 1f, alpha);
+            batch.draw(smokeTexture,
+                    position.x - size / 2f,
+                    position.y - size / 2f,
+                    size / 2f, size / 2f,
+                    size, size,
+                    1f, 1f,
+                    rotationTimer,
+                    0, 0,
+                    smokeTexture.getWidth(), smokeTexture.getHeight(),
+                    false, false);
 
-            for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
-                float angle = i * angleStep;
-                float rad = (float) Math.toRadians(angle);
-
-                float x = center.x + (float) Math.cos(rad) * radius;
-                float y = center.y + (float) Math.sin(rad) * radius;
-
-                drawLine(batch, center.x, center.y, x, y, 2f);
-            }
-
-            batch.setColor(1f, 1f, 1f, 1f);
+            float innerSize = size * 0.75f;
+            batch.setColor(SMOKE_COLOR.r, SMOKE_COLOR.g, SMOKE_COLOR.b, alpha * 0.5f);
+            batch.draw(smokeTexture,
+                    position.x - innerSize / 2f,
+                    position.y - innerSize / 2f,
+                    innerSize / 2f, innerSize / 2f,
+                    innerSize, innerSize,
+                    1f, 1f,
+                    -rotationTimer * 1.5f,
+                    0, 0,
+                    smokeTexture.getWidth(), smokeTexture.getHeight(),
+                    false, false);
         }
     }
 
@@ -1308,7 +1341,7 @@ public abstract class AbilityVisual {
         private Player player;
         private float pulseTimer = 0f;
 
-        private static final Color LEECH_COLOR = new Color(0.8f, 0.2f, 0.3f, 1f);
+        private static final Color LEECH_COLOR = new Color(0.89f, 0.1f, 0.2f, 1f);
         private static final Color HEAL_COLOR = new Color(0.2f, 0.8f, 0.3f, 1f);
         private static final float PULSE_SPEED = 5f;
 
@@ -1339,7 +1372,18 @@ public abstract class AbilityVisual {
                     1f
             );
 
-            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion currentFrame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion frame = new TextureRegion(currentFrame);
+
+            if (player.isPlayerFlipped()) {
+                if (!frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            } else {
+                if (frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            }
 
             batch.setColor(currentColor.r, currentColor.g, currentColor.b, alpha);
             batch.draw(frame,
@@ -1497,7 +1541,7 @@ public abstract class AbilityVisual {
         private Player player;
         private float pulseTimer = 0f;
 
-        private static final Color BLESSING_COLOR = new Color(1f, 0.95f, 0.4f, 1f);
+        private static final Color BLESSING_COLOR = new Color(0.89f, 0.29f, 0.14f, 1f);
         private static final float PULSE_SPEED = 6f;
 
         public HolyBlessingAura(Player player, float duration) {
@@ -1518,7 +1562,18 @@ public abstract class AbilityVisual {
             float pulse = 0.4f + 0.2f * (float) Math.sin(pulseTimer);
             float size = 24f + 4f * (float) Math.sin(pulseTimer * 0.5f);
 
-            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion currentFrame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion frame = new TextureRegion(currentFrame);
+
+            if (player.isPlayerFlipped()) {
+                if (!frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            } else {
+                if (frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            }
 
             batch.setColor(BLESSING_COLOR.r, BLESSING_COLOR.g, BLESSING_COLOR.b, pulse);
             batch.draw(frame,
@@ -1557,7 +1612,18 @@ public abstract class AbilityVisual {
             float pulse = 0.3f + 0.15f * (float) Math.sin(pulseTimer);
             float size = 20f;
 
-            TextureRegion frame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion currentFrame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion frame = new TextureRegion(currentFrame);
+
+            if (player.isPlayerFlipped()) {
+                if (!frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            } else {
+                if (frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            }
 
             batch.setColor(SWORD_COLOR.r, SWORD_COLOR.g, SWORD_COLOR.b, pulse);
             batch.draw(frame,

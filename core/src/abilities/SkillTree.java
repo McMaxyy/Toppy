@@ -17,10 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Skill Tree system for managing ability unlocking and slotting
- * Now supports drag-and-drop to ability bar
- */
 public class SkillTree {
 
     // Skill tree categories
@@ -38,7 +34,7 @@ public class SkillTree {
         public SkillCategory category;
         public Texture icon;
         public boolean unlocked;
-        public int slottedPosition; // -1 if not slotted, 0-4 for ability slots
+        public int slottedPosition;
 
         public Skill(String id, String name, String description, SkillCategory category, Texture icon) {
             this.id = id;
@@ -166,7 +162,7 @@ public class SkillTree {
         addSkill(new Skill("full_heal", "Full Heal", "Instantly restore all health",
                 SkillCategory.UTILITY, loadIcon("icons/abilities/Prayer.png")));
         addSkill(new Skill("smoke_bomb", "Smoke Bomb", "Create a zone that protects you from damage for 3 seconds",
-                SkillCategory.UTILITY, defaultIcon));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/SmokeBomb.png")));
         addSkill(new Skill("life_leech", "Life Leech", "Your attacks heal you for 5 HP for 5 seconds",
                 SkillCategory.UTILITY, defaultIcon));
     }

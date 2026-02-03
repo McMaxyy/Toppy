@@ -78,13 +78,13 @@ public class PlayerStats {
     }
 
     public void update(float delta) {
-        if (currentHealth < maxHealth) {
-            regenTimer += delta;
-            if (regenTimer >= 1f) {
-                heal((int) healthRegenRate);
-                regenTimer = 0f;
-            }
-        }
+//        if (currentHealth < maxHealth) {
+//            regenTimer += delta;
+//            if (regenTimer >= 1f) {
+//                heal((int) healthRegenRate);
+//                regenTimer = 0f;
+//            }
+//        }
     }
 
     public void addAndRemoveBuffs (String buff, boolean activate) {
