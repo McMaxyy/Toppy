@@ -2,6 +2,7 @@ package game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.GL20;
@@ -12,11 +13,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -24,7 +21,7 @@ import config.GameScreen;
 import config.Storage;
 import entities.PlayerClass;
 
-public class StartScreen {
+public class StartScreen extends Game{
     private OrthographicCamera camera;
     private Viewport viewport;
     private Stage stage;
@@ -46,11 +43,14 @@ public class StartScreen {
     // UI elements
     private Table mainTable;
     private Table classSelectionTable;
+    private Table settingsTable;
     private TextButton playButton;
     private TextButton exitButton;
+    private TextButton settingsButton;
     private TextButton mercenaryButton;
     private TextButton paladinButton;
     private TextButton backButton;
+    private TextButton startGameButton;
     private Label classDescriptionLabel;
     private Image titleImage;
     private Image backgroundImage;
@@ -61,16 +61,27 @@ public class StartScreen {
     private float cursorY = 0;
     private boolean useVirtualCursor = true;
 
-
     // Selected player class
     private PlayerClass selectedClass = PlayerClass.MERCENARY;
 
     // Screen states
     private enum ScreenState {
         MAIN_MENU,
-        CLASS_SELECTION
+        CLASS_SELECTION,
+        SETTINGS
     }
     private ScreenState currentState = ScreenState.MAIN_MENU;
+
+    // Settings
+    private CheckBox fullscreenCheckbox;
+    private CheckBox windowedCheckbox;
+    private CheckBox size1280x720Checkbox;
+    private CheckBox size1600x900Checkbox;
+    private CheckBox size1920x1080Checkbox;
+
+    private boolean isFullscreen = true;
+    private int selectedWidth = 1920;
+    private int selectedHeight = 1080;
 
     // Track if already disposed
     private boolean isDisposed = false;
@@ -95,7 +106,8 @@ public class StartScreen {
         stage = new Stage(viewport, batch);
 
         skin = storage.skin;
-        font = storage.font;
+        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        font.setColor(Color.WHITE);
 
         createUI();
 
@@ -109,7 +121,6 @@ public class StartScreen {
                 throw new RuntimeException("Cursor texture is null");
             }
             useCustomCursor = true;
-            System.out.println("Cursor texture loaded: " + cursorTexture.getWidth() + "x" + cursorTexture.getHeight());
         } catch (Exception e) {
             System.err.println("Failed to load cursor texture: " + e.getMessage());
             useCustomCursor = false;
@@ -218,6 +229,11 @@ public class StartScreen {
         classSelectionTable.center();
         classSelectionTable.setVisible(false);
 
+        settingsTable = new Table();
+        settingsTable.setFillParent(true);
+        settingsTable.center();
+        settingsTable.setVisible(false);
+
         try {
             Texture bgTexture = Storage.assetManager.get("tiles/stoneFloor4.png", Texture.class);
             if (bgTexture != null) {
@@ -235,7 +251,7 @@ public class StartScreen {
             Texture titleTex = Storage.assetManager.get("title.png", Texture.class);
             if (titleTex != null) {
                 titleImage = new Image(titleTex);
-                mainTable.add(titleImage).size(300, 100).padBottom(100).row();
+                mainTable.add(titleImage).size(600, 150).padBottom(100).row();
             }
         } catch (Exception e) {
             System.err.println("Title texture not available: " + e.getMessage());
@@ -243,7 +259,7 @@ public class StartScreen {
 
         // Main menu buttons
         playButton = new TextButton("PLAY", skin);
-        playButton.getLabel().setFontScale(1.5f); // Reduced from 2f
+        playButton.getLabel().setFontScale(1.5f);
         playButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -251,8 +267,17 @@ public class StartScreen {
             }
         });
 
+        settingsButton = new TextButton("SETTINGS", skin);
+        settingsButton.getLabel().setFontScale(1.5f);
+        settingsButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                showSettings();
+            }
+        });
+
         exitButton = new TextButton("EXIT", skin);
-        exitButton.getLabel().setFontScale(1.5f); // Reduced from 2f
+        exitButton.getLabel().setFontScale(1.5f);
         exitButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -260,17 +285,32 @@ public class StartScreen {
             }
         });
 
-        mainTable.add(playButton).size(300, 80).padBottom(40).row();
+        mainTable.add(playButton).size(300, 80).padBottom(20).row();
+        mainTable.add(settingsButton).size(300, 80).padBottom(20).row();
         mainTable.add(exitButton).size(300, 80).row();
 
         // Class selection UI
+        createClassSelectionUI();
+
+        // Settings UI
+        createSettingsUI();
+
+        stage.addActor(mainTable);
+        stage.addActor(classSelectionTable);
+        stage.addActor(settingsTable);
+
+        // Highlight default selection
+        updateClassSelection();
+    }
+
+    private void createClassSelectionUI() {
         Label selectClassLabel = new Label("SELECT YOUR CLASS", skin);
-        selectClassLabel.setFontScale(1.2f); // Reduced from 1.5f
+        selectClassLabel.setFontScale(1.2f);
         classSelectionTable.add(selectClassLabel).padBottom(30).colspan(2).row();
 
         // Mercenary button
         mercenaryButton = new TextButton("MERCENARY", skin);
-        mercenaryButton.getLabel().setFontScale(1.2f); // Reduced from 1.5f
+        mercenaryButton.getLabel().setFontScale(1.2f);
         mercenaryButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -280,7 +320,7 @@ public class StartScreen {
 
         // Paladin button
         paladinButton = new TextButton("PALADIN", skin);
-        paladinButton.getLabel().setFontScale(1.2f); // Reduced from 1.5f
+        paladinButton.getLabel().setFontScale(1.2f);
         paladinButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -289,8 +329,8 @@ public class StartScreen {
         });
 
         Table classButtonsTable = new Table();
-        classButtonsTable.add(mercenaryButton).size(200, 80).pad(10); // Reduced size
-        classButtonsTable.add(paladinButton).size(200, 80).pad(10); // Reduced size
+        classButtonsTable.add(mercenaryButton).size(200, 80).pad(10);
+        classButtonsTable.add(paladinButton).size(200, 80).pad(10);
         classSelectionTable.add(classButtonsTable).colspan(2).row();
 
         // Class description label
@@ -299,8 +339,8 @@ public class StartScreen {
         classSelectionTable.add(classDescriptionLabel).width(400).padTop(20).colspan(2).row();
 
         // Start game button
-        TextButton startGameButton = new TextButton("START GAME", skin);
-        startGameButton.getLabel().setFontScale(1.2f); // Reduced from 1.5f
+        startGameButton = new TextButton("START GAME", skin);
+        startGameButton.getLabel().setFontScale(1.2f);
         startGameButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -309,9 +349,8 @@ public class StartScreen {
         });
         classSelectionTable.add(startGameButton).size(250, 70).padTop(20).colspan(2).row();
 
-        // Back button
         backButton = new TextButton("BACK", skin);
-        backButton.getLabel().setFontScale(1.0f); // Reduced from 1.2f
+        backButton.getLabel().setFontScale(1.0f);
         backButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -319,24 +358,167 @@ public class StartScreen {
             }
         });
         classSelectionTable.add(backButton).size(150, 50).padTop(10).colspan(2).row();
+    }
 
-        stage.addActor(mainTable);
-        stage.addActor(classSelectionTable);
+    private void createSettingsUI() {
+        Label settingsLabel = new Label("SETTINGS", skin);
+        settingsLabel.setFontScale(1.5f);
+        settingsTable.add(settingsLabel).padBottom(30).colspan(2).row();
 
-        // Highlight default selection
-        updateClassSelection();
+        Label windowModeLabel = new Label("WINDOW MODE:", skin);
+        windowModeLabel.setFontScale(1.0f);
+        settingsTable.add(windowModeLabel).left().padBottom(15).colspan(2).row();
+
+        fullscreenCheckbox = new CheckBox(" Fullscreen", skin);
+        fullscreenCheckbox.setChecked(true);
+        fullscreenCheckbox.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (fullscreenCheckbox.isChecked()) {
+                    windowedCheckbox.setChecked(false);
+                    isFullscreen = true;
+                } else {
+                    if (!windowedCheckbox.isChecked()) {
+                        fullscreenCheckbox.setChecked(true);
+                    }
+                }
+            }
+        });
+
+        windowedCheckbox = new CheckBox(" Windowed", skin);
+        windowedCheckbox.setChecked(false);
+        windowedCheckbox.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (windowedCheckbox.isChecked()) {
+                    fullscreenCheckbox.setChecked(false);
+                    isFullscreen = false;
+                } else {
+                    if (!fullscreenCheckbox.isChecked()) {
+                        windowedCheckbox.setChecked(true);
+                    }
+                }
+            }
+        });
+
+        Table modeTable = new Table();
+        modeTable.add(fullscreenCheckbox).padRight(20);
+        modeTable.add(windowedCheckbox);
+        settingsTable.add(modeTable).padBottom(30).colspan(2).row();
+
+        Label resolutionLabel = new Label("RESOLUTION:", skin);
+        resolutionLabel.setFontScale(1.0f);
+        settingsTable.add(resolutionLabel).left().padBottom(15).colspan(2).row();
+
+        size1280x720Checkbox = new CheckBox(" 1280x720", skin);
+        size1280x720Checkbox.setChecked(false);
+        size1280x720Checkbox.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (size1280x720Checkbox.isChecked()) {
+                    size1600x900Checkbox.setChecked(false);
+                    size1920x1080Checkbox.setChecked(false);
+                    selectedWidth = 1280;
+                    selectedHeight = 720;
+                } else {
+                    if (!size1600x900Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
+                        size1280x720Checkbox.setChecked(true);
+                    }
+                }
+            }
+        });
+
+        size1600x900Checkbox = new CheckBox(" 1600x900", skin);
+        size1600x900Checkbox.setChecked(false);
+        size1600x900Checkbox.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (size1600x900Checkbox.isChecked()) {
+                    size1280x720Checkbox.setChecked(false);
+                    size1920x1080Checkbox.setChecked(false);
+                    selectedWidth = 1600;
+                    selectedHeight = 900;
+                } else {
+                    // Ensure at least one is checked
+                    if (!size1280x720Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
+                        size1600x900Checkbox.setChecked(true);
+                    }
+                }
+            }
+        });
+
+        size1920x1080Checkbox = new CheckBox(" 1920x1080", skin);
+        size1920x1080Checkbox.setChecked(true);
+        size1920x1080Checkbox.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (size1920x1080Checkbox.isChecked()) {
+                    size1280x720Checkbox.setChecked(false);
+                    size1600x900Checkbox.setChecked(false);
+                    selectedWidth = 1920;
+                    selectedHeight = 1080;
+                } else {
+                    // Ensure at least one is checked
+                    if (!size1280x720Checkbox.isChecked() && !size1600x900Checkbox.isChecked()) {
+                        size1920x1080Checkbox.setChecked(true);
+                    }
+                }
+            }
+        });
+
+        Table resolutionTable = new Table();
+        resolutionTable.add(size1280x720Checkbox).padRight(10);
+        resolutionTable.add(size1600x900Checkbox).padRight(10);
+        resolutionTable.add(size1920x1080Checkbox);
+        settingsTable.add(resolutionTable).padBottom(40).colspan(2).row();
+
+        TextButton applyButton = new TextButton("APPLY", skin);
+        applyButton.getLabel().setFontScale(1.0f);
+        applyButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                applySettings();
+            }
+        });
+
+        TextButton settingsBackButton = new TextButton("BACK", skin);
+        settingsBackButton.getLabel().setFontScale(1.0f);
+        settingsBackButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                showMainMenu();
+            }
+        });
+
+        Table settingsButtonsTable = new Table();
+        settingsButtonsTable.add(applyButton).size(150, 50).padRight(20);
+        settingsButtonsTable.add(settingsBackButton).size(150, 50);
+        settingsTable.add(settingsButtonsTable).colspan(2).row();
+    }
+
+    private void applySettings() {
+        showMainMenu();
     }
 
     private void showClassSelection() {
         currentState = ScreenState.CLASS_SELECTION;
         mainTable.setVisible(false);
         classSelectionTable.setVisible(true);
+        settingsTable.setVisible(false);
+    }
+
+    private void showSettings() {
+        currentState = ScreenState.SETTINGS;
+        mainTable.setVisible(false);
+        classSelectionTable.setVisible(false);
+        settingsTable.setVisible(true);
     }
 
     private void showMainMenu() {
         currentState = ScreenState.MAIN_MENU;
         mainTable.setVisible(true);
         classSelectionTable.setVisible(false);
+        settingsTable.setVisible(false);
     }
 
     private void selectClass(PlayerClass playerClass) {
@@ -357,11 +539,10 @@ public class StartScreen {
     }
 
     private void startGame() {
-        // Store the selected class in Storage for GameProj to access
         Storage.setSelectedPlayerClass(selectedClass);
 
-        // Reset cursor state for gameplay (will be handled by GameProj)
-        Gdx.input.setCursorCatched(true);
+        Gdx.input.setCursorCatched(false);
+        setScreen(new GameScreen(this, selectedWidth, selectedHeight, isFullscreen));
         gameScreen.switchToNewState(GameScreen.HOME);
     }
 
@@ -376,22 +557,16 @@ public class StartScreen {
 
         updateCursorConfinement();
 
-        // Render custom cursor on top of everything
         if (useCustomCursor && cursorTexture != null) {
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
 
-            // Get mouse coordinates - already in screen space
             float cursorX = Gdx.input.getX();
             float cursorY = Gdx.graphics.getHeight() - Gdx.input.getY();
 
-            // Debug: print cursor position
-            // System.out.println("Cursor: " + cursorX + ", " + cursorY);
-
-            // Draw custom cursor - match the size from GameProj
             float cursorSize = 32;
-            float offsetX = cursorSize / 4f; // Match GameProj offset
-            float offsetY = cursorSize / 3f; // Match GameProj offset
+            float offsetX = cursorSize / 4f;
+            float offsetY = cursorSize / 3f;
 
             batch.draw(cursorTexture,
                     cursorX - offsetX,
@@ -399,6 +574,11 @@ public class StartScreen {
                     cursorSize, cursorSize);
             batch.end();
         }
+    }
+
+    @Override
+    public void create() {
+
     }
 
     public void resize(int width, int height) {
@@ -415,6 +595,9 @@ public class StartScreen {
         if (classSelectionTable != null) {
             classSelectionTable.invalidateHierarchy();
         }
+        if (settingsTable != null) {
+            settingsTable.invalidateHierarchy();
+        }
 
         // Update background image size if it exists
         if (backgroundImage != null) {
@@ -427,28 +610,22 @@ public class StartScreen {
         isDisposed = true;
 
         try {
-            // Clear the stage first
             if (stage != null) {
                 stage.clear();
                 stage.dispose();
                 stage = null;
             }
-            // Dispose batch after stage (since stage uses the batch)
             if (batch != null) {
                 batch.dispose();
                 batch = null;
             }
-            // Dispose cursor texture if it was created as fallback
             if (cursorTexture != null) {
-                // Only dispose if it's not from asset manager
                 try {
-                    // Check if this is the fallback texture by seeing if asset manager has it
                     Texture assetManagerTex = Storage.assetManager.get("mouse.png", Texture.class);
                     if (assetManagerTex != cursorTexture) {
                         cursorTexture.dispose();
                     }
                 } catch (Exception e) {
-                    // If not in asset manager, dispose it
                     cursorTexture.dispose();
                 }
                 cursorTexture = null;
@@ -457,17 +634,24 @@ public class StartScreen {
             System.err.println("Error disposing StartScreen: " + e.getMessage());
         }
 
-        // Clear references
         mainTable = null;
         classSelectionTable = null;
+        settingsTable = null;
         playButton = null;
+        settingsButton = null;
         exitButton = null;
         mercenaryButton = null;
         paladinButton = null;
         backButton = null;
+        startGameButton = null;
         classDescriptionLabel = null;
         titleImage = null;
         backgroundImage = null;
+        fullscreenCheckbox = null;
+        windowedCheckbox = null;
+        size1280x720Checkbox = null;
+        size1600x900Checkbox = null;
+        size1920x1080Checkbox = null;
 
         try {
             Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);

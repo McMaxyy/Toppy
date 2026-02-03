@@ -43,6 +43,8 @@ public class SoundManager implements Disposable {
     public static final String SFX_SMITE_ABILITY = "smite_sound";
     public static final String SFX_BLINK_ABILITY = "blink_sound";
     public static final String SFX_PRAYER_ABILITY = "prayer_sound";
+    public static final String SFX_SHIELD_BASH = "shield_sound";
+
 
 
     private Music grassRunningSound;
@@ -98,6 +100,9 @@ public class SoundManager implements Disposable {
 
             Sound consecrateSound = Gdx.audio.newSound(Gdx.files.internal("sounds/ConsecratedGround.wav"));
             soundEffects.put(SFX_CONSECRATE, consecrateSound);
+
+            Sound shieldSound = Gdx.audio.newSound(Gdx.files.internal("sounds/ShieldBash.wav"));
+            soundEffects.put(SFX_SHIELD_BASH, shieldSound);
 
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
@@ -185,12 +190,22 @@ public class SoundManager implements Disposable {
         }
     }
 
-    public void playHitSound() {
+    public void playHitSound(String weapon) {
         if (!sfxEnabled) return;
 
-        if (hitSoundCooldown <= 0) {
-            playSound(SFX_ENTITY_HIT);
-            hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+        switch (weapon) {
+            case "Sword":
+                if (hitSoundCooldown <= 0) {
+                    playSound(SFX_ENTITY_HIT);
+                    hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+                }
+                break;
+            case "Shield":
+                if (hitSoundCooldown <= 0) {
+                    playSound(SFX_SHIELD_BASH, 1.4f);
+                    hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+                }
+                break;
         }
     }
 

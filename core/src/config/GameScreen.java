@@ -28,7 +28,7 @@ public class GameScreen implements Screen {
 
 	private boolean isDisposed = false;
 
-	public GameScreen(Game game) {
+	public GameScreen(Game game, int sWidth, int sHeight, boolean decorated) {
 		this.game = game;
 		viewport = new FitViewport(SELECTED_WIDTH, SELECTED_HEIGHT);
 
@@ -36,8 +36,8 @@ public class GameScreen implements Screen {
 //		Gdx.graphics.setUndecorated(false);
 //		Gdx.graphics.setWindowedMode(1600, 900);
 
-		Gdx.graphics.setUndecorated(true);
-		Gdx.graphics.setWindowedMode(displayMode.width, displayMode.height);
+		Gdx.graphics.setUndecorated(decorated);
+		Gdx.graphics.setWindowedMode(sWidth, sHeight);
 
 		setCurrentState(START);
 	}

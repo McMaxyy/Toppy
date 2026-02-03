@@ -145,7 +145,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // PRAYER VISUAL - Healing aura overlay
+    // PRAYER VISUAL
     // =========================================================================
     public static class Prayer extends AbilityVisual {
         private Texture texture;
@@ -183,7 +183,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // CONAL ATTACK INDICATOR - Using Cone.png texture with segmented fill
+    // CONAL ATTACK INDICATOR
     // =========================================================================
     public static class ConalAttack extends AbilityVisual {
         private Player player;
@@ -323,57 +323,230 @@ public abstract class AbilityVisual {
         }
     }
 
-    // =========================================================================
-    // ENEMY CONAL ATTACK - For enemy attacks (position-based, not player-based)
-    // =========================================================================
-    public static class EnemyConalAttack extends AbilityVisual {
-        private Vector2 position;
-        private float facingAngle;
+    public static class SwordSlash extends AbilityVisual {
+        private Player player;
+        private GameProj gameProj;
+        private Texture swordTexture;
         private float range;
-        private float coneAngle;
-        private Color indicatorColor;
-        private float fillProgress;
-        private float fillSpeed;
+        private Color slashColor;
 
-        private static Texture coneTexture;
-        private static final int NUM_SEGMENTS = 8;
+        // Slash animation parameters
+        private float slashAngle;           // Current angle of the slash
+        private float targetAngle;          // Direction player is facing
+        private float slashArcDegrees;      // Total arc of the slash (e.g., 120 degrees)
+        private float startAngleOffset;     // Starting offset from target angle
 
-        public EnemyConalAttack(Vector2 position, float facingAngle, float duration,
-                                float range, float coneAngle, Color color, float fillSpeed) {
+        // Sword dimensions (adjust based on your texture)
+        private static final float SWORD_LENGTH = 40f;
+        private static final float SWORD_WIDTH = 12f;
+
+        // The sword texture points to top-right (45 degrees), so we need to offset
+        private static final float TEXTURE_ANGLE_OFFSET = 45f;
+
+        // Pivot point offset from center (towards hilt)
+        // If texture is 100% length, hilt is at ~15% from bottom-left corner
+        private static final float PIVOT_X_RATIO = 0.15f;  // From left edge
+        private static final float PIVOT_Y_RATIO = 0.15f;  // From bottom edge
+
+        public SwordSlash(Player player, GameProj gameProj, float duration, float range, Color color) {
             super(duration);
-            this.position = new Vector2(position);
-            this.facingAngle = facingAngle;
+            this.player = player;
+            this.gameProj = gameProj;
             this.range = range;
-            this.coneAngle = coneAngle;
-            this.indicatorColor = color;
-            this.fillProgress = 0f;
-            this.fillSpeed = fillSpeed;
+            this.slashColor = color;
+            this.slashArcDegrees = 120f;
+            this.startAngleOffset = slashArcDegrees / 2f;
 
-            if (coneTexture == null) {
-                try {
-                    coneTexture = Storage.assetManager.get("tiles/Cone.png", Texture.class);
-                } catch (Exception e) {
-                    coneTexture = null;
-                }
+            try {
+                this.swordTexture = Storage.assetManager.get("character/abilities/SwordAttack.png", Texture.class);
+            } catch (Exception e) {
+                this.swordTexture = null;
             }
+
+            Vector3 mousePos3D = gameProj.getCamera().unproject(
+                    new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
+            );
+            Vector2 playerPos = player.getPosition();
+            Vector2 mousePos = new Vector2(mousePos3D.x, mousePos3D.y);
+            Vector2 direction = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
+            this.targetAngle = direction.angleDeg();
+
+            this.slashAngle = targetAngle + startAngleOffset;
         }
 
-        public void updatePositionAndAngle(Vector2 newPosition, float newAngle) {
-            this.position.set(newPosition);
-            this.facingAngle = newAngle;
+        public static SwordSlash createGolden(Player player, GameProj gameProj, float duration, float range) {
+            return new SwordSlash(player, gameProj, duration, range, new Color(1f, 0.85f, 0.2f, 1f));
         }
 
-        public float getFillProgress() {
-            return fillProgress;
+        public static SwordSlash createWhite(Player player, GameProj gameProj, float duration, float range) {
+            return new SwordSlash(player, gameProj, duration, range, Color.WHITE);
+        }
+
+        public static SwordSlash createRed(Player player, GameProj gameProj, float duration, float range) {
+            return new SwordSlash(player, gameProj, duration, range, new Color(1f, 0.3f, 0.3f, 1f));
+        }
+
+        public static SwordSlash createHoly(Player player, GameProj gameProj, float duration, float range) {
+            SwordSlash slash = new SwordSlash(player, gameProj, duration, range, new Color(1f, 0.9f, 0.4f, 1f));
+            slash.slashArcDegrees = 140f;
+            slash.startAngleOffset = slash.slashArcDegrees / 2f;
+            slash.slashAngle = slash.targetAngle + slash.startAngleOffset;
+            return slash;
         }
 
         @Override
         protected void onUpdate(float delta) {
-            if (fillProgress < 1f) {
-                fillProgress += delta * fillSpeed;
-                if (fillProgress > 1f) {
-                    fillProgress = 1f;
-                }
+            // Calculate progress (0 to 1)
+            float progress = timer / duration;
+
+            // Alternative: Use quadratic easing for snappier feel
+            float easedProgress = progress < 0.5f ? 2 * progress * progress : 1 - (float)Math.pow(-2 * progress + 2, 2) / 2;
+
+            // Calculate current slash angle
+            // Goes from (targetAngle + startAngleOffset) to (targetAngle - startAngleOffset)
+            slashAngle = targetAngle + startAngleOffset - (slashArcDegrees * progress);
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 playerPos = player.getPosition();
+            float progress = timer / duration;
+
+            // Alpha fades slightly at the end
+            float alpha = 0.9f;
+            if (progress > 0.7f) {
+                alpha = 0.9f * (1f - (progress - 0.7f) / 0.3f);
+            }
+
+            if (swordTexture != null) {
+                renderTexturedSword(batch, playerPos, alpha);
+            } else {
+                // Fallback: render a simple line
+                renderLineSword(batch, playerPos, alpha);
+            }
+        }
+
+        private void renderTexturedSword(SpriteBatch batch, Vector2 playerPos, float alpha) {
+            batch.setColor(slashColor.r, slashColor.g, slashColor.b, alpha);
+
+            float textureWidth = swordTexture.getWidth();
+            float textureHeight = swordTexture.getHeight();
+
+            float scale = SWORD_LENGTH / Math.max(textureWidth, textureHeight);
+            float drawWidth = textureWidth * scale;
+            float drawHeight = textureHeight * scale;
+
+            float pivotX = drawWidth * PIVOT_X_RATIO;
+            float pivotY = drawHeight * PIVOT_Y_RATIO;
+
+            float offsetDistance = 8f;  // Distance from player center to hilt
+            float angleRad = (float) Math.toRadians(slashAngle);
+            float offsetX = (float) Math.cos(angleRad) * offsetDistance;
+            float offsetY = (float) Math.sin(angleRad) * offsetDistance;
+
+            // Calculate draw position (bottom-left corner of the texture)
+            float drawX = playerPos.x + offsetX - pivotX;
+            float drawY = playerPos.y + offsetY - pivotY;
+
+            float rotationAngle = slashAngle - TEXTURE_ANGLE_OFFSET;
+
+            batch.draw(swordTexture,
+                    drawX, drawY,
+                    pivotX, pivotY,
+                    drawWidth, drawHeight,
+                    1f, 1f,
+                    rotationAngle,
+                    0, 0,
+                    (int)textureWidth, (int)textureHeight,
+                    false, false);
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        private void renderLineSword(SpriteBatch batch, Vector2 playerPos, float alpha) {
+            batch.setColor(slashColor.r, slashColor.g, slashColor.b, alpha);
+
+            float angleRad = (float) Math.toRadians(slashAngle);
+            float endX = playerPos.x + (float) Math.cos(angleRad) * range;
+            float endY = playerPos.y + (float) Math.sin(angleRad) * range;
+
+            drawLine(batch, playerPos.x, playerPos.y, endX, endY, 4f);
+
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // SHIELD BASH - Quick popping shield attack visual
+    // =========================================================================
+    public static class ShieldBash extends AbilityVisual {
+        private Player player;
+        private GameProj gameProj;
+        private Texture shieldTexture;
+        private float targetAngle;
+        private Color bashColor;
+
+        // Shield dimensions
+        private static final float SHIELD_SIZE = 28f;
+        private static final float SHIELD_DISTANCE = 18f;
+
+        private static final float TEXTURE_ANGLE_OFFSET = 0f;
+
+        private float currentScale;
+        private static final float MIN_SCALE = 0.6f;
+        private static final float MAX_SCALE = 1.4f;
+        private static final float POP_PEAK_TIME = 0.3f;  // When max scale is reached (as ratio of duration)
+
+        public ShieldBash(Player player, GameProj gameProj, float duration, Color color) {
+            super(duration);
+            this.player = player;
+            this.gameProj = gameProj;
+            this.bashColor = color;
+            this.currentScale = MIN_SCALE;
+
+            try {
+                this.shieldTexture = Storage.assetManager.get("character/abilities/ShieldAttack.png", Texture.class);
+            } catch (Exception e) {
+                this.shieldTexture = null;
+            }
+
+            // Calculate target angle based on mouse position
+            Vector3 mousePos3D = gameProj.getCamera().unproject(
+                    new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
+            );
+            Vector2 playerPos = player.getPosition();
+            Vector2 mousePos = new Vector2(mousePos3D.x, mousePos3D.y);
+            Vector2 direction = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
+            this.targetAngle = direction.angleDeg();
+        }
+
+        // Factory methods
+        public static ShieldBash createWhite(Player player, GameProj gameProj, float duration) {
+            return new ShieldBash(player, gameProj, duration, Color.WHITE);
+        }
+
+        public static ShieldBash createGolden(Player player, GameProj gameProj, float duration) {
+            return new ShieldBash(player, gameProj, duration, new Color(1f, 0.9f, 0.5f, 1f));
+        }
+
+        public static ShieldBash createBlue(Player player, GameProj gameProj, float duration) {
+            return new ShieldBash(player, gameProj, duration, new Color(0.5f, 0.7f, 1f, 1f));
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            float progress = timer / duration;
+
+            if (progress < POP_PEAK_TIME) {
+                float scaleProgress = progress / POP_PEAK_TIME;
+                float eased = 1f - (1f - scaleProgress) * (1f - scaleProgress);  // Ease out quad
+                currentScale = MIN_SCALE + (MAX_SCALE - MIN_SCALE) * eased;
+            } else {
+                float scaleProgress = (progress - POP_PEAK_TIME) / (1f - POP_PEAK_TIME);
+                float eased = scaleProgress * scaleProgress;  // Ease in quad
+                currentScale = MAX_SCALE - (MAX_SCALE - MIN_SCALE * 0.8f) * eased;
             }
         }
 
@@ -381,97 +554,102 @@ public abstract class AbilityVisual {
         public void render(SpriteBatch batch) {
             if (!active) return;
 
-            if (coneTexture != null) {
-                renderTexturedCone(batch);
-            } else {
-                renderLineCone(batch);
+            Vector2 playerPos = player.getPosition();
+            float progress = timer / duration;
+
+            float alpha = 1f;
+            if (progress > 0.7f) {
+                alpha = 1f - (progress - 0.7f) / 0.3f;
             }
+
+            if (shieldTexture != null)
+                renderTexturedShield(batch, playerPos, alpha);
+
+            if (progress > POP_PEAK_TIME * 0.8f && progress < POP_PEAK_TIME + 0.2f)
+                renderImpactRing(batch, playerPos, alpha * 0.5f);
         }
 
-        private void renderTexturedCone(SpriteBatch batch) {
-            int segmentsToDraw = (int)(NUM_SEGMENTS * fillProgress);
-            if (segmentsToDraw < 1 && fillProgress > 0) segmentsToDraw = 1;
+        private void renderTexturedShield(SpriteBatch batch, Vector2 playerPos, float alpha) {
+            batch.setColor(bashColor.r, bashColor.g, bashColor.b, alpha);
 
-            float segmentAngle = coneAngle / NUM_SEGMENTS;
-            float startAngle = facingAngle - (coneAngle / 2f);
+            float textureWidth = shieldTexture.getWidth();
+            float textureHeight = shieldTexture.getHeight();
 
-            int textureWidth = coneTexture.getWidth();
-            int textureHeight = coneTexture.getHeight();
-            int segmentWidth = textureWidth / NUM_SEGMENTS;
+            float scaledSize = SHIELD_SIZE * currentScale;
+            float aspectRatio = textureHeight / textureWidth;
+            float drawWidth = scaledSize;
+            float drawHeight = scaledSize * aspectRatio;
 
-            float coneWidth = range;
-            float coneHeight = range * ((float)textureHeight / textureWidth) * NUM_SEGMENTS;
-            float segmentDrawWidth = coneWidth / NUM_SEGMENTS;
+            // Position the shield in front of the player
+            float angleRad = (float) Math.toRadians(targetAngle);
+            float shieldX = playerPos.x + (float) Math.cos(angleRad) * SHIELD_DISTANCE;
+            float shieldY = playerPos.y + (float) Math.sin(angleRad) * SHIELD_DISTANCE;
 
-            for (int i = 0; i < segmentsToDraw; i++) {
-                int srcX = i * segmentWidth;
-                TextureRegion segmentRegion = new TextureRegion(coneTexture, srcX, 0, segmentWidth, textureHeight);
+            boolean flipX = (targetAngle > 90 && targetAngle < 270);
 
-                float angle = startAngle + (i * segmentAngle) + (segmentAngle / 2f);
-
-                float segmentAlpha = 0.5f;
-                if (i == segmentsToDraw - 1) {
-                    segmentAlpha = 0.7f;
-                }
-
-                batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, segmentAlpha);
-
-                batch.draw(segmentRegion,
-                        position.x, position.y - coneHeight / 2f,
-                        0, coneHeight / 2f,
-                        segmentDrawWidth, coneHeight,
-                        1f, 1f,
-                        angle);
+            float rotationAngle;
+            if (flipX) {
+                rotationAngle = targetAngle - 180f;
+            } else {
+                rotationAngle = targetAngle;
             }
+
+            float drawX = shieldX - drawWidth / 2f;
+            float drawY = shieldY - drawHeight / 2f;
+
+            batch.draw(shieldTexture,
+                    drawX, drawY,
+                    drawWidth / 2f, drawHeight / 2f,
+                    drawWidth, drawHeight,
+                    1f, 1f,
+                    rotationAngle,
+                    0, 0,
+                    (int)textureWidth, (int)textureHeight,
+                    flipX, false);
 
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
-        private void renderLineCone(SpriteBatch batch) {
-            int segments = 12;
-            int segmentsToDraw = (int)(segments * fillProgress);
-            if (segmentsToDraw < 1 && fillProgress > 0) segmentsToDraw = 1;
+        private void renderImpactRing(SpriteBatch batch, Vector2 playerPos, float alpha) {
+            batch.setColor(bashColor.r, bashColor.g, bashColor.b, alpha);
 
-            float halfCone = coneAngle / 2f;
-            float angleStep = coneAngle / segments;
+            float angleRad = (float) Math.toRadians(targetAngle);
+            float ringX = playerPos.x + (float) Math.cos(angleRad) * SHIELD_DISTANCE;
+            float ringY = playerPos.y + (float) Math.sin(angleRad) * SHIELD_DISTANCE;
 
-            batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.4f);
+            // Expanding ring
+            float progress = timer / duration;
+            float ringProgress = (progress - POP_PEAK_TIME * 0.8f) / 0.3f;
+            ringProgress = Math.min(1f, Math.max(0f, ringProgress));
 
-            for (int i = 0; i < segmentsToDraw; i++) {
-                float angle1 = facingAngle - halfCone + (i * angleStep);
-                float rad1 = (float) Math.toRadians(angle1);
+            float ringRadius = SHIELD_SIZE * 0.5f + (SHIELD_SIZE * 0.8f * ringProgress);
+            float ringAlpha = alpha * (1f - ringProgress);
 
-                float x1 = position.x + (float) Math.cos(rad1) * range;
-                float y1 = position.y + (float) Math.sin(rad1) * range;
+            batch.setColor(bashColor.r, bashColor.g, bashColor.b, ringAlpha);
 
-                drawLine(batch, position.x, position.y, x1, y1, 2f);
-            }
+            int segments = 16;
+            float angleStep = 360f / segments;
 
-            batch.setColor(indicatorColor.r, indicatorColor.g, indicatorColor.b, 0.2f);
-            for (int i = 0; i < segmentsToDraw - 1; i++) {
-                float angle1 = facingAngle - halfCone + (i * angleStep);
-                float angle2 = facingAngle - halfCone + ((i + 1) * angleStep);
+            for (int i = 0; i < segments; i++) {
+                float angle1 = i * angleStep;
+                float angle2 = (i + 1) * angleStep;
                 float rad1 = (float) Math.toRadians(angle1);
                 float rad2 = (float) Math.toRadians(angle2);
 
-                float x1 = position.x + (float) Math.cos(rad1) * range;
-                float y1 = position.y + (float) Math.sin(rad1) * range;
-                float x2 = position.x + (float) Math.cos(rad2) * range;
-                float y2 = position.y + (float) Math.sin(rad2) * range;
+                float x1 = ringX + (float) Math.cos(rad1) * ringRadius;
+                float y1 = ringY + (float) Math.sin(rad1) * ringRadius;
+                float x2 = ringX + (float) Math.cos(rad2) * ringRadius;
+                float y2 = ringY + (float) Math.sin(rad2) * ringRadius;
 
                 drawLine(batch, x1, y1, x2, y2, 2f);
             }
 
             batch.setColor(1f, 1f, 1f, 1f);
         }
-
-        public static void setConeTexture(Texture texture) {
-            coneTexture = texture;
-        }
     }
 
     // =========================================================================
-    // BLINK VISUAL - Dissipating circle at teleport destination
+    // BLINK VISUAL
     // =========================================================================
     public static class Blink extends AbilityVisual {
         private Vector2 position;
@@ -542,7 +720,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // CHARGE TRAIL VISUAL - Trail effect for Charge ability
+    // CHARGE TRAIL VISUAL
     // =========================================================================
     public static class ChargeTrail extends AbilityVisual {
         private Player player;
@@ -620,7 +798,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // PULL CIRCLE VISUAL - Shrinking texture circle for Pull ability
+    // PULL CIRCLE VISUAL
     // =========================================================================
     public static class PullCircle extends AbilityVisual {
         private Player player;
@@ -741,7 +919,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // SMITE VISUAL - Divine AOE damage circle
+    // SMITE VISUAL
     // =========================================================================
     public static class Smite extends AbilityVisual {
         private Player player;
@@ -835,7 +1013,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // CONSECRATED GROUND VISUAL - Holy AOE with delayed damage
+    // CONSECRATED GROUND VISUAL
     // =========================================================================
     public static class ConsecratedGround extends AbilityVisual {
         private Vector2 position;
@@ -866,7 +1044,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // SHADOW STEP TRAIL - Dark/purple trail for backwards dash
+    // SHADOW STEP TRAIL
     // =========================================================================
     public static class ShadowStepTrail extends AbilityVisual {
         private Player player;
@@ -940,7 +1118,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // VAULT TRAIL - Golden/white trail for vault through enemies
+    // VAULT TRAIL
     // =========================================================================
     public static class VaultTrail extends AbilityVisual {
         private Player player;
@@ -1014,7 +1192,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // SPRINT AURA - Blue tint overlay on player while sprinting
+    // SPRINT AURA
     // =========================================================================
     public static class SprintAura extends AbilityVisual {
         private Player player;
@@ -1053,7 +1231,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // SMOKE BOMB ZONE - Circle on the floor
+    // SMOKE BOMB ZONE
     // =========================================================================
     public static class SmokeBombZone extends AbilityVisual {
         private Vector2 position;
@@ -1124,7 +1302,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // LIFE LEECH AURA - Red/green pulsing aura
+    // LIFE LEECH AURA
     // =========================================================================
     public static class LifeLeechAura extends AbilityVisual {
         private Player player;
@@ -1173,7 +1351,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // HOLY AURA - Golden circle that damages enemies
+    // HOLY AURA
     // =========================================================================
     public static class HolyAura extends AbilityVisual {
         private Player player;
@@ -1313,7 +1491,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // HOLY BLESSING AURA - Yellow pulsing glow on player
+    // HOLY BLESSING AURA
     // =========================================================================
     public static class HolyBlessingAura extends AbilityVisual {
         private Player player;
@@ -1352,7 +1530,7 @@ public abstract class AbilityVisual {
     }
 
     // =========================================================================
-    // HOLY SWORD AURA - Golden glow for empowered sword attacks
+    // HOLY SWORD AURA
     // =========================================================================
     public static class HolySwordAura extends AbilityVisual {
         private Player player;

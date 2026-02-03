@@ -19,6 +19,7 @@ import java.util.Map;
 
 /**
  * Skill Tree system for managing ability unlocking and slotting
+ * Now supports drag-and-drop to ability bar
  */
 public class SkillTree {
 
@@ -54,14 +55,13 @@ public class SkillTree {
     private static final int MAX_ABILITY_SLOTS = 5;
     private static final int MAX_MOVEMENT_ABILITIES = 1;
     private static final int MAX_UTILITY_ABILITIES = 2;
+    private static final int MAX_CLASS_ABILITIES = 3;
 
     // UI Constants
     private static final int SKILL_SLOT_SIZE = 50;
     private static final int SKILL_SLOT_PADDING = 15;
     private static final int UI_PADDING = 20;
     private static final int SECTION_HEADER_HEIGHT = 40;
-    private static final int POPUP_WIDTH = 300;
-    private static final int POPUP_HEIGHT = 250;
 
     // Colors
     private static final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.15f, 0.95f);
@@ -75,13 +75,16 @@ public class SkillTree {
     private static final Color CLASS_COLOR = new Color(1f, 0.85f, 0.3f, 1f);
     private static final Color MOVEMENT_COLOR = new Color(0.3f, 0.7f, 1f, 1f);
     private static final Color UTILITY_COLOR = new Color(0.5f, 1f, 0.5f, 1f);
+    private static final Color LIMIT_REACHED_COLOR = new Color(0.5f, 0.2f, 0.2f, 0.9f);
 
     // State
     private boolean isOpen = false;
-    private boolean showSlotPopup = false;
-    private Skill selectedSkillForSlotting = null;
     private Skill hoveredSkill = null;
-    private int hoveredSlotInPopup = -1;
+
+    // Drag state
+    private Skill draggingSkill = null;
+    private float dragOffsetX = 0;
+    private float dragOffsetY = 0;
 
     // Skills data
     private List<Skill> classSkills;
@@ -228,13 +231,20 @@ public class SkillTree {
     public void toggle() {
         isOpen = !isOpen;
         if (!isOpen) {
-            showSlotPopup = false;
-            selectedSkillForSlotting = null;
+            draggingSkill = null;
         }
     }
 
     public boolean isOpen() {
         return isOpen;
+    }
+
+    public boolean isDragging() {
+        return draggingSkill != null;
+    }
+
+    public Skill getDraggingSkill() {
+        return draggingSkill;
     }
 
     public void update(float delta, GameProj gameProj) {
@@ -246,12 +256,8 @@ public class SkillTree {
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.K) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            if (showSlotPopup) {
-                showSlotPopup = false;
-                selectedSkillForSlotting = null;
-            } else {
-                toggle();
-            }
+            draggingSkill = null;
+            toggle();
             return;
         }
 
@@ -260,11 +266,7 @@ public class SkillTree {
         float mouseX = Gdx.input.getX();
         float mouseY = screenHeight - Gdx.input.getY();
 
-        if (showSlotPopup) {
-            handleSlotPopupInput(mouseX, mouseY, screenWidth, screenHeight);
-        } else {
-            handleSkillTreeInput(mouseX, mouseY, screenWidth, screenHeight);
-        }
+        handleSkillTreeInput(mouseX, mouseY, screenWidth, screenHeight);
     }
 
     private void handleSkillTreeInput(float mouseX, float mouseY, int screenWidth, int screenHeight) {
@@ -306,17 +308,25 @@ public class SkillTree {
                 Skill skill = skills.get(i);
                 hoveredSkill = skill;
 
+                // Left click - unlock skill OR start dragging if already unlocked
                 if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
                     if (!skill.unlocked && player.getStats().getAvailableSkillPoints() > 0) {
                         if (canUnlockSkill(skill)) {
                             skill.unlocked = true;
                             player.getStats().useSkillPoint();
                         }
+                    } else if (skill.unlocked) {
+                        // Start dragging
+                        draggingSkill = skill;
+                        dragOffsetX = mouseX - slotX;
+                        dragOffsetY = mouseY - slotY;
                     }
                 }
 
+                // Right click - lock skill back
                 if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
                     if (skill.unlocked) {
+                        // If slotted, remove from slot first
                         if (skill.slottedPosition >= 0) {
                             slottedAbilities[skill.slottedPosition] = null;
                             skill.slottedPosition = -1;
@@ -325,119 +335,79 @@ public class SkillTree {
                         player.getStats().refundSkillPoint();
                     }
                 }
-
-                if (Gdx.input.isButtonJustPressed(Input.Buttons.MIDDLE)) {
-                    if (skill.unlocked) {
-                        selectedSkillForSlotting = skill;
-                        showSlotPopup = true;
-                    }
-                }
             }
         }
+    }
+
+    /**
+     * Count unlocked abilities by category
+     */
+    private int countUnlockedByCategory(SkillCategory category) {
+        int count = 0;
+        List<Skill> skills;
+        switch (category) {
+            case CLASS: skills = classSkills; break;
+            case MOVEMENT: skills = movementSkills; break;
+            case UTILITY: skills = utilitySkills; break;
+            default: return 0;
+        }
+
+        for (Skill skill : skills) {
+            if (skill.unlocked) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private boolean canUnlockSkill(Skill skill) {
-        int currentMovement = countSlottedByCategory(SkillCategory.MOVEMENT);
-        int currentUtility = countSlottedByCategory(SkillCategory.UTILITY);
-        int totalSlotted = countTotalSlotted();
-
-        return true;
-    }
-
-    private boolean canSlotSkill(Skill skill, int slot) {
-        if (slottedAbilities[slot] != null && slottedAbilities[slot] != skill) {}
-
-        int currentMovement = 0;
-        int currentUtility = 0;
-        int currentClass = 0;
-
-        for (int i = 0; i < MAX_ABILITY_SLOTS; i++) {
-            Skill s = slottedAbilities[i];
-            if (s != null && s != skill) {
-                switch (s.category) {
-                    case MOVEMENT: currentMovement++; break;
-                    case UTILITY: currentUtility++; break;
-                    case CLASS: currentClass++; break;
-                }
-            }
-        }
+        // Check category limits for UNLOCKING
+        int currentUnlocked = countUnlockedByCategory(skill.category);
 
         switch (skill.category) {
             case MOVEMENT:
-                if (currentMovement >= MAX_MOVEMENT_ABILITIES) return false;
+                if (currentUnlocked >= MAX_MOVEMENT_ABILITIES) return false;
                 break;
             case UTILITY:
-                if (currentUtility >= MAX_UTILITY_ABILITIES) return false;
+                if (currentUnlocked >= MAX_UTILITY_ABILITIES) return false;
                 break;
             case CLASS:
+                if (currentUnlocked >= MAX_CLASS_ABILITIES) return false;
                 break;
         }
 
         return true;
     }
 
-    private void handleSlotPopupInput(float mouseX, float mouseY, int screenWidth, int screenHeight) {
-        float popupX = (screenWidth - POPUP_WIDTH) / 2f;
-        float popupY = (screenHeight - POPUP_HEIGHT) / 2f;
+    /**
+     * Called by AbilityManager when a skill is dropped on a slot
+     */
+    public boolean trySlotSkill(Skill skill, int slot) {
+        if (skill == null || slot < 0 || slot >= MAX_ABILITY_SLOTS) return false;
+        if (!skill.unlocked) return false;
 
-        hoveredSlotInPopup = -1;
-
-        float slotStartX = popupX + UI_PADDING - 20f;
-        float slotStartY = popupY + POPUP_HEIGHT - 80;
-
-        for (int i = 0; i < MAX_ABILITY_SLOTS; i++) {
-            float slotX = slotStartX + i * (SKILL_SLOT_SIZE + 10);
-            float slotY = slotStartY;
-
-            if (mouseX >= slotX && mouseX <= slotX + SKILL_SLOT_SIZE &&
-                    mouseY >= slotY && mouseY <= slotY + SKILL_SLOT_SIZE) {
-
-                hoveredSlotInPopup = i;
-
-                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-                    if (selectedSkillForSlotting != null && canSlotSkill(selectedSkillForSlotting, i)) {
-                        if (selectedSkillForSlotting.slottedPosition >= 0) {
-                            slottedAbilities[selectedSkillForSlotting.slottedPosition] = null;
-                        }
-
-                        if (slottedAbilities[i] != null) {
-                            slottedAbilities[i].slottedPosition = -1;
-                        }
-
-                        slottedAbilities[i] = selectedSkillForSlotting;
-                        selectedSkillForSlotting.slottedPosition = i;
-
-                        showSlotPopup = false;
-                        selectedSkillForSlotting = null;
-                    }
-                }
-            }
+        // Remove from previous slot if any
+        if (skill.slottedPosition >= 0) {
+            slottedAbilities[skill.slottedPosition] = null;
         }
 
-        // Check unslot button
-        float unslotY = slotStartY - SKILL_SLOT_SIZE - 20;
-        float unslotWidth = 100;
-        float unslotHeight = 30;
-        float unslotX = popupX + (POPUP_WIDTH - unslotWidth) / 2f;
-
-        if (mouseX >= unslotX && mouseX <= unslotX + unslotWidth &&
-                mouseY >= unslotY && mouseY <= unslotY + unslotHeight) {
-
-            if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-                if (selectedSkillForSlotting != null && selectedSkillForSlotting.slottedPosition >= 0) {
-                    slottedAbilities[selectedSkillForSlotting.slottedPosition] = null;
-                    selectedSkillForSlotting.slottedPosition = -1;
-                    showSlotPopup = false;
-                    selectedSkillForSlotting = null;
-                }
-            }
+        // Remove existing skill from target slot if any
+        if (slottedAbilities[slot] != null) {
+            slottedAbilities[slot].slottedPosition = -1;
         }
 
-        // Close button / click outside
-        if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
-            showSlotPopup = false;
-            selectedSkillForSlotting = null;
-        }
+        // Slot the skill
+        slottedAbilities[slot] = skill;
+        skill.slottedPosition = slot;
+
+        return true;
+    }
+
+    /**
+     * Clear the dragging state (called by AbilityManager after processing drop)
+     */
+    public void clearDragging() {
+        draggingSkill = null;
     }
 
     private int countSlottedByCategory(SkillCategory category) {
@@ -489,13 +459,13 @@ public class SkillTree {
         float classX = panelX + UI_PADDING;
         float sectionY = panelY + UI_PADDING;
 
-        renderSection(batch, "Class Abilities", classSkills, classX, sectionY, sectionWidth, sectionHeight, CLASS_COLOR);
+        renderSection(batch, "Class Abilities", classSkills, classX, sectionY, sectionWidth, sectionHeight, CLASS_COLOR, MAX_CLASS_ABILITIES);
 
         float movementX = classX + sectionWidth + UI_PADDING;
-        renderSection(batch, "Movement", movementSkills, movementX, sectionY, sectionWidth, sectionHeight, MOVEMENT_COLOR);
+        renderSection(batch, "Movement", movementSkills, movementX, sectionY, sectionWidth, sectionHeight, MOVEMENT_COLOR, MAX_MOVEMENT_ABILITIES);
 
         float utilityX = movementX + sectionWidth + UI_PADDING;
-        renderSection(batch, "Utility", utilitySkills, utilityX, sectionY, sectionWidth, sectionHeight, UTILITY_COLOR);
+        renderSection(batch, "Utility", utilitySkills, utilityX, sectionY, sectionWidth, sectionHeight, UTILITY_COLOR, MAX_UTILITY_ABILITIES);
 
         batch.begin();
 
@@ -510,24 +480,34 @@ public class SkillTree {
         font.draw(batch, "Skill Points: " + player.getStats().getAvailableSkillPoints(),
                 panelX + panelWidth - 200, panelY + panelHeight - 15);
 
-        renderSectionContent(batch, "Class Abilities", classSkills, classX, sectionY, sectionWidth, sectionHeight, CLASS_COLOR);
-        renderSectionContent(batch, "Movement", movementSkills, movementX, sectionY, sectionWidth, sectionHeight, MOVEMENT_COLOR);
-        renderSectionContent(batch, "Utility", utilitySkills, utilityX, sectionY, sectionWidth, sectionHeight, UTILITY_COLOR);
+        renderSectionContent(batch, "Class Abilities", classSkills, classX, sectionY, sectionWidth, sectionHeight, CLASS_COLOR, MAX_CLASS_ABILITIES);
+        renderSectionContent(batch, "Movement", movementSkills, movementX, sectionY, sectionWidth, sectionHeight, MOVEMENT_COLOR, MAX_MOVEMENT_ABILITIES);
+        renderSectionContent(batch, "Utility", utilitySkills, utilityX, sectionY, sectionWidth, sectionHeight, UTILITY_COLOR, MAX_UTILITY_ABILITIES);
 
-        if (hoveredSkill != null && !showSlotPopup) {
+        // Draw tooltip for hovered skill (not while dragging)
+        if (hoveredSkill != null && draggingSkill == null) {
             renderTooltip(batch, hoveredSkill, screenWidth, screenHeight);
         }
 
         // Draw controls hint
         font.getData().setScale(0.5f);
         font.setColor(Color.GRAY);
-        font.draw(batch, "LMB: Unlock | RMB: Lock | MMB: Slot", panelX + UI_PADDING, panelY + 15);
+        font.draw(batch, "LMB: Unlock/Drag | RMB: Lock | Drag to ability bar to slot", panelX + UI_PADDING, panelY + 15);
+
+        // Draw dragged skill
+        if (draggingSkill != null) {
+            float mouseX = Gdx.input.getX();
+            float mouseY = screenHeight - Gdx.input.getY();
+
+            batch.setColor(1f, 1f, 1f, 0.8f);
+            batch.draw(draggingSkill.icon,
+                    mouseX - SKILL_SLOT_SIZE / 2f,
+                    mouseY - SKILL_SLOT_SIZE / 2f,
+                    SKILL_SLOT_SIZE, SKILL_SLOT_SIZE);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
 
         batch.end();
-
-        if (showSlotPopup) {
-            renderSlotPopup(batch, screenWidth, screenHeight);
-        }
 
         batch.begin();
         font.getData().setScale(1f);
@@ -535,7 +515,7 @@ public class SkillTree {
     }
 
     private void renderSection(SpriteBatch batch, String title, List<Skill> skills,
-                               float x, float y, float width, float height, Color headerColor) {
+                               float x, float y, float width, float height, Color headerColor, int maxUnlocked) {
         // Section background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(SECTION_COLOR);
@@ -556,6 +536,11 @@ public class SkillTree {
         int skillsPerRow = 3;
         float startY = y + height - SECTION_HEADER_HEIGHT - SKILL_SLOT_PADDING - SKILL_SLOT_SIZE;
 
+        // Get category for limit checking
+        SkillCategory category = skills.isEmpty() ? SkillCategory.CLASS : skills.get(0).category;
+        int currentUnlocked = countUnlockedByCategory(category);
+        boolean limitReached = currentUnlocked >= maxUnlocked;
+
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (int i = 0; i < skills.size(); i++) {
             int row = i / skillsPerRow;
@@ -570,6 +555,8 @@ public class SkillTree {
                 shapeRenderer.setColor(SLOT_SLOTTED_COLOR);
             } else if (skill.unlocked) {
                 shapeRenderer.setColor(SLOT_UNLOCKED_COLOR);
+            } else if (limitReached) {
+                shapeRenderer.setColor(LIMIT_REACHED_COLOR);
             } else {
                 shapeRenderer.setColor(SLOT_LOCKED_COLOR);
             }
@@ -604,8 +591,11 @@ public class SkillTree {
     }
 
     private void renderSectionContent(SpriteBatch batch, String title, List<Skill> skills,
-                                      float x, float y, float width, float height, Color headerColor) {
-        // Section title
+                                      float x, float y, float width, float height, Color headerColor, int maxUnlocked) {
+        SkillCategory category = skills.isEmpty() ? SkillCategory.CLASS : skills.get(0).category;
+        int currentUnlocked = countUnlockedByCategory(category);
+
+        // Section title with limit
         font.getData().setScale(0.7f);
         font.setColor(headerColor);
         font.draw(batch, title, x + 10, y + height - 10);
@@ -622,6 +612,11 @@ public class SkillTree {
             float slotY = startY - row * (SKILL_SLOT_SIZE + SKILL_SLOT_PADDING);
 
             Skill skill = skills.get(i);
+
+            // Don't draw icon if it's being dragged
+            if (skill == draggingSkill) {
+                continue;
+            }
 
             // Draw icon (dimmed if locked)
             if (skill.unlocked) {
@@ -700,121 +695,65 @@ public class SkillTree {
             font.draw(batch, line, tooltipX + 10, lineY);
             lineY -= 12;
         }
-
-        // Status
-        font.setColor(skill.unlocked ? Color.GREEN : Color.RED);
-        font.draw(batch, skill.unlocked ? "UNLOCKED" : "LOCKED", tooltipX + 10, tooltipY + 15);
-
-        if (skill.slottedPosition >= 0) {
-            font.setColor(Color.CYAN);
-            font.draw(batch, "Slot " + (skill.slottedPosition + 1), tooltipX + 80, tooltipY + 15);
-        }
     }
 
-    private void renderSlotPopup(SpriteBatch batch, int screenWidth, int screenHeight) {
-        float popupX = (screenWidth - POPUP_WIDTH) / 2f;
-        float popupY = (screenHeight - POPUP_HEIGHT) / 2f;
+    public void renderTooltipAt(SpriteBatch batch, Skill skill, float tooltipX, float tooltipY, int screenWidth, int screenHeight) {
+        float tooltipWidth = 250;
+        float tooltipHeight = 150;
+
+        if (tooltipX + tooltipWidth > screenWidth) {
+            tooltipX = screenWidth - tooltipWidth - 10;
+        }
+        if (tooltipY + tooltipHeight > screenHeight) {
+            tooltipY = screenHeight - tooltipHeight - 10;
+        }
+        if (tooltipY < 0) {
+            tooltipY = 10;
+        }
+
+        batch.end();
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0.15f, 0.15f, 0.2f, 0.98f);
-        shapeRenderer.rect(popupX, popupY, POPUP_WIDTH, POPUP_HEIGHT);
+        shapeRenderer.setColor(0.1f, 0.1f, 0.15f, 0.95f);
+        shapeRenderer.rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
         shapeRenderer.end();
 
+        Color borderColor = getCategoryColor(skill.category);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        Gdx.gl.glLineWidth(2);
-        shapeRenderer.setColor(getCategoryColor(selectedSkillForSlotting.category));
-        shapeRenderer.rect(popupX, popupY, POPUP_WIDTH, POPUP_HEIGHT);
+        shapeRenderer.setColor(borderColor);
+        shapeRenderer.rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
         shapeRenderer.end();
-        Gdx.gl.glLineWidth(1);
-
-        float slotStartX = popupX + (POPUP_WIDTH - (MAX_ABILITY_SLOTS * (SKILL_SLOT_SIZE + 10) - 10)) / 2f;
-        float slotStartY = popupY + POPUP_HEIGHT - 80;
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        for (int i = 0; i < MAX_ABILITY_SLOTS; i++) {
-            float slotX = slotStartX + i * (SKILL_SLOT_SIZE + 10);
-
-            boolean canSlot = canSlotSkill(selectedSkillForSlotting, i);
-
-            if (i == hoveredSlotInPopup && canSlot) {
-                shapeRenderer.setColor(0.4f, 0.5f, 0.4f, 0.9f);
-            } else if (slottedAbilities[i] != null) {
-                shapeRenderer.setColor(SLOT_SLOTTED_COLOR);
-            } else if (canSlot) {
-                shapeRenderer.setColor(SLOT_COLOR);
-            } else {
-                shapeRenderer.setColor(SLOT_LOCKED_COLOR);
-            }
-
-            shapeRenderer.rect(slotX, slotStartY, SKILL_SLOT_SIZE, SKILL_SLOT_SIZE);
-        }
-        shapeRenderer.end();
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        for (int i = 0; i < MAX_ABILITY_SLOTS; i++) {
-            float slotX = slotStartX + i * (SKILL_SLOT_SIZE + 10);
-
-            if (i == hoveredSlotInPopup) {
-                Gdx.gl.glLineWidth(3);
-                shapeRenderer.setColor(SELECTED_BORDER_COLOR);
-            } else {
-                Gdx.gl.glLineWidth(2);
-                shapeRenderer.setColor(SLOT_BORDER_COLOR);
-            }
-
-            shapeRenderer.rect(slotX, slotStartY, SKILL_SLOT_SIZE, SKILL_SLOT_SIZE);
-        }
-        shapeRenderer.end();
-        Gdx.gl.glLineWidth(1);
-
-        if (selectedSkillForSlotting.slottedPosition >= 0) {
-            float unslotY = slotStartY - SKILL_SLOT_SIZE - 30;
-            float unslotWidth = 100;
-            float unslotHeight = 30;
-            float unslotX = popupX + (POPUP_WIDTH - unslotWidth) / 2f;
-
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-            shapeRenderer.setColor(0.5f, 0.3f, 0.3f, 0.9f);
-            shapeRenderer.rect(unslotX, unslotY, unslotWidth, unslotHeight);
-            shapeRenderer.end();
-
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(Color.RED);
-            shapeRenderer.rect(unslotX, unslotY, unslotWidth, unslotHeight);
-            shapeRenderer.end();
-        }
 
         batch.begin();
 
         font.getData().setScale(0.6f);
-        for (int i = 0; i < MAX_ABILITY_SLOTS; i++) {
-            float slotX = slotStartX + i * (SKILL_SLOT_SIZE + 10);
-
-            font.setColor(Color.WHITE);
-            font.draw(batch, String.valueOf(i + 1), slotX + SKILL_SLOT_SIZE / 2f - 5, slotStartY + SKILL_SLOT_SIZE + 18);
-
-            if (slottedAbilities[i] != null) {
-                batch.draw(slottedAbilities[i].icon, slotX + 3, slotStartY + 3, SKILL_SLOT_SIZE - 6, SKILL_SLOT_SIZE - 6);
-            }
-        }
-
-        if (selectedSkillForSlotting.slottedPosition >= 0) {
-            float unslotY = slotStartY - SKILL_SLOT_SIZE - 30;
-            float unslotX = popupX + (POPUP_WIDTH - 100) / 2f;
-
-            font.setColor(Color.WHITE);
-            font.draw(batch, "Unslot", unslotX + 25, unslotY + 22);
-        }
+        font.setColor(borderColor);
+        font.draw(batch, skill.name, tooltipX + 10, tooltipY + tooltipHeight - 10);
 
         font.getData().setScale(0.45f);
-        font.setColor(Color.GRAY);
+        font.setColor(Color.LIGHT_GRAY);
 
-        int movementCount = countSlottedByCategory(SkillCategory.MOVEMENT);
-        int utilityCount = countSlottedByCategory(SkillCategory.UTILITY);
+        String desc = skill.description;
+        int maxCharsPerLine = 25;
+        float lineY = tooltipY + tooltipHeight - 30;
 
-        font.draw(batch, "Right-click to close", popupX + POPUP_WIDTH - 200, popupY + 15);
+        while (desc.length() > 0) {
+            String line;
+            if (desc.length() <= maxCharsPerLine) {
+                line = desc;
+                desc = "";
+            } else {
+                int breakPoint = desc.lastIndexOf(' ', maxCharsPerLine);
+                if (breakPoint <= 0) breakPoint = maxCharsPerLine;
+                line = desc.substring(0, breakPoint);
+                desc = desc.substring(breakPoint).trim();
+            }
+            font.draw(batch, line, tooltipX + 10, lineY);
+            lineY -= 12;
+        }
 
-        batch.end();
+        font.getData().setScale(1f);
+        font.setColor(Color.WHITE);
     }
 
     private Color getCategoryColor(SkillCategory category) {
@@ -850,6 +789,10 @@ public class SkillTree {
 
     public int getSlottedCount() {
         return countTotalSlotted();
+    }
+
+    public Skill getHoveredSkill() {
+        return hoveredSkill;
     }
 
     public void dispose() {

@@ -808,13 +808,13 @@ public class GameProj implements Screen, ContactListener {
         }
     }
 
-    private void pauseGame() {
+    public void pauseGame() {
         isPaused = true;
         settings.open();
         player.setPaused(true);
     }
 
-    private void unpauseGame() {
+    public void unpauseGame() {
         isPaused = false;
         settings.close();
         player.setPaused(false);
@@ -952,10 +952,10 @@ public class GameProj implements Screen, ContactListener {
 
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
+            player.renderSkillBar(batch);
             if (player != null && player.getAbilityManager() != null) {
                 player.getAbilityManager().renderSkillTree(batch);
             }
-            player.renderSkillBar(batch);
             player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
@@ -1042,13 +1042,14 @@ public class GameProj implements Screen, ContactListener {
                 player.getInventory().render(batch, false, player);
             }
 
-            if (player != null && player.getAbilityManager() != null) {
-                player.getAbilityManager().renderSkillTree(batch);
-            }
+
 
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
             player.renderSkillBar(batch);
+            if (player != null && player.getAbilityManager() != null) {
+                player.getAbilityManager().renderSkillTree(batch);
+            }
             player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
@@ -1125,7 +1126,6 @@ public class GameProj implements Screen, ContactListener {
                 player.getAbilityManager().renderSkillTree(batch);
             }
 
-            batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
             player.renderSkillBar(batch);
             player.renderBuffIcons(batch);

@@ -125,7 +125,8 @@ public class Storage {
         assetManager.load("character/abilities/Pull.png", Texture.class);
         assetManager.load("character/abilities/Consecrate.png", Texture.class);
         assetManager.load("character/abilities/HolyAura.png", Texture.class);
-
+        assetManager.load("character/abilities/SwordAttack.png", Texture.class);
+        assetManager.load("character/abilities/ShieldAttack.png", Texture.class);
 
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);

@@ -18,11 +18,6 @@ import items.Item;
 import managers.Inventory;
 import managers.ItemRegistry;
 
-/**
- * Merchant shop UI for buying and selling items.
- * Buy section: 7 gear slots + 3 item slots (randomized on dungeon entry)
- * Sell section: Shows player inventory for selling
- */
 public class MerchantShop {
     private boolean isOpen = false;
     private Player player;
@@ -128,16 +123,11 @@ public class MerchantShop {
         }
     }
 
-    /**
-     * Randomizes the shop inventory - called when player enters a dungeon
-     */
     public void randomizeShopInventory() {
-        // Clear existing items
         for (int i = 0; i < TOTAL_SHOP_SLOTS; i++) {
             shopItems[i] = null;
         }
 
-        // Fill gear slots (0-6)
         List<String> usedGearIds = new ArrayList<>();
         for (int i = 0; i < GEAR_SLOTS; i++) {
             String gearId;
@@ -149,7 +139,6 @@ public class MerchantShop {
             shopItems[i] = itemRegistry.createItem(gearId, new com.badlogic.gdx.math.Vector2(0, 0));
         }
 
-        // Fill consumable slots (7-9)
         for (int i = GEAR_SLOTS; i < TOTAL_SHOP_SLOTS; i++) {
             String consumableId = CONSUMABLE_ITEM_IDS[random.nextInt(CONSUMABLE_ITEM_IDS.length)];
             shopItems[i] = itemRegistry.createItem(consumableId, new com.badlogic.gdx.math.Vector2(0, 0));
@@ -159,7 +148,6 @@ public class MerchantShop {
     public void update(float delta) {
         if (!isOpen || player == null) return;
 
-        // Close shop with ESC or B
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.B)) {
             close();
             return;

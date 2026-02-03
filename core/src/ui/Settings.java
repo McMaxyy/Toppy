@@ -164,7 +164,6 @@ public class Settings {
                 break;
         }
 
-        // Handle slider release
         if (!Gdx.input.isTouched()) {
             isDraggingMusicSlider = false;
             isDraggingSfxSlider = false;
@@ -215,7 +214,6 @@ public class Settings {
     }
 
     private void updateSettingsMenu(int mouseX, int mouseY) {
-        // Check tab clicks
         float tabWidth = (panelWidth - PADDING * 2 - 10) / 2;
         float audioTabX = PADDING;
         float graphicsTabX = PADDING + tabWidth + 10;
@@ -228,11 +226,10 @@ public class Settings {
             }
         }
 
-        // Check back button
         float backButtonY = PADDING + 20;
         float backButtonWidth = panelWidth - PADDING * 2;
         if (isPointInRect(mouseX, mouseY, PADDING, backButtonY, backButtonWidth, BUTTON_HEIGHT)) {
-            hoveredButton = 100; // Special ID for back button
+            hoveredButton = 100;
             if (Gdx.input.justTouched()) {
                 currentMenuState = MenuState.MAIN_PAUSE;
             }
@@ -250,7 +247,6 @@ public class Settings {
         float sliderHeight = 20f;
         float rowSpacing = 60f;
 
-        // Music volume slider
         float musicSliderY = settingsStartY;
         if (isDraggingMusicSlider ||
                 (Gdx.input.isTouched() && isPointInRect(mouseX, mouseY, sliderX - 10, musicSliderY - 5, sliderWidth + 20, sliderHeight + 10))) {
@@ -260,7 +256,6 @@ public class Settings {
             SoundManager.getInstance().setMusicVolume(musicVolume);
         }
 
-        // Music enabled checkbox
         float checkboxX = panelWidth - PADDING - 30;
         float musicCheckY = settingsStartY - rowSpacing;
         if (Gdx.input.justTouched() && isPointInRect(mouseX, mouseY, checkboxX, musicCheckY, 25, 25)) {
@@ -268,7 +263,6 @@ public class Settings {
             musicEnabled = SoundManager.getInstance().isMusicEnabled();
         }
 
-        // SFX volume slider
         float sfxSliderY = settingsStartY - rowSpacing * 2;
         if (isDraggingSfxSlider ||
                 (Gdx.input.isTouched() && isPointInRect(mouseX, mouseY, sliderX - 10, sfxSliderY - 5, sliderWidth + 20, sliderHeight + 10))) {
@@ -278,7 +272,6 @@ public class Settings {
             SoundManager.getInstance().setSfxVolume(sfxVolume);
         }
 
-        // SFX enabled checkbox
         float sfxCheckY = settingsStartY - rowSpacing * 3;
         if (Gdx.input.justTouched() && isPointInRect(mouseX, mouseY, checkboxX, sfxCheckY, 25, 25)) {
             SoundManager.getInstance().toggleSfx();
@@ -297,11 +290,9 @@ public class Settings {
             batch.end();
         }
 
-        // Enable blending for transparency
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // Draw panel background (left side of screen)
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(BACKGROUND_COLOR);
         shapeRenderer.rect(0, 0, panelWidth, panelHeight);
@@ -341,12 +332,10 @@ public class Settings {
         }
         shapeRenderer.end();
 
-        // Draw text
         batch.begin();
         font.setColor(TEXT_COLOR);
         font.getData().setScale(1.2f);
 
-        // Title
         font.draw(batch, "PAUSED", PADDING, panelHeight - 40);
 
         font.getData().setScale(0.8f);
@@ -365,13 +354,10 @@ public class Settings {
     private void renderSettingsMenu(SpriteBatch batch) {
         float tabWidth = (panelWidth - PADDING * 2 - 10) / 2;
         float audioTabX = PADDING;
-        float graphicsTabX = PADDING + tabWidth + 10;
         float tabY = panelHeight - 120f;
 
-        // Draw tabs
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Audio tab
         if (currentMenuState == MenuState.SETTINGS_AUDIO) {
             shapeRenderer.setColor(TAB_ACTIVE_COLOR);
         } else {
@@ -379,10 +365,6 @@ public class Settings {
         }
         shapeRenderer.rect(audioTabX, tabY, tabWidth, TAB_HEIGHT);
 
-        shapeRenderer.setColor(hoveredTab == 1 ? BUTTON_HOVER_COLOR : TAB_INACTIVE_COLOR);
-        shapeRenderer.rect(graphicsTabX, tabY, tabWidth, TAB_HEIGHT);
-
-        // Back button
         float backButtonY = PADDING + 20;
         float backButtonWidth = panelWidth - PADDING * 2;
         if (hoveredButton == 100) {
@@ -394,36 +376,18 @@ public class Settings {
 
         shapeRenderer.end();
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        Gdx.gl.glLineWidth(2);
-        shapeRenderer.setColor(TAB_BORDER_COLOR);
-        shapeRenderer.rect(audioTabX, tabY, tabWidth, TAB_HEIGHT);
-        shapeRenderer.rect(graphicsTabX, tabY, tabWidth, TAB_HEIGHT);
-        shapeRenderer.end();
-        Gdx.gl.glLineWidth(1);
-
-        // Render specific settings
-        if (currentMenuState == MenuState.SETTINGS_AUDIO) {
+        if (currentMenuState == MenuState.SETTINGS_AUDIO)
             renderAudioSettings(batch);
-        } else {
-            renderGraphicsSettings(batch);
-        }
 
-        // Draw text
         batch.begin();
         font.setColor(TEXT_COLOR);
         font.getData().setScale(1.2f);
         font.draw(batch, "SETTINGS", PADDING, panelHeight - 40);
 
-        // Tab labels
         font.getData().setScale(0.7f);
         glyphLayout.setText(font, "Audio");
         font.draw(batch, "Audio", audioTabX + (tabWidth - glyphLayout.width) / 2, tabY + TAB_HEIGHT / 2 + glyphLayout.height / 2);
 
-        glyphLayout.setText(font, "Graphics");
-        font.draw(batch, "Graphics", graphicsTabX + (tabWidth - glyphLayout.width) / 2, tabY + TAB_HEIGHT / 2 + glyphLayout.height / 2);
-
-        // Back button text
         font.getData().setScale(0.8f);
         glyphLayout.setText(font, "Back");
         float backButtonWidth2 = panelWidth - PADDING * 2;
@@ -435,24 +399,21 @@ public class Settings {
 
     private void renderAudioSettings(SpriteBatch batch) {
         float settingsStartY = panelHeight - 180f;
-        float sliderWidth = panelWidth - PADDING * 2 - 120;
+        float sliderWidth = panelWidth - PADDING * 2 - 170;
         float sliderX = PADDING + 120;
         float sliderHeight = 20f;
         float rowSpacing = 60f;
         float checkboxSize = 25f;
-        float checkboxX = panelWidth - PADDING - 30;
+        float checkboxX = panelWidth - PADDING - 60;
 
-        // Music volume slider background and fill
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Music slider
         float musicSliderY = settingsStartY;
         shapeRenderer.setColor(SLIDER_BG_COLOR);
         shapeRenderer.rect(sliderX, musicSliderY, sliderWidth, sliderHeight);
         shapeRenderer.setColor(SLIDER_FILL_COLOR);
         shapeRenderer.rect(sliderX, musicSliderY, sliderWidth * musicVolume, sliderHeight);
 
-        // Music checkbox
         float musicCheckY = settingsStartY - rowSpacing;
         if (musicEnabled) {
             shapeRenderer.setColor(CHECKBOX_CHECKED_COLOR);
@@ -461,14 +422,12 @@ public class Settings {
         }
         shapeRenderer.rect(checkboxX, musicCheckY, checkboxSize, checkboxSize);
 
-        // SFX slider
         float sfxSliderY = settingsStartY - rowSpacing * 2;
         shapeRenderer.setColor(SLIDER_BG_COLOR);
         shapeRenderer.rect(sliderX, sfxSliderY, sliderWidth, sliderHeight);
         shapeRenderer.setColor(SLIDER_FILL_COLOR);
         shapeRenderer.rect(sliderX, sfxSliderY, sliderWidth * sfxVolume, sliderHeight);
 
-        // SFX checkbox
         float sfxCheckY = settingsStartY - rowSpacing * 3;
         if (sfxEnabled) {
             shapeRenderer.setColor(CHECKBOX_CHECKED_COLOR);
@@ -479,131 +438,28 @@ public class Settings {
 
         shapeRenderer.end();
 
-        // Draw checkbox borders
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(TAB_BORDER_COLOR);
         shapeRenderer.rect(checkboxX, musicCheckY, checkboxSize, checkboxSize);
         shapeRenderer.rect(checkboxX, sfxCheckY, checkboxSize, checkboxSize);
         shapeRenderer.end();
 
-        // Draw labels
         batch.begin();
         font.setColor(TEXT_COLOR);
         font.getData().setScale(0.65f);
 
-        // Music volume
         font.draw(batch, "MUSIC:", PADDING, musicSliderY + sliderHeight - 2);
         int musicPercent = Math.round(musicVolume * 100);
         font.draw(batch, musicPercent + "%", sliderX + sliderWidth + 10, musicSliderY + sliderHeight - 2);
 
-        // Music on/off
         font.draw(batch, "MUSIC ON/OFF:", PADDING, musicCheckY + checkboxSize - 5);
 
-        // SFX volume
         font.draw(batch, "EFFECTS:", PADDING, sfxSliderY + sliderHeight - 2);
         int sfxPercent = Math.round(sfxVolume * 100);
         font.draw(batch, sfxPercent + "%", sliderX + sliderWidth + 10, sfxSliderY + sliderHeight - 2);
 
-        // SFX on/off
         font.draw(batch, "EFFECTS ON/OFF:", PADDING, sfxCheckY + checkboxSize - 5);
 
-        font.getData().setScale(1.0f);
-        batch.end();
-    }
-
-    private void renderGraphicsSettings(SpriteBatch batch) {
-        float settingsStartY = panelHeight - 180f;
-        float checkboxSize = 25f;
-        float rowSpacing = 50f;
-
-        float borderlessCheckX = PADDING + 120;
-        float windowedCheckX = PADDING + 230;
-        float modeY = settingsStartY;
-
-        // Draw checkboxes
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-        // Borderless checkbox
-        if (currentWindowMode == WindowMode.BORDERLESS) {
-            shapeRenderer.setColor(CHECKBOX_CHECKED_COLOR);
-        } else {
-            shapeRenderer.setColor(CHECKBOX_COLOR);
-        }
-        shapeRenderer.rect(borderlessCheckX, modeY, checkboxSize, checkboxSize);
-
-        // Windowed checkbox
-        if (currentWindowMode == WindowMode.WINDOWED) {
-            shapeRenderer.setColor(CHECKBOX_CHECKED_COLOR);
-        } else {
-            shapeRenderer.setColor(CHECKBOX_COLOR);
-        }
-        shapeRenderer.rect(windowedCheckX, modeY, checkboxSize, checkboxSize);
-
-        // Window size checkboxes (only enabled if windowed)
-        float sizeY = settingsStartY - rowSpacing;
-        float size1X = PADDING + 120;
-        float size2X = PADDING + 230;
-
-        boolean sizeEnabled = (currentWindowMode == WindowMode.WINDOWED);
-
-        // 1280x720 checkbox
-        if (!sizeEnabled) {
-            shapeRenderer.setColor(DISABLED_COLOR);
-        } else if (currentWindowSize == WindowSize.SIZE_1280x720) {
-            shapeRenderer.setColor(CHECKBOX_CHECKED_COLOR);
-        } else {
-            shapeRenderer.setColor(CHECKBOX_COLOR);
-        }
-        shapeRenderer.rect(size1X, sizeY, checkboxSize, checkboxSize);
-
-        // 1600x900 checkbox
-        if (!sizeEnabled) {
-            shapeRenderer.setColor(DISABLED_COLOR);
-        } else if (currentWindowSize == WindowSize.SIZE_1600x900) {
-            shapeRenderer.setColor(CHECKBOX_CHECKED_COLOR);
-        } else {
-            shapeRenderer.setColor(CHECKBOX_COLOR);
-        }
-        shapeRenderer.rect(size2X, sizeY, checkboxSize, checkboxSize);
-
-        shapeRenderer.end();
-
-        // Draw checkbox borders
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(TAB_BORDER_COLOR);
-        shapeRenderer.rect(borderlessCheckX, modeY, checkboxSize, checkboxSize);
-        shapeRenderer.rect(windowedCheckX, modeY, checkboxSize, checkboxSize);
-
-        if (sizeEnabled) {
-            shapeRenderer.setColor(TAB_BORDER_COLOR);
-        } else {
-            shapeRenderer.setColor(DISABLED_COLOR);
-        }
-        shapeRenderer.rect(size1X, sizeY, checkboxSize, checkboxSize);
-        shapeRenderer.rect(size2X, sizeY, checkboxSize, checkboxSize);
-        shapeRenderer.end();
-
-        // Draw labels
-        batch.begin();
-        font.getData().setScale(0.65f);
-
-        // Window mode labels
-        font.setColor(TEXT_COLOR);
-        font.draw(batch, "WINDOW:", PADDING, modeY + checkboxSize - 5);
-        font.draw(batch, "Borderless", borderlessCheckX + checkboxSize + 5, modeY + checkboxSize - 5);
-        font.draw(batch, "Windowed", windowedCheckX + checkboxSize + 5, modeY + checkboxSize - 5);
-
-        // Window size labels
-        if (sizeEnabled) {
-            font.setColor(TEXT_COLOR);
-        } else {
-            font.setColor(DISABLED_TEXT_COLOR);
-        }
-        font.draw(batch, "SIZE:", PADDING, sizeY + checkboxSize - 5);
-        font.draw(batch, "1280x720", size1X + checkboxSize + 5, sizeY + checkboxSize - 5);
-        font.draw(batch, "1600x900", size2X + checkboxSize + 5, sizeY + checkboxSize - 5);
-
-        font.setColor(TEXT_COLOR);
         font.getData().setScale(1.0f);
         batch.end();
     }
@@ -618,7 +474,6 @@ public class Settings {
         }
     }
 
-    // Getters for current settings
     public WindowMode getCurrentWindowMode() {
         return currentWindowMode;
     }

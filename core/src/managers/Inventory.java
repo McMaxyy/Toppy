@@ -225,13 +225,13 @@ public class Inventory {
 
     public void update(float delta, entities.Player player, GameProj gameP) {
         if (!inventoryOpen) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
                 toggleInventory();
             }
             return;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.B) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.I) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             toggleInventory();
             return;
         }
