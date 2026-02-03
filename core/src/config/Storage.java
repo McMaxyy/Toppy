@@ -104,6 +104,7 @@ public class Storage {
         assetManager.load("icons/abilities/ConsecratedGround.png", Texture.class);
         assetManager.load("icons/abilities/HolyAura.png", Texture.class);
         assetManager.load("icons/abilities/SmokeBomb.png", Texture.class);
+        assetManager.load("icons/abilities/HolySword.png", Texture.class);
 
         assetManager.load("character/abilities/Bubble.png", Texture.class);
         assetManager.load("character/abilities/Prayer.png", Texture.class);
@@ -114,6 +115,7 @@ public class Storage {
         assetManager.load("character/abilities/SwordAttack.png", Texture.class);
         assetManager.load("character/abilities/ShieldAttack.png", Texture.class);
         assetManager.load("character/abilities/SmokeBomb.png", Texture.class);
+        assetManager.load("character/abilities/HolySword.png", Texture.class);
 
         assetManager.load("icons/abilities/Cone.png", Texture.class);
 

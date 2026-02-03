@@ -347,6 +347,7 @@ public abstract class AbilityVisual {
         // If texture is 100% length, hilt is at ~15% from bottom-left corner
         private static final float PIVOT_X_RATIO = 0.15f;  // From left edge
         private static final float PIVOT_Y_RATIO = 0.15f;  // From bottom edge
+        private static final Color HOLY_SLASH_COLOR = new Color(0.988f, 0.969f, 0.529f, 1f);
 
         public SwordSlash(Player player, GameProj gameProj, float duration, float range, Color color) {
             super(duration);
@@ -358,10 +359,15 @@ public abstract class AbilityVisual {
             this.startAngleOffset = slashArcDegrees / 2f;
 
             try {
-                this.swordTexture = Storage.assetManager.get("character/abilities/SwordAttack.png", Texture.class);
+                if (this.slashColor.equals(HOLY_SLASH_COLOR))
+                    this.swordTexture = Storage.assetManager.get("character/abilities/HolySword.png", Texture.class);
+                else
+                    this.swordTexture = Storage.assetManager.get("character/abilities/SwordAttack.png", Texture.class);
             } catch (Exception e) {
                 this.swordTexture = null;
             }
+
+
 
             Vector3 mousePos3D = gameProj.getCamera().unproject(
                     new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
@@ -387,7 +393,7 @@ public abstract class AbilityVisual {
         }
 
         public static SwordSlash createHoly(Player player, GameProj gameProj, float duration, float range) {
-            SwordSlash slash = new SwordSlash(player, gameProj, duration, range, new Color(1f, 0.9f, 0.4f, 1f));
+            SwordSlash slash = new SwordSlash(player, gameProj, duration, range, new Color(0.988f, 0.969f, 0.529f, 1f));
             slash.slashArcDegrees = 140f;
             slash.startAngleOffset = slash.slashArcDegrees / 2f;
             slash.slashAngle = slash.targetAngle + slash.startAngleOffset;

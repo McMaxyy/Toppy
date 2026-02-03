@@ -86,6 +86,7 @@ public class AbilityManager {
         Texture rendIcon = loadIcon("icons/abilities/Rend.png");
         Texture doubleSwingIcon = loadIcon("icons/abilities/DoubleSwing.png");
         Texture smokeBombIcon = loadIcon(("icons/abilities/SmokeBomb.png"));
+        Texture holySwordIcon = loadIcon(("icons/abilities/HolySword.png"));
 
         // Movement abilities
         abilityRegistry.put("shadow_step", new ShadowStepAbility(defaultIcon));
@@ -108,7 +109,7 @@ public class AbilityManager {
             abilityRegistry.put("consecrated_ground", new ConsecratedGroundAbility(consecrateIcon));
             abilityRegistry.put("holy_aura", new HolyAuraAbility(holyAuraIcon));
             abilityRegistry.put("holy_blessing", new HolyBlessingAbility(defaultIcon));
-            abilityRegistry.put("holy_sword", new HolySwordAbility(defaultIcon));
+            abilityRegistry.put("holy_sword", new HolySwordAbility(holySwordIcon));
         }
 
         // Class abilities - Mercenary

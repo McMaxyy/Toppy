@@ -140,7 +140,7 @@ public class SkillTree {
         addSkill(new Skill("holy_blessing", "Holy Blessing", "+20 defense, +10 attack, +100 health for 6 seconds",
                 SkillCategory.CLASS, defaultIcon));
         addSkill(new Skill("holy_sword", "Holy Sword", "Bigger sword attacks and +10 damage for 6 seconds",
-                SkillCategory.CLASS, defaultIcon));
+                SkillCategory.CLASS, loadIcon("icons/abilities/HolySword.png")));
 
         // Movement abilities
         addSkill(new Skill("blink", "Blink", "Teleport to mouse position",
@@ -375,9 +375,6 @@ public class SkillTree {
         return true;
     }
 
-    /**
-     * Called by AbilityManager when a skill is dropped on a slot
-     */
     public boolean trySlotSkill(Skill skill, int slot) {
         if (skill == null || slot < 0 || slot >= MAX_ABILITY_SLOTS) return false;
         if (!skill.unlocked) return false;
@@ -398,10 +395,6 @@ public class SkillTree {
 
         return true;
     }
-
-    /**
-     * Clear the dragging state (called by AbilityManager after processing drop)
-     */
     public void clearDragging() {
         draggingSkill = null;
     }
