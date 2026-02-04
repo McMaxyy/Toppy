@@ -354,6 +354,8 @@ class SprintAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Sprint");
+
         SprintEffect sprintEffect = new SprintEffect(player, SPRINT_DURATION, DEX_BONUS);
         sprintEffect.onApply();
         gameProj.addStatusEffect(player, sprintEffect);
@@ -439,6 +441,7 @@ class SmokeBombAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("SmokeBomb");
         Vector2 position = new Vector2(player.getPosition());
 
         SmokeBombEffect smokeEffect = new SmokeBombEffect(player, SMOKE_DURATION, position, SMOKE_RADIUS);

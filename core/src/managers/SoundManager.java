@@ -44,7 +44,8 @@ public class SoundManager implements Disposable {
     public static final String SFX_BLINK_ABILITY = "blink_sound";
     public static final String SFX_PRAYER_ABILITY = "prayer_sound";
     public static final String SFX_SHIELD_BASH = "shield_sound";
-
+    public static final String SFX_SMOKEBOMB_ABILITY = "smoke_sound";
+    public static final String SFX_SPRINT_ABILITY = "sprint_sound";
 
 
     private Music grassRunningSound;
@@ -104,6 +105,12 @@ public class SoundManager implements Disposable {
 
             Sound shieldSound = Gdx.audio.newSound(Gdx.files.internal("sounds/ShieldBash.wav"));
             soundEffects.put(SFX_SHIELD_BASH, shieldSound);
+
+            Sound smokebombSound = Gdx.audio.newSound(Gdx.files.internal("sounds/SmokeBomb.mp3"));
+            soundEffects.put(SFX_SMOKEBOMB_ABILITY, smokebombSound);
+
+            Sound sprintSound = Gdx.audio.newSound(Gdx.files.internal("sounds/SprintAbility.mp3"));
+            soundEffects.put(SFX_SPRINT_ABILITY, sprintSound);
 
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
@@ -252,6 +259,12 @@ public class SoundManager implements Disposable {
                     playSound(SFX_CONSECRATE, 1.5f);
                     hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
                 }
+                break;
+            case "SmokeBomb":
+                playSound(SFX_SMOKEBOMB_ABILITY);
+                break;
+            case "Sprint":
+                playSound(SFX_SPRINT_ABILITY);
                 break;
         }
     }

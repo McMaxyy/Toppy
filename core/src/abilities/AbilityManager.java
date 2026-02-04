@@ -87,6 +87,7 @@ public class AbilityManager {
         Texture doubleSwingIcon = loadIcon("icons/abilities/DoubleSwing.png");
         Texture smokeBombIcon = loadIcon(("icons/abilities/SmokeBomb.png"));
         Texture holySwordIcon = loadIcon(("icons/abilities/HolySword.png"));
+        Texture sprintIcon = loadIcon(("icons/abilities/Sprint.png"));
 
         // Movement abilities
         abilityRegistry.put("shadow_step", new ShadowStepAbility(defaultIcon));
@@ -97,7 +98,7 @@ public class AbilityManager {
         // Utility abilities
         abilityRegistry.put("bubble", new PaladinBubbleAbility(bubbleIcon));
         abilityRegistry.put("pull", new PullAbility(pullIcon));
-        abilityRegistry.put("sprint", new SprintAbility(defaultIcon));
+        abilityRegistry.put("sprint", new SprintAbility(sprintIcon));
         abilityRegistry.put("full_heal", new FullHealAbility(prayerIcon));
         abilityRegistry.put("smoke_bomb", new SmokeBombAbility(smokeBombIcon));
         abilityRegistry.put("life_leech", new LifeLeechAbility(defaultIcon));

@@ -158,7 +158,7 @@ public class SkillTree {
         addSkill(new Skill("pull", "Pull", "Create a vortex that pulls nearby enemies toward you",
                 SkillCategory.UTILITY, loadIcon("icons/abilities/Pull.png")));
         addSkill(new Skill("sprint", "Sprint", "Gain +15 DEX for 10 seconds",
-                SkillCategory.UTILITY, defaultIcon));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/Sprint.png")));
         addSkill(new Skill("full_heal", "Full Heal", "Instantly restore all health",
                 SkillCategory.UTILITY, loadIcon("icons/abilities/Prayer.png")));
         addSkill(new Skill("smoke_bomb", "Smoke Bomb", "Create a zone that protects you from damage for 3 seconds",

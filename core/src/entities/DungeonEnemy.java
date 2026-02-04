@@ -209,17 +209,6 @@ public class DungeonEnemy {
             return;
         }
 
-        if (player.isInvisible()) {
-            body.setLinearVelocity(0, 0);
-            if (currentState != State.IDLE) {
-                setState(State.IDLE);
-            }
-            animationTime += delta;
-            bounds.setPosition(body.getPosition().x - bounds.width / 2f,
-                    body.getPosition().y - bounds.height / 2f);
-            return;
-        }
-
         if (isStunned) {
             body.setLinearVelocity(0, 0);
             if (currentState != State.IDLE) {

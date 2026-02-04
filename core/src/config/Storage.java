@@ -105,6 +105,7 @@ public class Storage {
         assetManager.load("icons/abilities/HolyAura.png", Texture.class);
         assetManager.load("icons/abilities/SmokeBomb.png", Texture.class);
         assetManager.load("icons/abilities/HolySword.png", Texture.class);
+        assetManager.load("icons/abilities/Sprint.png", Texture.class);
 
         assetManager.load("character/abilities/Bubble.png", Texture.class);
         assetManager.load("character/abilities/Prayer.png", Texture.class);
