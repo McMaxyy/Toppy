@@ -3,6 +3,7 @@ package entities;
 import abilities.AbilityVisual;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -451,13 +452,15 @@ public class Player implements PlayerStats.SpeedChangeListener {
 
                 if (!gameP.isInDungeon() && !gameP.isInBossRoom()) {
                     SoundManager.getInstance().startGrassRunning();
-                }
+                } else
+                    SoundManager.getInstance().startStoneRunning();
 
                 if(!gameStarted)
                     gameStarted = true;
             } else {
                 getAnimationManager().setState(AnimationManager.State.IDLE, "Player");
                 SoundManager.getInstance().stopGrassRunning();
+                SoundManager.getInstance().stopStoneRunning();
             }
         }
 
@@ -821,40 +824,12 @@ public class Player implements PlayerStats.SpeedChangeListener {
         }
         batch.setColor(1, 1, 1, 1);
 
-        renderPlayerHealthBar(batch, TILE_SIZE);
-    }
-
-    public void renderBuffIcons(SpriteBatch batch) {
-        if (buffManager != null) {
-            buffManager.render(batch);
-        }
     }
 
     public void renderSkillBar(SpriteBatch batch) {
         if (abilityManager != null) {
             abilityManager.renderSkillBar(batch);
         }
-    }
-
-    private void renderPlayerHealthBar(SpriteBatch batch, float TILE_SIZE) {
-        float barWidth = TILE_SIZE / 2f;
-        float barHeight = 4f;
-        Vector2 position = body.getPosition();
-        float barX = position.x - TILE_SIZE / 4f;
-        float barY = position.y + TILE_SIZE / 4f + 5f;
-
-        batch.setColor(0.3f, 0.0f, 0.0f, 0.8f);
-        batch.draw(healthBarBgTexture, barX, barY, barWidth, barHeight);
-
-        float healthPercent = stats.getHealthPercentage();
-        float healthWidth = barWidth * healthPercent;
-
-        float red = 1.0f - healthPercent;
-        float green = healthPercent;
-        batch.setColor(red, green, 0.1f, 1f);
-        batch.draw(healthBarBgTexture, barX, barY, healthWidth, barHeight);
-
-        batch.setColor(1, 1, 1, 1);
     }
 
     private void renderCooldownBar(SpriteBatch batch, float TILE_SIZE) {

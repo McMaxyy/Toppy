@@ -33,6 +33,7 @@ import entities.*;
 import managers.*;
 import abilities.StatusEffect;
 import ui.MerchantShop;
+import ui.PlayerStatusUI;
 import ui.Settings;
 
 import java.util.HashMap;
@@ -47,6 +48,7 @@ public class GameProj implements Screen, ContactListener {
     private final GameScreen gameScreen;
     private SpriteBatch batch;
     private final AnimationManager animationManager;
+    private PlayerStatusUI playerStatusUI;
 
     private final OrthographicCamera camera;
     private final OrthographicCamera hudCamera;
@@ -234,10 +236,12 @@ public class GameProj implements Screen, ContactListener {
         player = new Player(world, animationManager, PLAYER_TILE_SIZE, this, this.gameScreen, Storage.getSelectedPlayerClass());
         batch = new SpriteBatch();
 
+        playerStatusUI = new PlayerStatusUI(player, hudViewport);
+
         hudStage = new Stage(hudViewport, batch);
 
         hudLabel = new Label("", skin);
-        hudLabel.setPosition(10, hudViewport.getWorldHeight() - 30);
+        hudLabel.setPosition(10, hudViewport.getWorldHeight() - 150);
         hudStage.addActor(hudLabel);
 
         mapBoundary = new MapBoundary(world.getWorld(), MAP_SIZE_CHUNKS, CHUNK_SIZE, TILE_SIZE);
@@ -618,6 +622,7 @@ public class GameProj implements Screen, ContactListener {
         inDungeon = false;
         itemSpawner.clear();
 
+        SoundManager.getInstance().stopStoneRunning();
         SoundManager.getInstance().playForestMusic();
 
         if (currentBossRoom != null) {
@@ -952,11 +957,11 @@ public class GameProj implements Screen, ContactListener {
 
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
+            playerStatusUI.render(batch);
             player.renderSkillBar(batch);
             if (player != null && player.getAbilityManager() != null) {
                 player.getAbilityManager().renderSkillTree(batch);
             }
-            player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
 
@@ -1046,11 +1051,11 @@ public class GameProj implements Screen, ContactListener {
 
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
+            playerStatusUI.render(batch);
             player.renderSkillBar(batch);
             if (player != null && player.getAbilityManager() != null) {
                 player.getAbilityManager().renderSkillTree(batch);
             }
-            player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
 
@@ -1122,13 +1127,12 @@ public class GameProj implements Screen, ContactListener {
                 player.getInventory().render(batch, false, player);
             }
 
+            batch.begin();
+            playerStatusUI.render(batch);
+            player.renderSkillBar(batch);
             if (player != null && player.getAbilityManager() != null) {
                 player.getAbilityManager().renderSkillTree(batch);
             }
-
-            batch.begin();
-            player.renderSkillBar(batch);
-            player.renderBuffIcons(batch);
             renderExpBar(batch);
             batch.end();
         }
@@ -1598,6 +1602,10 @@ public class GameProj implements Screen, ContactListener {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+            }
+
+            if (playerStatusUI != null) {
+                playerStatusUI.dispose();
             }
 
             if (pendingChunks != null) {

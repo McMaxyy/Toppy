@@ -49,7 +49,8 @@ public class SoundManager implements Disposable {
 
     private Music grassRunningSound;
     private boolean isGrassRunningPlaying = false;
-
+    private Music stoneRunningSound;
+    private boolean isStoneRunningPlaying = false;
     private SoundManager() {
         musicTracks = new HashMap<>();
         soundEffects = new HashMap<>();
@@ -106,6 +107,9 @@ public class SoundManager implements Disposable {
 
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
+
+            stoneRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/StoneWalking.mp3"));
+            stoneRunningSound.setLooping(true);
 
             System.out.println("SoundManager: All audio loaded successfully");
         } catch (Exception e) {
@@ -248,7 +252,6 @@ public class SoundManager implements Disposable {
                     playSound(SFX_CONSECRATE, 1.5f);
                     hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
                 }
-//                playSound(SFX_CONSECRATE);
                 break;
         }
     }
@@ -270,15 +273,20 @@ public class SoundManager implements Disposable {
         }
     }
 
-    public boolean isGrassRunningPlaying() {
-        return isGrassRunningPlaying;
+    public void startStoneRunning() {
+        if (!sfxEnabled) return;
+
+        if (stoneRunningSound != null && !isStoneRunningPlaying) {
+            stoneRunningSound.setVolume(sfxVolume * 0.4f);
+            stoneRunningSound.play();
+            isStoneRunningPlaying = true;
+        }
     }
 
-    public void updateGrassRunning(boolean isMoving, boolean isInOverworld) {
-        if (isMoving && isInOverworld) {
-            startGrassRunning();
-        } else {
-            stopGrassRunning();
+    public void stopStoneRunning() {
+        if (stoneRunningSound != null && isStoneRunningPlaying) {
+            stoneRunningSound.stop();
+            isStoneRunningPlaying = false;
         }
     }
 
@@ -298,6 +306,10 @@ public class SoundManager implements Disposable {
 
         if (grassRunningSound != null) {
             grassRunningSound.setVolume(sfxVolume * 0.6f);
+        }
+
+        if (stoneRunningSound != null) {
+            stoneRunningSound.setVolume(sfxVolume * 0.6f);
         }
     }
 
@@ -353,6 +365,12 @@ public class SoundManager implements Disposable {
         if (grassRunningSound != null) {
             grassRunningSound.dispose();
             grassRunningSound = null;
+        }
+
+        stopStoneRunning();
+        if (stoneRunningSound != null) {
+            stoneRunningSound.dispose();
+            stoneRunningSound = null;
         }
 
         for (Music music : musicTracks.values()) {

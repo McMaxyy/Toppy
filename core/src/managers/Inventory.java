@@ -675,10 +675,10 @@ public class Inventory {
         // Available points
         font.draw(batch, "Available points: " + stats.getAvailableStatPoints(), equipmentX + 10, statsStartY + 30);
 
-        int totalVit = stats.getTotalVit();
-        int totalAP = stats.getTotalDamage();
-        int totalDP = stats.getTotalDefense();
-        int totalDex = stats.getTotalDex();
+        int totalVit = stats.getDisplayVit();
+        int totalAP = stats.getDisplayAP();
+        int totalDP = stats.getDisplayDP();
+        int totalDex = stats.getDisplayDex();
 
         font.setColor(Color.RED);
         font.draw(batch, "VIT: " + totalVit, equipmentX + 10, statsStartY - 10);
@@ -826,7 +826,7 @@ public class Inventory {
 
                 int count = itemCounts.getOrDefault(i, 1);
                 if (count > 1) {
-                    font.getData().setScale(0.8f);
+                    font.getData().setScale(0.6f);
                     font.setColor(Color.YELLOW);
                     font.draw(batch, "x" + count, slotX + SLOT_SIZE - 20, slotY + 15);
                 }

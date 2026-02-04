@@ -131,6 +131,8 @@ public class Storage {
         assetManager.load("character/Paladin/Walking.png", Texture.class);
         assetManager.load("character/Paladin/Idle.png", Texture.class);
         assetManager.load("character/Paladin/Dying.png", Texture.class);
+        assetManager.load("character/Paladin/Gobbo.png", Texture.class);
+
 
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);
@@ -181,6 +183,10 @@ public class Storage {
         assetManager.load("white_pixel.png", Texture.class);
         assetManager.load("mouse.png", Texture.class);
         assetManager.load("MainMenu.png", Texture.class);
+
+        assetManager.load("ui/PaladinCircle.png", Texture.class);
+        assetManager.load("ui/MercenaryCircle.png", Texture.class);
+        assetManager.load("ui/HealthBar.png", Texture.class);
 
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
         

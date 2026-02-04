@@ -34,10 +34,9 @@ public class BuffManager {
         }
     }
 
-    private static final float BUFF_DURATION = 180f;
+    private static final float BUFF_DURATION = 60f;
     private static final int ICON_SIZE = 28;
     private static final int ICON_PADDING = 6;
-    private static final int UI_MARGIN = 10;
 
     private float[] buffTimers;
     private boolean[] activeBuffs;
@@ -46,8 +45,16 @@ public class BuffManager {
     private ShapeRenderer shapeRenderer;
     private BitmapFont font;
     private GlyphLayout glyphLayout;
+    private Texture whitePixel;
 
     private int hoveredBuffIndex = -1;
+
+    // Store the last renderAt position for hover detection
+    private float lastRenderX = 0;
+    private float lastRenderY = 0;
+    private float lastIconSize = ICON_SIZE;
+    private float lastSpacing = ICON_PADDING;
+    private boolean useCustomPosition = false;
 
     private static final float LUCK_COIN_MULTIPLIER = 2.0f;
 
@@ -59,6 +66,7 @@ public class BuffManager {
         this.shapeRenderer = new ShapeRenderer();
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
         this.glyphLayout = new GlyphLayout();
+        this.whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
 
         for (BuffType buff : BuffType.values()) {
             buffIcons[buff.index] = Storage.assetManager.get(buff.iconPath, Texture.class);
@@ -99,38 +107,40 @@ public class BuffManager {
     }
 
     private void updateHoverState() {
-        int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
         float mouseX = Gdx.input.getX();
         float mouseY = screenHeight - Gdx.input.getY(); // Convert to screen coordinates
 
-        float startX = screenWidth - UI_MARGIN - ICON_SIZE;
-        float startY = screenHeight - UI_MARGIN - ICON_SIZE;
-
         hoveredBuffIndex = -1;
 
-        int renderedCount = 0;
-        for (BuffType buff : BuffType.values()) {
-            if (activeBuffs[buff.index]) {
-                float x = startX - (renderedCount * (ICON_SIZE + ICON_PADDING));
-                float y = startY;
+        if (useCustomPosition) {
+            // Use the stored position from renderAt()
+            int renderedCount = 0;
+            for (BuffType buff : BuffType.values()) {
+                if (activeBuffs[buff.index]) {
+                    float iconX = lastRenderX + (renderedCount * (lastIconSize + lastSpacing));
+                    float iconY = lastRenderY;
 
-                if (mouseX >= x - 2 && mouseX <= x + ICON_SIZE + 2 &&
-                        mouseY >= y - 12 && mouseY <= y + ICON_SIZE + 2) {
-                    hoveredBuffIndex = buff.index;
-                    break;
+                    if (mouseX >= iconX - 2 && mouseX <= iconX + lastIconSize + 2 &&
+                            mouseY >= iconY - 8 && mouseY <= iconY + lastIconSize + 2) {
+                        hoveredBuffIndex = buff.index;
+                        break;
+                    }
+
+                    renderedCount++;
                 }
-
-                renderedCount++;
             }
         }
     }
 
-    public void render(SpriteBatch batch) {
-        int screenWidth = Gdx.graphics.getWidth();
-        int screenHeight = Gdx.graphics.getHeight();
-        int activeBuffCount = 0;
+    public void renderAt(SpriteBatch batch, float x, float y, float iconSize, float spacing) {
+        lastRenderX = x;
+        lastRenderY = y;
+        lastIconSize = iconSize;
+        lastSpacing = spacing;
+        useCustomPosition = true;
 
+        int activeBuffCount = 0;
         for (int i = 0; i < activeBuffs.length; i++) {
             if (activeBuffs[i]) {
                 activeBuffCount++;
@@ -139,101 +149,91 @@ public class BuffManager {
 
         if (activeBuffCount == 0) return;
 
-        float startX = screenWidth - UI_MARGIN - ICON_SIZE;
-        float startY = screenHeight - UI_MARGIN - ICON_SIZE;
+        float timerBarHeight = 4f;
+        float timerBarOffset = 2f;
 
         int renderedCount = 0;
-
-        batch.end();
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
         for (BuffType buff : BuffType.values()) {
             if (activeBuffs[buff.index]) {
-                float x = startX - (renderedCount * (ICON_SIZE + ICON_PADDING));
-                float y = startY;
+                float iconX = x + (renderedCount * (iconSize + spacing));
+                float iconY = y;
 
-                shapeRenderer.setColor(0.2f, 0.2f, 0.2f, 0.9f);
-                shapeRenderer.rect(x, y - 10, ICON_SIZE, 5);
+                // Draw icon
+                batch.setColor(Color.WHITE);
+                batch.draw(buffIcons[buff.index], iconX, iconY, iconSize, iconSize);
 
+                // Draw timer bar background
+                batch.setColor(0.2f, 0.2f, 0.2f, 0.9f);
+                batch.draw(whitePixel, iconX, iconY - timerBarOffset - timerBarHeight, iconSize, timerBarHeight);
+
+                // Draw timer bar fill
                 float timerPercent = buffTimers[buff.index] / BUFF_DURATION;
                 Color barColor = getBuffBarColor(buff);
-                shapeRenderer.setColor(barColor);
-                shapeRenderer.rect(x, y - 10, ICON_SIZE * timerPercent, 5);
+                batch.setColor(barColor);
+                batch.draw(whitePixel, iconX, iconY - timerBarOffset - timerBarHeight, iconSize * timerPercent, timerBarHeight);
 
+                batch.setColor(Color.WHITE);
                 renderedCount++;
             }
         }
 
-        shapeRenderer.end();
-
+        // Render tooltip if hovering
         if (hoveredBuffIndex >= 0) {
-            renderTooltip(startX, startY);
+            renderTooltipAt(batch, x, y, iconSize, spacing);
         }
+    }
 
-        batch.begin();
+    public int getActiveBuffCount() {
+        int count = 0;
+        for (boolean active : activeBuffs) {
+            if (active) count++;
+        }
+        return count;
+    }
 
-        renderedCount = 0;
+    private void renderTooltipAt(SpriteBatch batch, float startX, float startY, float iconSize, float spacing) {
+        BuffType hoveredBuff = null;
+        int hoveredIndex = 0;
+        int count = 0;
+
         for (BuffType buff : BuffType.values()) {
+            if (buff.index == hoveredBuffIndex) {
+                hoveredBuff = buff;
+                hoveredIndex = count;
+                break;
+            }
             if (activeBuffs[buff.index]) {
-                float x = startX - (renderedCount * (ICON_SIZE + ICON_PADDING));
-                float y = startY;
-
-                batch.draw(buffIcons[buff.index], x, y - 3, ICON_SIZE, ICON_SIZE);
-                renderedCount++;
+                count++;
             }
         }
 
-        if (hoveredBuffIndex >= 0) {
-            renderTooltipText(batch, startX, startY);
+        if (hoveredBuff == null) {
+            batch.setColor(Color.WHITE);
+            return;
         }
-    }
-
-    private void renderTooltip(float startX, float startY) {
-        BuffType hoveredBuff = null;
-        for (BuffType buff : BuffType.values()) {
-            if (buff.index == hoveredBuffIndex) {
-                hoveredBuff = buff;
-                break;
-            }
-        }
-
-        if (hoveredBuff == null) return;
 
         float tooltipWidth = 150;
         float tooltipHeight = 60;
-        float tooltipX = startX - tooltipWidth + ICON_SIZE;
-        float tooltipY = startY - ICON_SIZE - tooltipHeight - 10;
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0.08f, 0.08f, 0.12f, 0.95f);
-        shapeRenderer.rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
-        shapeRenderer.end();
+        float iconX = startX + (hoveredIndex * (iconSize + spacing));
+        float tooltipX = iconX;
+        float tooltipY = startY - iconSize * 3 - 5;
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        int screenWidth = Gdx.graphics.getWidth();
+        if (tooltipX + tooltipWidth > screenWidth) {
+            tooltipX = screenWidth - tooltipWidth - 5;
+        }
+
+        batch.setColor(0.08f, 0.08f, 0.12f, 0.95f);
+        batch.draw(whitePixel, tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+
         Color borderColor = getBuffBarColor(hoveredBuff);
-        shapeRenderer.setColor(borderColor);
-        Gdx.gl.glLineWidth(2);
-        shapeRenderer.rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
-        shapeRenderer.end();
-        Gdx.gl.glLineWidth(1);
-    }
-
-    private void renderTooltipText(SpriteBatch batch, float startX, float startY) {
-        BuffType hoveredBuff = null;
-        for (BuffType buff : BuffType.values()) {
-            if (buff.index == hoveredBuffIndex) {
-                hoveredBuff = buff;
-                break;
-            }
-        }
-
-        if (hoveredBuff == null) return;
-
-        float tooltipWidth = 150;
-        float tooltipHeight = 60;
-        float tooltipX = startX - tooltipWidth + ICON_SIZE;
-        float tooltipY = startY - ICON_SIZE - tooltipHeight - 10;
+        batch.setColor(borderColor);
+        float borderWidth = 2f;
+        batch.draw(whitePixel, tooltipX, tooltipY + tooltipHeight - borderWidth, tooltipWidth, borderWidth);
+        batch.draw(whitePixel, tooltipX, tooltipY, tooltipWidth, borderWidth);
+        batch.draw(whitePixel, tooltipX, tooltipY, borderWidth, tooltipHeight);
+        batch.draw(whitePixel, tooltipX + tooltipWidth - borderWidth, tooltipY, borderWidth, tooltipHeight);
 
         float textX = tooltipX + 8;
         float textY = tooltipY + tooltipHeight - 10;
@@ -253,6 +253,7 @@ public class BuffManager {
 
         font.getData().setScale(1f);
         font.setColor(Color.WHITE);
+        batch.setColor(Color.WHITE);
     }
 
     private Color getBuffBarColor(BuffType buff) {

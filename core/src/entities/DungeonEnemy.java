@@ -16,7 +16,6 @@ import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.Dungeon;
-import managers.SoundManager;
 
 public class DungeonEnemy {
     public Rectangle bounds;

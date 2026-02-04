@@ -95,7 +95,17 @@ public class LootTable {
                     return randomPrefix + "iron_shield";
                 }
                 break;
-
+            case CONSUMABLE:
+                if (baseItemId.equals("buff_potion")) {
+                    int buff = random.nextInt(3);
+                    if (buff == 0)
+                        return "attack_potion";
+                    else if (buff == 1)
+                        return "dex_potion";
+                    else
+                        return "defense_potion";
+                }
+                break;
             default:
                 break;
         }

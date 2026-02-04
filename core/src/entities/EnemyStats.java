@@ -197,7 +197,7 @@ public class EnemyStats {
                     10 + (level * 8),
                     level,
                     AttackType.MELEE,
-                    "basic_enemy",
+                    "melee_enemy",
                     1f,
                     35f,
                     1.0f,

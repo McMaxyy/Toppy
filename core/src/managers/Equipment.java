@@ -2,7 +2,6 @@ package managers;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import items.ItemTypes;
 import items.Item;
 
@@ -89,7 +88,6 @@ public class Equipment {
                 return EquipmentSlot.BOOTS;
             }
 
-            // Default armor to chest if can't determine
             return EquipmentSlot.CHEST;
         }
 

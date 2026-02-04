@@ -25,14 +25,25 @@ public class LootTableRegistry {
         LootTable basicEnemy = new LootTable()
                 .setGuaranteedCoins(1)
                 .addDrop("coin", 0.3f, 1, 1)
-                .addDrop(Item.ItemType.CONSUMABLE, "small_health_potion", 1f);
+                .addDrop("attack_potion", 0.01f, 1, 1)
+                .addDrop("lucky_clover", 0.01f, 1, 1)
+                .addDrop(Item.ItemType.CONSUMABLE, "small_health_potion", 0.15f);
         registerLootTable("basic_enemy", basicEnemy);
+
+        LootTable meleeEnemy = new LootTable()
+                .setGuaranteedCoins(1)
+                .addDrop("coin", 0.3f, 1, 1)
+                .addDrop(Item.ItemType.CONSUMABLE, "buff_potion", 0.01f)
+                .addDrop("lucky_clover", 0.005f, 1, 1)
+                .addDrop(Item.ItemType.CONSUMABLE, "health_potion", 0.15f);
+        registerLootTable("melee_enemy", meleeEnemy);
 
         LootTable rangedEnemy = new LootTable()
                 .setGuaranteedCoins(1) // Always drops 1 coin
-                .addDrop("coin", 0.3f, 1, 2)
-                .addDrop(Item.ItemType.CONSUMABLE, "small_health_potion", 0.15f)
-                .addDrop(Item.ItemType.CONSUMABLE, "health_potion", 0.05f);
+                .addDrop("coin", 0.3f, 1, 1)
+                .addDrop(Item.ItemType.CONSUMABLE, "buff_potion", 0.01f)
+                .addDrop("lucky_clover", 0.005f, 1, 1)
+                .addDrop(Item.ItemType.CONSUMABLE, "small_health_potion", 0.2f);
         registerLootTable("ranged_enemy", rangedEnemy);
 
         LootTable fastEnemy = new LootTable()
@@ -44,14 +55,16 @@ public class LootTableRegistry {
 
         LootTable dungeonEnemy = new LootTable()
                 .setGuaranteedCoins(2)
-                .addDrop(Item.ItemType.COIN,"coin_pile", 0.3f)
-                .addDrop("coin", 0.3f, 1, 2)
-                .addDrop(Item.ItemType.CONSUMABLE, "health_potion", 0.3f);
+                .addDrop(Item.ItemType.COIN,"coin_pile", 0.15f)
+                .addDrop("coin", 0.2f, 1, 2)
+                .addDrop(Item.ItemType.CONSUMABLE, "buff_potion", 0.02f)
+                .addDrop("lucky_clover", 0.01f, 1, 1)
+                .addDrop(Item.ItemType.CONSUMABLE, "health_potion", 0.25f);
         registerLootTable("dungeon_enemy", dungeonEnemy);
 
         LootTable boss = new LootTable()
                 .setGuaranteedCoins(5)
-                .addDrop("coin_pile", 1.0f, 3, 5)
+                .addDrop("coin_pile", 1.0f, 2, 5)
                 .addDrop("large_health_potion", 0.8f, 1, 2)
                 .addDrop(Item.ItemType.WEAPON,"iron_sword", 0.1f)
                 .addDrop(Item.ItemType.ARMOR, "iron_armor", 0.1f)

@@ -193,7 +193,7 @@ public class PlayerStats {
     }
 
     public int getTotalVit() {
-        return BASE_VIT + allocatedHealthPoints + gearVitality + ((level - 1) * 5);
+        return BASE_VIT + allocatedHealthPoints + gearVitality + (level - 1);
     }
 
     public int getTotalDex() {
@@ -309,6 +309,22 @@ public class PlayerStats {
     public int getAvailableSkillPoints() { return availableSkillPoints; }
 
     public int getTotalSkillPointsEarned() { return totalSkillPointsEarned; }
+
+    public int getDisplayVit() {
+        return level + allocatedHealthPoints + gearVitality;
+    }
+
+    public int getDisplayAP() {
+        return level + allocatedAttackPoints + gearDamage;
+    }
+
+    public int getDisplayDP() {
+        return level + allocatedDefensePoints + gearDefense;
+    }
+
+    public int getDisplayDex() {
+        return level + allocatedDexPoints + gearDex;
+    }
 
     // Getters
     public int getMaxHealth() { return maxHealth; }
