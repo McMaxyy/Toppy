@@ -60,6 +60,7 @@ class PaladinBubbleAbility extends Ability {
 class PullAbility extends Ability {
     private static final float PULL_RADIUS = 100f;
     private static final float PULL_DURATION = 0.5f;
+    private static final int BASE_PULL_DAMAGE = 20;
 
     private Player pullingPlayer;
     private GameProj currentGameProj;
@@ -73,7 +74,7 @@ class PullAbility extends Ability {
                 "Pull",
                 "Create a divine vortex that pulls all nearby enemies toward you",
                 4.0f,
-                0,
+                BASE_PULL_DAMAGE,
                 0f,
                 PULL_DURATION,
                 PULL_RADIUS,
@@ -146,7 +147,9 @@ class PullAbility extends Ability {
                             enemy.getBody().setLinearVelocity(0, 0);
 
                             if (!affectedEnemies.contains(enemy)) {
-                                enemy.takeDamage(damage);
+                                StunEffect stun = new StunEffect(enemy, 0.5f);
+                                stun.onApply();
+                                currentGameProj.addStatusEffect(enemy, stun);
                                 affectedEnemies.add(enemy);
                             }
                         }
@@ -175,7 +178,9 @@ class PullAbility extends Ability {
                     herman.getBody().setLinearVelocity(0, 0);
 
                     if (!affectedEnemies.contains(herman)) {
-                        herman.takeDamage(damage);
+                        StunEffect stun = new StunEffect(herman, 0.5f);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(herman, stun);
                         affectedEnemies.add(herman);
                     }
                 }
@@ -202,7 +207,9 @@ class PullAbility extends Ability {
                     hermanDuplicate.getBody().setLinearVelocity(0, 0);
 
                     if (!affectedEnemies.contains(hermanDuplicate)) {
-                        hermanDuplicate.takeDamage(damage);
+                        StunEffect stun = new StunEffect(hermanDuplicate, 0.5f);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(hermanDuplicate, stun);
                         affectedEnemies.add(hermanDuplicate);
                     }
                 }
@@ -237,7 +244,9 @@ class PullAbility extends Ability {
                         enemy.getBody().setLinearVelocity(0, 0);
 
                         if (!affectedEnemies.contains(enemy)) {
-                            enemy.takeDamage(damage);
+                            StunEffect stun = new StunEffect(enemy, 0.5f);
+                            stun.onApply();
+                            currentGameProj.addStatusEffect(enemy, stun);
                             affectedEnemies.add(enemy);
                         }
                     }
@@ -267,7 +276,9 @@ class PullAbility extends Ability {
                     bossRoomBoss.getBody().setLinearVelocity(0, 0);
 
                     if (!affectedEnemies.contains(bossRoomBoss)) {
-                        bossRoomBoss.takeDamage(damage);
+                        StunEffect stun = new StunEffect(bossRoomBoss, 0.5f);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(bossRoomBoss, stun);
                         affectedEnemies.add(bossRoomBoss);
                     }
                 }
@@ -294,7 +305,9 @@ class PullAbility extends Ability {
                     cyclopsRoomBoss.getBody().setLinearVelocity(0, 0);
 
                     if (!affectedEnemies.contains(cyclopsRoomBoss)) {
-                        cyclopsRoomBoss.takeDamage(damage);
+                        StunEffect stun = new StunEffect(cyclopsRoomBoss, 0.5f);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(cyclopsRoomBoss, stun);
                         affectedEnemies.add(cyclopsRoomBoss);
                     }
                 }
@@ -321,7 +334,9 @@ class PullAbility extends Ability {
                     ghostBoss.getBody().setLinearVelocity(0, 0);
 
                     if (!affectedEnemies.contains(ghostBoss)) {
-                        ghostBoss.takeDamage(damage);
+                        StunEffect stun = new StunEffect(ghostBoss, 0.5f);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(ghostBoss, stun);
                         affectedEnemies.add(ghostBoss);
                     }
                 }
@@ -396,9 +411,9 @@ class FullHealAbility extends Ability {
 
     @Override
     protected void onCastComplete() {
-        super.onCastComplete();
         execute(targetPlayer, null);
-        currentCooldown = cooldown;
+        // Use parent's cooldown calculation with attack speed
+        super.onCastComplete();
 
         if (prayerVisual != null) {
             prayerVisual.dispose();

@@ -21,10 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Manages player abilities, cooldowns, and status effects
- * Integrated with SkillTree for dynamic ability slotting via drag-and-drop
- */
 public class AbilityManager {
     private static final int NUM_ABILITY_SLOTS = 5;
 
@@ -46,14 +42,13 @@ public class AbilityManager {
     private static final int SEPARATOR_SPACE = 15;
 
     private float offhandCooldown = 0f;
-    private static final float OFFHAND_COOLDOWN_TIME = 2.0f;
-    private static final int SHIELD_BASH_DAMAGE = 10;
+    private static final float BASE_OFFHAND_COOLDOWN_TIME = 2.0f;
+    private static final int BASE_SHIELD_BASH_DAMAGE = 10;
 
     private float swordCooldown = 0f;
-    private static final float SWORD_COOLDOWN_TIME = 0.5f;
+    private static final float BASE_SWORD_COOLDOWN_TIME = 0.5f;
     private static final float SWORD_ATTACK_RANGE = 45f;
 
-    // Slot bar hover state for tooltips
     private int hoveredSlotIndex = -1;
     private SkillTree.Skill hoveredSlotSkill = null;
 
@@ -137,6 +132,15 @@ public class AbilityManager {
                 abilities[i] = null;
             }
         }
+    }
+
+    /**
+     * Gets the effective cooldown after applying attack speed reduction.
+     * Minimum cooldown is 0.1f to prevent instant attacks.
+     */
+    private float getEffectiveCooldown(float baseCooldown) {
+        float attackSpeedReduction = player.getStats().getTotalAttackSpeed();
+        return Math.max(0.1f, baseCooldown - attackSpeedReduction);
     }
 
     public void update(float delta) {
@@ -290,7 +294,7 @@ public class AbilityManager {
 
         if (offhand != null && offhand.getName().toLowerCase().contains("shield")) {
             performShieldBash();
-            offhandCooldown = OFFHAND_COOLDOWN_TIME;
+            offhandCooldown = getEffectiveCooldown(BASE_OFFHAND_COOLDOWN_TIME);
         }
     }
 
@@ -308,7 +312,7 @@ public class AbilityManager {
         }
 
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
-        int playerDamage = player.getStats().getTotalDamage();
+        int playerDamage = player.getStats().getTotalDamage() + player.getStats().getActualDamage();
 
         com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(
                 new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
@@ -417,7 +421,7 @@ public class AbilityManager {
             }
         }
 
-        swordCooldown = SWORD_COOLDOWN_TIME;
+        swordCooldown = getEffectiveCooldown(BASE_SWORD_COOLDOWN_TIME);
     }
 
     private void performShieldBash() {
@@ -426,6 +430,7 @@ public class AbilityManager {
 
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
         float attackRange = 45f;
+        int shieldDamage = BASE_SHIELD_BASH_DAMAGE + player.getStats().getActualDamage();
 
         com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(
                 new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
@@ -444,7 +449,7 @@ public class AbilityManager {
                             enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                     );
                     if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        enemy.takeDamage(SHIELD_BASH_DAMAGE);
+                        enemy.takeDamage(shieldDamage);
                         StunEffect stun = new StunEffect(enemy, 1f);
                         stun.onApply();
                         gameProj.addStatusEffect(enemy, stun);
@@ -463,7 +468,7 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
                 if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
-                    herman.takeDamage(SHIELD_BASH_DAMAGE);
+                    herman.takeDamage(shieldDamage);
                     StunEffect stun = new StunEffect(herman, 1f);
                     stun.onApply();
                     gameProj.addStatusEffect(herman, stun);
@@ -478,7 +483,7 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
                 if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
-                    hermanDuplicate.takeDamage(SHIELD_BASH_DAMAGE);
+                    hermanDuplicate.takeDamage(shieldDamage);
                     StunEffect stun = new StunEffect(hermanDuplicate, 1f);
                     stun.onApply();
                     gameProj.addStatusEffect(hermanDuplicate, stun);
@@ -496,7 +501,7 @@ public class AbilityManager {
                             enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                     );
                     if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
-                        enemy.takeDamage(SHIELD_BASH_DAMAGE);
+                        enemy.takeDamage(shieldDamage);
                         StunEffect stun = new StunEffect(enemy, 1f);
                         stun.onApply();
                         gameProj.addStatusEffect(enemy, stun);
@@ -515,7 +520,7 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
                 if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
-                    boss.takeDamage(SHIELD_BASH_DAMAGE);
+                    boss.takeDamage(shieldDamage);
                     StunEffect stun = new StunEffect(boss, 0.5f);
                     stun.onApply();
                     addStatusEffect(boss, stun);
@@ -530,7 +535,7 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
                 if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
-                    cyclops.takeDamage(SHIELD_BASH_DAMAGE);
+                    cyclops.takeDamage(shieldDamage);
                     StunEffect stun = new StunEffect(cyclops, 0.5f);
                     stun.onApply();
                     gameProj.addStatusEffect(cyclops, stun);
@@ -545,7 +550,7 @@ public class AbilityManager {
                         enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
                 );
                 if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
-                    ghostBoss.takeDamage(SHIELD_BASH_DAMAGE);
+                    ghostBoss.takeDamage(shieldDamage);
                     StunEffect stun = new StunEffect(ghostBoss, 0.5f);
                     stun.onApply();
                     gameProj.addStatusEffect(ghostBoss, stun);
@@ -618,15 +623,17 @@ public class AbilityManager {
             weapon.renderIcon(batch, attackStartX + 3, startY + 3, SLOT_SIZE - 6);
         }
 
+        float effectiveSwordCooldown = getEffectiveCooldown(BASE_SWORD_COOLDOWN_TIME);
         if (playerClass == PlayerClass.PALADIN && swordCooldown > 0) {
-            renderCooldownOverlay(batch, attackStartX, startY, swordCooldown / SWORD_COOLDOWN_TIME);
+            renderCooldownOverlay(batch, attackStartX, startY, swordCooldown / effectiveSwordCooldown);
         }
 
         Item offhand = player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.OFFHAND);
         if (offhand != null) {
             offhand.renderIcon(batch, attackStartX + SLOT_SIZE + SLOT_PADDING + 3, startY + 3, SLOT_SIZE - 6);
+            float effectiveOffhandCooldown = getEffectiveCooldown(BASE_OFFHAND_COOLDOWN_TIME);
             if (offhandCooldown > 0) {
-                renderCooldownOverlay(batch, attackStartX + SLOT_SIZE + SLOT_PADDING, startY, offhandCooldown / OFFHAND_COOLDOWN_TIME);
+                renderCooldownOverlay(batch, attackStartX + SLOT_SIZE + SLOT_PADDING, startY, offhandCooldown / effectiveOffhandCooldown);
             }
         }
 

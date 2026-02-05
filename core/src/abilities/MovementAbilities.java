@@ -63,6 +63,7 @@ class ChargeAbility extends Ability {
     private static final float CHARGE_SPEED = 500f;
     private static final float CHARGE_DURATION = 0.7f;
     private static final float STUN_DURATION = 1.5f;
+    private static final int BASE_CHARGE_DAMAGE = 30;
 
     private Player chargingPlayer;
     private GameProj currentGameProj;
@@ -73,7 +74,7 @@ class ChargeAbility extends Ability {
                 "Charge",
                 "Dash forward, dealing damage and stunning enemies on impact",
                 2.0f,
-                0,
+                BASE_CHARGE_DAMAGE,
                 0f,
                 CHARGE_DURATION,
                 30f,
@@ -167,7 +168,7 @@ class ChargeAbility extends Ability {
                 if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
                     if (dist < hitRadius) {
-                        enemy.takeDamage(damage);
+                        enemy.takeDamage(0);
                         StunEffect stun = new StunEffect(enemy, STUN_DURATION);
                         stun.onApply();
                         currentGameProj.addStatusEffect(enemy, stun);
@@ -180,7 +181,7 @@ class ChargeAbility extends Ability {
             if (herman != null && herman.getBody() != null && !hitEnemies.contains(herman)) {
                 float dist = playerPos.dst(herman.getBody().getPosition());
                 if (dist < hitRadius) {
-                    herman.takeDamage(damage);
+                    herman.takeDamage(0);
                     StunEffect stun = new StunEffect(herman, STUN_DURATION);
                     stun.onApply();
                     currentGameProj.addStatusEffect(herman, stun);
@@ -192,7 +193,7 @@ class ChargeAbility extends Ability {
             if (hermanDuplicate != null && hermanDuplicate.getBody() != null && !hitEnemies.contains(hermanDuplicate)) {
                 float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
                 if (dist < hitRadius) {
-                    hermanDuplicate.takeDamage(damage);
+                    hermanDuplicate.takeDamage(0);
                     StunEffect stun = new StunEffect(hermanDuplicate, STUN_DURATION);
                     stun.onApply();
                     currentGameProj.addStatusEffect(hermanDuplicate, stun);
@@ -207,7 +208,7 @@ class ChargeAbility extends Ability {
                 if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
                     if (dist < hitRadius) {
-                        enemy.takeDamage(damage);
+                        enemy.takeDamage(0);
                         StunEffect stun = new StunEffect(enemy, STUN_DURATION);
                         stun.onApply();
                         currentGameProj.addStatusEffect(enemy, stun);
@@ -223,7 +224,7 @@ class ChargeAbility extends Ability {
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null && !hitEnemies.contains(bossRoomBoss)) {
                 float dist = playerPos.dst(bossRoomBoss.getBody().getPosition());
                 if (dist < hitRadius) {
-                    bossRoomBoss.takeDamage(damage);
+                    bossRoomBoss.takeDamage(0);
                     StunEffect stun = new StunEffect(bossRoomBoss, STUN_DURATION);
                     stun.onApply();
                     currentGameProj.addStatusEffect(bossRoomBoss, stun);
@@ -235,7 +236,7 @@ class ChargeAbility extends Ability {
             if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null && !hitEnemies.contains(cyclopsRoomBoss)) {
                 float dist = playerPos.dst(cyclopsRoomBoss.getBody().getPosition());
                 if (dist < hitRadius) {
-                    cyclopsRoomBoss.takeDamage(damage);
+                    cyclopsRoomBoss.takeDamage(0);
                     StunEffect stun = new StunEffect(cyclopsRoomBoss, STUN_DURATION);
                     stun.onApply();
                     currentGameProj.addStatusEffect(cyclopsRoomBoss, stun);
@@ -247,7 +248,7 @@ class ChargeAbility extends Ability {
             if (ghostBoss != null && ghostBoss.getBody() != null && !hitEnemies.contains(ghostBoss)) {
                 float dist = playerPos.dst(ghostBoss.getBody().getPosition());
                 if (dist < hitRadius) {
-                    ghostBoss.takeDamage(damage);
+                    ghostBoss.takeDamage(0);
                     StunEffect stun = new StunEffect(ghostBoss, STUN_DURATION);
                     stun.onApply();
                     currentGameProj.addStatusEffect(ghostBoss, stun);
@@ -336,7 +337,7 @@ class ShadowStepAbility extends Ability {
 class VaultAbility extends Ability {
     private static final float VAULT_SPEED = 600f;
     private static final float VAULT_DURATION = 0.6f;
-    private static final int VAULT_DAMAGE = 25;
+    private static final int BASE_VAULT_DAMAGE = 25;
 
     private Player vaultingPlayer;
     private GameProj currentGameProj;
@@ -348,7 +349,7 @@ class VaultAbility extends Ability {
                 "Vault",
                 "Leap through enemies, damaging all in your path",
                 2.0f,
-                VAULT_DAMAGE,
+                BASE_VAULT_DAMAGE,
                 0f,
                 VAULT_DURATION,
                 40f,
@@ -438,14 +439,15 @@ class VaultAbility extends Ability {
 
         Vector2 playerPos = vaultingPlayer.getPosition();
         float hitRadius = distance;
-        int scaledDamage = damage + (vaultingPlayer.getLevel() * 3);
+        int actualDamage = vaultingPlayer.getStats().getActualDamage();
+        int totalDamage = damage + actualDamage;
 
         for (Chunk chunk : currentGameProj.getChunks().values()) {
             for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                 if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
                     if (dist < hitRadius) {
-                        enemy.takeDamage(scaledDamage);
+                        enemy.takeDamage(totalDamage);
                         hitEnemies.add(enemy);
                     }
                 }
@@ -455,7 +457,7 @@ class VaultAbility extends Ability {
             if (herman != null && herman.getBody() != null && !hitEnemies.contains(herman)) {
                 float dist = playerPos.dst(herman.getBody().getPosition());
                 if (dist < hitRadius) {
-                    herman.takeDamage(scaledDamage);
+                    herman.takeDamage(totalDamage);
                     hitEnemies.add(herman);
                 }
             }
@@ -464,7 +466,7 @@ class VaultAbility extends Ability {
             if (hermanDuplicate != null && hermanDuplicate.getBody() != null && !hitEnemies.contains(hermanDuplicate)) {
                 float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
                 if (dist < hitRadius) {
-                    hermanDuplicate.takeDamage(scaledDamage);
+                    hermanDuplicate.takeDamage(totalDamage);
                     hitEnemies.add(hermanDuplicate);
                 }
             }
@@ -475,7 +477,7 @@ class VaultAbility extends Ability {
                 if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
                     if (dist < hitRadius) {
-                        enemy.takeDamage(scaledDamage);
+                        enemy.takeDamage(totalDamage);
                         hitEnemies.add(enemy);
                     }
                 }
@@ -487,7 +489,7 @@ class VaultAbility extends Ability {
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null && !hitEnemies.contains(bossRoomBoss)) {
                 float dist = playerPos.dst(bossRoomBoss.getBody().getPosition());
                 if (dist < hitRadius) {
-                    bossRoomBoss.takeDamage(scaledDamage);
+                    bossRoomBoss.takeDamage(totalDamage);
                     hitEnemies.add(bossRoomBoss);
                 }
             }
@@ -496,7 +498,7 @@ class VaultAbility extends Ability {
             if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null && !hitEnemies.contains(cyclopsRoomBoss)) {
                 float dist = playerPos.dst(cyclopsRoomBoss.getBody().getPosition());
                 if (dist < hitRadius) {
-                    cyclopsRoomBoss.takeDamage(scaledDamage);
+                    cyclopsRoomBoss.takeDamage(totalDamage);
                     hitEnemies.add(cyclopsRoomBoss);
                 }
             }
@@ -505,7 +507,7 @@ class VaultAbility extends Ability {
             if (ghostBoss != null && ghostBoss.getBody() != null && !hitEnemies.contains(ghostBoss)) {
                 float dist = playerPos.dst(ghostBoss.getBody().getPosition());
                 if (dist < hitRadius) {
-                    ghostBoss.takeDamage(scaledDamage);
+                    ghostBoss.takeDamage(totalDamage);
                     hitEnemies.add(ghostBoss);
                 }
             }

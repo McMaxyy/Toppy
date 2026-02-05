@@ -18,7 +18,7 @@ public class BossKitty {
     private Body body;
     private final Player player;
     private final float detectionRadius = 300f;
-    private final float speed = 80f;
+    private final float speed = 70f;
     private boolean markForRemoval = false;
     private boolean isMoving = false;
     private final AnimationManager animationManager;

@@ -1,29 +1,19 @@
 package abilities;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 import entities.*;
 import game.GameProj;
 import managers.Chunk;
 import managers.SoundManager;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
-/**
- * Paladin-specific abilities
- */
 public abstract class PaladinAbilities { }
 
-/**
- * Smite - Call down divine judgment, damaging all enemies around you
- */
 class SmiteAbility extends Ability {
     private static final float SMITE_RADIUS = 50f;
-    private static final int SMITE_DAMAGE = 80;
+    private static final int SMITE_DAMAGE = 30;
 
     public SmiteAbility(Texture iconTexture) {
         super(
@@ -44,6 +34,7 @@ class SmiteAbility extends Ability {
         SoundManager.getInstance().playAbilitySound("Smite");
 
         Vector2 playerPos = player.getPosition();
+        int actualDamage = player.getStats().getActualDamage();
 
         AbilityVisual.Smite smiteVisual = new AbilityVisual.Smite(player, SMITE_RADIUS, 0.5f);
         player.addAbilityVisual(smiteVisual);
@@ -56,7 +47,7 @@ class SmiteAbility extends Ability {
                     if (enemy.getBody() != null) {
                         float dist = playerPos.dst(enemy.getBody().getPosition());
                         if (dist < SMITE_RADIUS) {
-                            enemy.takeDamage(damage + (player.getLevel() * 5));
+                            enemy.takeDamage(damage + actualDamage);
                             enemiesHit++;
                         }
                     }
@@ -67,7 +58,7 @@ class SmiteAbility extends Ability {
             if (herman != null && herman.getBody() != null) {
                 float dist = playerPos.dst(herman.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
-                    herman.takeDamage(damage + (player.getLevel() * 5));
+                    herman.takeDamage(damage + actualDamage);
                     enemiesHit++;
                 }
             }
@@ -76,7 +67,7 @@ class SmiteAbility extends Ability {
             if (hermanDuplicate != null && hermanDuplicate.getBody() != null) {
                 float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
-                    hermanDuplicate.takeDamage(damage + (player.getLevel() * 5));
+                    hermanDuplicate.takeDamage(damage + actualDamage);
                     enemiesHit++;
                 }
             }
@@ -87,7 +78,7 @@ class SmiteAbility extends Ability {
                 if (enemy.getBody() != null) {
                     float dist = playerPos.dst(enemy.getBody().getPosition());
                     if (dist < SMITE_RADIUS) {
-                        enemy.takeDamage(damage + (player.getLevel() * 5));
+                        enemy.takeDamage(damage + actualDamage);
                         enemiesHit++;
                     }
                 }
@@ -99,7 +90,7 @@ class SmiteAbility extends Ability {
             if (bossRoomBoss != null && bossRoomBoss.getBody() != null) {
                 float dist = playerPos.dst(bossRoomBoss.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
-                    bossRoomBoss.takeDamage(damage + (player.getLevel() * 5));
+                    bossRoomBoss.takeDamage(damage + actualDamage);
                     enemiesHit++;
                 }
             }
@@ -108,7 +99,7 @@ class SmiteAbility extends Ability {
             if (cyclopsRoomBoss != null && cyclopsRoomBoss.getBody() != null) {
                 float dist = playerPos.dst(cyclopsRoomBoss.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
-                    cyclopsRoomBoss.takeDamage(damage + (player.getLevel() * 5));
+                    cyclopsRoomBoss.takeDamage(damage + actualDamage);
                     enemiesHit++;
                 }
             }
@@ -117,7 +108,7 @@ class SmiteAbility extends Ability {
             if (ghostBoss != null && ghostBoss.getBody() != null) {
                 float dist = playerPos.dst(ghostBoss.getBody().getPosition());
                 if (dist < SMITE_RADIUS) {
-                    ghostBoss.takeDamage(damage + (player.getLevel() * 5));
+                    ghostBoss.takeDamage(damage + actualDamage);
                     enemiesHit++;
                 }
             }
@@ -125,13 +116,10 @@ class SmiteAbility extends Ability {
     }
 }
 
-/**
- * Paladin Prayer - Channel divine energy to restore health
- */
 class PaladinPrayerAbility extends Ability {
     private Player targetPlayer;
     private AbilityVisual.Prayer prayerVisual;
-    private static int HEAL_AMOUNT = 80;
+    private static final int BASE_HEAL_AMOUNT = 80;
 
     public PaladinPrayerAbility(Texture iconTexture) {
         super(
@@ -153,7 +141,6 @@ class PaladinPrayerAbility extends Ability {
 
         super.onCastStart(player, gameProj);
         this.targetPlayer = player;
-        HEAL_AMOUNT += (targetPlayer.getLevel() * 5);
 
         prayerVisual = new AbilityVisual.Prayer(player, castTime);
         player.addAbilityVisual(prayerVisual);
@@ -161,9 +148,9 @@ class PaladinPrayerAbility extends Ability {
 
     @Override
     protected void onCastComplete() {
-        super.onCastComplete();
         execute(targetPlayer, null);
-        currentCooldown = cooldown;
+        // Use parent's cooldown calculation with attack speed
+        super.onCastComplete();
 
         if (prayerVisual != null) {
             prayerVisual.dispose();
@@ -173,7 +160,8 @@ class PaladinPrayerAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        player.getStats().heal(HEAL_AMOUNT);
+        // heal() in PlayerStats already handles the healing calculation
+        player.getStats().heal(BASE_HEAL_AMOUNT);
     }
 
     @Override
@@ -186,9 +174,6 @@ class PaladinPrayerAbility extends Ability {
     }
 }
 
-/**
- * Consecrated Ground - Mark enemies with holy light, dealing massive damage after delay
- */
 class ConsecratedGroundAbility extends Ability {
     private static final float CONSECRATE_RADIUS = 80f;
     private static final float CONSECRATE_DELAY = 3.0f;
@@ -211,13 +196,14 @@ class ConsecratedGroundAbility extends Ability {
     @Override
     protected void execute(Player player, GameProj gameProj) {
         Vector2 playerPos = player.getPosition();
+        int actualDamage = player.getStats().getActualDamage();
 
         AbilityVisual.ConsecratedGround consecrateVisual = new AbilityVisual.ConsecratedGround(
                 player, CONSECRATE_RADIUS, CONSECRATE_DELAY
         );
         player.addAbilityVisual(consecrateVisual);
 
-        int scaledDamage = damage + (player.getLevel() * 10);
+        int scaledDamage = damage + actualDamage;
 
         if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
             for (Chunk chunk : gameProj.getChunks().values()) {
@@ -303,8 +289,8 @@ class ConsecratedGroundAbility extends Ability {
 
 class HolyAuraAbility extends Ability {
     private static final float AURA_RADIUS = 70f;
-    private static final float AURA_DURATION = 10.0f;
-    private static final int DAMAGE_PER_TICK = 15;
+    private static final float AURA_DURATION = 8.0f;
+    private static final int DAMAGE_PER_TICK = 10;
     private static final float TICK_INTERVAL = 1.0f;
 
     private Player auraPlayer;
@@ -317,8 +303,8 @@ class HolyAuraAbility extends Ability {
     public HolyAuraAbility(Texture iconTexture) {
         super(
                 "Holy Aura",
-                "Create a holy aura that damages nearby enemies every second for 10 seconds",
-                9.0f,
+                "Create a holy aura that damages nearby enemies every second for 8 seconds",
+                14.0f,
                 DAMAGE_PER_TICK,
                 0f,
                 AURA_DURATION,
@@ -366,7 +352,8 @@ class HolyAuraAbility extends Ability {
         if (auraPlayer == null || currentGameProj == null) return;
 
         Vector2 playerPos = auraPlayer.getPosition();
-        int scaledDamage = damage + (auraPlayer.getLevel() * 2);
+        int actualDamage = auraPlayer.getStats().getActualDamage();
+        int scaledDamage = damage + actualDamage;
 
         if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom()) {
             for (Chunk chunk : currentGameProj.getChunks().values()) {
@@ -442,15 +429,15 @@ class HolyAuraAbility extends Ability {
 
 class HolyBlessingAbility extends Ability {
     private static final float BLESSING_DURATION = 6.0f;
-    private static final int DEFENSE_BONUS = 20;
+    private static final int DEFENSE_BONUS = 12;
     private static final int ATTACK_BONUS = 10;
     private static final int HEALTH_BONUS = 100;
 
     public HolyBlessingAbility(Texture iconTexture) {
         super(
                 "Holy Blessing",
-                "Gain +20 defense, +10 attack, and +100 health for 6 seconds",
-                30.0f,
+                "Gain +12 defense, +10 attack, and +100 health for 6 seconds",
+                18.0f,
                 0,
                 0f,
                 BLESSING_DURATION,
@@ -484,7 +471,7 @@ class HolySwordAbility extends Ability {
         super(
                 "Holy Sword",
                 "Empower your sword with holy energy: bigger attacks and +10 damage for 6 seconds",
-                20.0f,
+                12.0f,
                 0,
                 0f,
                 HOLY_SWORD_DURATION,

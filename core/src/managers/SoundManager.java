@@ -46,6 +46,7 @@ public class SoundManager implements Disposable {
     public static final String SFX_SHIELD_BASH = "shield_sound";
     public static final String SFX_SMOKEBOMB_ABILITY = "smoke_sound";
     public static final String SFX_SPRINT_ABILITY = "sprint_sound";
+    public static final String SFX_USE_POTION = "potion_sound";
 
 
     private Music grassRunningSound;
@@ -111,6 +112,9 @@ public class SoundManager implements Disposable {
 
             Sound sprintSound = Gdx.audio.newSound(Gdx.files.internal("sounds/SprintAbility.mp3"));
             soundEffects.put(SFX_SPRINT_ABILITY, sprintSound);
+
+            Sound potionSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Health.mp3"));
+            soundEffects.put(SFX_USE_POTION, potionSound);
 
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
@@ -217,6 +221,15 @@ public class SoundManager implements Disposable {
                     hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
                 }
                 break;
+        }
+    }
+
+    public void playPotionSound() {
+        if (!sfxEnabled) return;
+
+        if (hitSoundCooldown <= 0) {
+            playSound(SFX_USE_POTION);
+            hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
         }
     }
 

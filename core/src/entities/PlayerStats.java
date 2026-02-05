@@ -6,11 +6,13 @@ public class PlayerStats {
     private int baseDamage;
     private int defense;
     private float baseSpeed;
+    private float allocatedAttackSpeed;
+    private float gearAttackSpeed;
     private float coinMultiplier = 1.0f;
 
-    private static final int BASE_VIT = 100;
-    private static final int BASE_DEX = 50;
-    private static final int BASE_DAMAGE = 20;
+    private static final int BASE_VIT = 30;
+    private static final int BASE_DEX = 45;
+    private static final int BASE_DAMAGE = 10;
     private static final int BASE_DEFENSE = 1;
 
     private static final int HEALTH_PER_VIT = 10;
@@ -25,7 +27,7 @@ public class PlayerStats {
     private int availableSkillPoints;
     private int totalSkillPointsEarned;
     private static final int STAT_POINTS_PER_LEVEL = 5;
-    private static final int ATTACK_PER_POINT = 2;
+    private static final int ATTACK_PER_POINT = 1;
     private static final int DEFENSE_PER_POINT = 1;
 
     private int gearDamage;
@@ -58,8 +60,10 @@ public class PlayerStats {
         this.experienceToNextLevel = 1000;
         this.healthRegenRate = 1f;
         this.regenTimer = 0f;
-        this.availableSkillPoints = 5;
-        this.totalSkillPointsEarned = 5;
+        this.availableSkillPoints = 1;
+        this.totalSkillPointsEarned = 1;
+        this.allocatedAttackSpeed = 0f;
+        this.gearAttackSpeed = 0f;
 
         this.allocatedDexPoints = 0;
         this.allocatedHealthPoints = 0;
@@ -67,7 +71,6 @@ public class PlayerStats {
         this.allocatedDefensePoints = 0;
         this.availableStatPoints = 0;
 
-        // Calculate initial health and speed from base stats
         this.maxHealth = getTotalVit() * HEALTH_PER_VIT;
         this.currentHealth = maxHealth;
         this.baseSpeed = getTotalDex() * SPEED_PER_DEX;
@@ -104,10 +107,14 @@ public class PlayerStats {
                 recalculateStats();
                 break;
             case "Dex Potion":
-                if (activate)
+                if (activate) {
                     allocatedDexPoints += 5;
-                else
+                    gearAttackSpeed += 0.05f;
+                }
+                else {
                     allocatedDexPoints -= 5;
+                    gearAttackSpeed -= 0.05f;
+                }
                 recalculateStats();
                 break;
             case "Lucky Clover":
@@ -153,6 +160,7 @@ public class PlayerStats {
         if (availableStatPoints > 0) {
             availableStatPoints--;
             allocatedDexPoints++;
+            allocatedAttackSpeed += 0.005f;
             recalculateStats();
             return true;
         }
@@ -165,6 +173,7 @@ public class PlayerStats {
         allocatedAttackPoints = 0;
         allocatedDefensePoints = 0;
         allocatedDexPoints = 0;
+        allocatedAttackSpeed = 0f;
         recalculateStats();
     }
 
@@ -208,14 +217,21 @@ public class PlayerStats {
         return defense + gearDefense;
     }
 
+    public float getTotalAttackSpeed() {
+        return allocatedAttackSpeed + gearAttackSpeed;
+    }
+
     public void takeDamage(int damage) {
         int actualDamage = Math.max(1, damage - (getTotalDefense() / 3));
         currentHealth = Math.max(0, currentHealth - actualDamage);
     }
 
+    public int getActualDamage() {
+        return getTotalDamage() / 2;
+    }
+
     public void heal(int amount) {
-        int oldHealth = currentHealth;
-        currentHealth = Math.min(maxHealth, currentHealth + amount + (level * 5));
+        currentHealth = Math.min(maxHealth, currentHealth + amount + getActualDamage());
     }
 
     public void fullHeal() {
@@ -235,7 +251,7 @@ public class PlayerStats {
     private void levelUp() {
         level++;
         experience -= experienceToNextLevel;
-        experienceToNextLevel = (int) (experienceToNextLevel * 2f);
+        experienceToNextLevel = (int) (experienceToNextLevel * 2.5f);
 
         availableStatPoints += STAT_POINTS_PER_LEVEL;
         awardSkillPoint();
@@ -278,11 +294,13 @@ public class PlayerStats {
 
     public void addGearDex(int amount) {
         this.gearDex += amount;
+        this.gearAttackSpeed *= 0.001f;
         recalculateStats();
     }
 
     public void removeGearDex(int amount) {
         this.gearDex = Math.max(0, this.gearDex - amount);
+        this.gearAttackSpeed -= 0.001f;
         recalculateStats();
     }
 

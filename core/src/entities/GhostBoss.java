@@ -27,7 +27,7 @@ public class GhostBoss {
     private Body body;
     private final Player player;
     private final float detectionRadius = 400f;
-    private final float speed = 50f;
+    private final float speed = 60f;
     private boolean markForRemoval = false;
     private boolean isMoving = false;
     private final AnimationManager animationManager;

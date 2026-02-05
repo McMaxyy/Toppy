@@ -68,6 +68,8 @@ public class GameProj implements Screen, ContactListener {
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 16;
     private final int PLAYER_TILE_SIZE = 32;
+    private static final float MIN_ENEMY_SPAWN_DISTANCE = 100f;
+    private static final int MAX_SPAWN_ATTEMPTS = 50;
 
     private boolean inDungeon = false;
     private boolean inBossRoom = false;
@@ -259,10 +261,29 @@ public class GameProj implements Screen, ContactListener {
         merchantShop = new MerchantShop();
         merchantShop.setPlayer(player);
 
+        generateInitialChunks();
         setRandomPlayerSpawn();
         spawnAllDungeonPortals();
         spawnMerchant();
         SoundManager.getInstance().playForestMusic();
+    }
+
+    private void generateInitialChunks() {
+        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
+        int minChunk = -halfMapChunks;
+        int maxChunk = halfMapChunks;
+
+        // Generate all chunks synchronously at startup
+        for (int x = minChunk; x <= maxChunk; x++) {
+            for (int y = minChunk; y <= maxChunk; y++) {
+                Vector2 chunkCoord = new Vector2(x, y);
+                if (!chunks.containsKey(chunkCoord)) {
+                    Chunk newChunk = new Chunk(x, y, CHUNK_SIZE, TILE_SIZE, random, world.getWorld(), player, animationManager);
+                    newChunk.addBodiesToWorld(world.getWorld());
+                    chunks.put(chunkCoord, newChunk);
+                }
+            }
+        }
     }
 
     private void setRandomPlayerSpawn() {
@@ -270,16 +291,64 @@ public class GameProj implements Screen, ContactListener {
         int minChunk = -halfMapChunks + 1;
         int maxChunk = halfMapChunks - 1;
 
-        int spawnChunkX = minChunk + random.nextInt((maxChunk - minChunk) + 1);
-        int spawnChunkY = minChunk + random.nextInt((maxChunk - minChunk) + 1);
+        Vector2 spawnPosition = null;
+        int attempts = 0;
 
-        float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
-        float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
+        while (attempts < MAX_SPAWN_ATTEMPTS) {
+            int spawnChunkX = minChunk + random.nextInt((maxChunk - minChunk) + 1);
+            int spawnChunkY = minChunk + random.nextInt((maxChunk - minChunk) + 1);
 
-        float spawnX = spawnChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
-        float spawnY = spawnChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+            float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
+            float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
 
-        player.getBody().setTransform(spawnX, spawnY, 0);
+            float spawnX = spawnChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+            float spawnY = spawnChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+            Vector2 candidatePosition = new Vector2(spawnX, spawnY);
+
+            if (!isNearEnemyClump(candidatePosition)) {
+                spawnPosition = candidatePosition;
+                break;
+            }
+
+            attempts++;
+        }
+
+        if (spawnPosition == null) {
+            int spawnChunkX = minChunk + random.nextInt((maxChunk - minChunk) + 1);
+            int spawnChunkY = minChunk + random.nextInt((maxChunk - minChunk) + 1);
+
+            float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
+            float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE;
+
+            float spawnX = spawnChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+            float spawnY = spawnChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+            spawnPosition = new Vector2(spawnX, spawnY);
+
+            resetWorld();
+        }
+
+        player.getBody().setTransform(spawnPosition.x, spawnPosition.y, 0);
+    }
+
+    private boolean isNearEnemyClump(Vector2 position) {
+        for (Chunk chunk : chunks.values()) {
+            for (Enemy enemy : chunk.getEnemies()) {
+                if (enemy.getBody() != null) {
+                    float distance = position.dst(enemy.getBody().getPosition());
+                    if (distance < MIN_ENEMY_SPAWN_DISTANCE) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void resetWorld() {
+        gameScreen.switchToNewState(GameScreen.HOME);
     }
 
     public boolean isSkillTreeOpen() {
@@ -598,7 +667,7 @@ public class GameProj implements Screen, ContactListener {
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
         String bossName;
 
-        if (!bossKittyDefeated && !cyclopsDefeated) {
+        if (bossKittyDefeated && cyclopsDefeated) {
             currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, BossRoom.BossType.GHOST_BOSS);
             bossName = "Vengeful Spirit";
         }
@@ -695,11 +764,11 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void render(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && (merchantShopOpen ||
+                player.getInventory().isInventoryOpen() || minimap.isMapOpen() || isSkillTreeOpen())) {
             if (merchantShopOpen) {
                 merchantShop.close();
                 merchantShopOpen = false;
-                return;
             }
 
             if (player.getInventory().isInventoryOpen())
@@ -708,6 +777,12 @@ public class GameProj implements Screen, ContactListener {
             if (minimap.isMapOpen())
                 minimap.toggleMap();
 
+            if (isSkillTreeOpen())
+                player.getAbilityManager().getSkillTree().toggle();
+
+            return;
+        }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (isPaused) {
                 unpauseGame();
             } else {

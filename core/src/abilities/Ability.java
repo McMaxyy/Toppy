@@ -3,9 +3,6 @@ package abilities;
 import com.badlogic.gdx.graphics.Texture;
 import entities.Player;
 
-/**
- * Base class for all player abilities
- */
 public abstract class Ability {
     protected String name;
     protected String description;
@@ -19,6 +16,8 @@ public abstract class Ability {
     protected float castTimer;
     protected float duration;
     protected float distance;
+
+    protected Player cachedPlayer;
 
     public enum AbilityType {
         DAMAGE,
@@ -44,9 +43,12 @@ public abstract class Ability {
         this.distance = distance;
     }
 
-    /**
-     * Update ability cooldown and cast time
-     */
+    protected float getEffectiveCooldown(Player player) {
+        if (player == null) return cooldown;
+        float attackSpeedReduction = player.getStats().getTotalAttackSpeed();
+        return Math.max(0.5f, cooldown - attackSpeedReduction);
+    }
+
     public void update(float delta) {
         if (currentCooldown > 0) {
             currentCooldown -= delta;
@@ -63,14 +65,13 @@ public abstract class Ability {
         }
     }
 
-    /**
-     * Attempt to use the ability
-     * @return true if ability was successfully activated
-     */
     public boolean use(Player player, game.GameProj gameProj) {
         if (currentCooldown > 0 || isCasting) {
             return false;
         }
+
+        // Cache player reference for cooldown calculation
+        this.cachedPlayer = player;
 
         if (castTime > 0) {
             isCasting = true;
@@ -79,33 +80,22 @@ public abstract class Ability {
             return true;
         } else {
             execute(player, gameProj);
-            currentCooldown = cooldown;
+            currentCooldown = getEffectiveCooldown(player);
             return true;
         }
     }
 
-    /**
-     * Called when cast starts (for abilities with cast time)
-     */
     protected void onCastStart(Player player, game.GameProj gameProj) {
         System.out.println("Casting " + name + "...");
     }
 
-    /**
-     * Called when cast completes
-     */
     protected void onCastComplete() {
         System.out.println(name + " cast complete!");
+        currentCooldown = getEffectiveCooldown(cachedPlayer);
     }
 
-    /**
-     * Execute the ability effect
-     */
     protected abstract void execute(Player player, game.GameProj gameProj);
 
-    /**
-     * Cancel casting
-     */
     public void cancelCast() {
         isCasting = false;
         castTimer = 0f;
@@ -117,7 +107,8 @@ public abstract class Ability {
     public float getCooldown() { return cooldown; }
     public float getCurrentCooldown() { return currentCooldown; }
     public float getCooldownPercentage() {
-        return currentCooldown > 0 ? currentCooldown / cooldown : 0f;
+        float effectiveCooldown = cachedPlayer != null ? getEffectiveCooldown(cachedPlayer) : cooldown;
+        return currentCooldown > 0 ? currentCooldown / effectiveCooldown : 0f;
     }
     public int getDamage() { return damage; }
     public float getCastTime() { return castTime; }
