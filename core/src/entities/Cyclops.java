@@ -369,19 +369,15 @@ public class Cyclops {
         float angleStep = 360f / segments;
 
         if (groundPoundPhase == GroundPoundPhase.CHARGING) {
-            // Show charging indicator - growing circle
             float chargeProgress = Math.min(1f, groundPoundTimer / GROUND_POUND_CHARGE_TIME);
             float indicatorRadius = FIRST_PULSE_RADIUS * chargeProgress;
 
-            // Outer ring (shows max first pulse range)
             batch.setColor(1f, 0.5f, 0f, 0.3f);
             drawCircle(batch, bossPos, FIRST_PULSE_RADIUS, segments, angleStep, 2f);
 
-            // Second pulse preview
             batch.setColor(1f, 0.2f, 0f, 0.15f);
             drawCircle(batch, bossPos, SECOND_PULSE_RADIUS, segments, angleStep, 1f);
 
-            // Charging fill
             batch.setColor(1f, 0.6f, 0.1f, 0.4f * chargeProgress);
             for (int i = 0; i < segments * chargeProgress; i++) {
                 float angle = i * angleStep;
@@ -392,7 +388,6 @@ public class Cyclops {
             }
 
         } else if (groundPoundPhase == GroundPoundPhase.FIRST_PULSE) {
-            // First pulse - expanding orange circle
             float pulseProgress = groundPoundTimer / PULSE_DURATION;
             float alpha = 0.7f * (1f - pulseProgress);
 
@@ -410,7 +405,6 @@ public class Cyclops {
             }
 
         } else if (groundPoundPhase == GroundPoundPhase.SECOND_PULSE) {
-            // Second pulse - larger red circle
             float pulseProgress = groundPoundTimer / PULSE_DURATION;
             float alpha = 0.8f * (1f - pulseProgress);
 
@@ -455,7 +449,6 @@ public class Cyclops {
         int segments = 32;
         float angleStep = 360f / segments;
 
-        // Draw filled portion (danger zone filling up)
         batch.setColor(0.8f, 0.4f, 0.1f, 0.3f * fillProgress);
         for (int i = 0; i < segments * fillProgress; i++) {
             float angle = i * angleStep;
@@ -465,7 +458,6 @@ public class Cyclops {
             drawLine(batch, bossPos.x, bossPos.y, x, y, 2f);
         }
 
-        // Draw circle outline
         batch.setColor(0.9f, 0.5f, 0.2f, 0.6f);
         drawCircle(batch, bossPos, MELEE_RANGE, segments, angleStep, 2f);
 

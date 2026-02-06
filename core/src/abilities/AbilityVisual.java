@@ -317,10 +317,6 @@ public abstract class AbilityVisual {
 
             batch.setColor(1f, 1f, 1f, 1f);
         }
-
-        public static void setConeTexture(Texture texture) {
-            coneTexture = texture;
-        }
     }
 
     public static class SwordSlash extends AbilityVisual {
@@ -330,23 +326,15 @@ public abstract class AbilityVisual {
         private float range;
         private Color slashColor;
 
-        // Slash animation parameters
-        private float slashAngle;           // Current angle of the slash
-        private float targetAngle;          // Direction player is facing
-        private float slashArcDegrees;      // Total arc of the slash (e.g., 120 degrees)
-        private float startAngleOffset;     // Starting offset from target angle
+        private float slashAngle;
+        private float targetAngle;
+        private float slashArcDegrees;
+        private float startAngleOffset;
 
-        // Sword dimensions (adjust based on your texture)
         private static final float SWORD_LENGTH = 40f;
-        private static final float SWORD_WIDTH = 12f;
-
-        // The sword texture points to top-right (45 degrees), so we need to offset
         private static final float TEXTURE_ANGLE_OFFSET = 45f;
-
-        // Pivot point offset from center (towards hilt)
-        // If texture is 100% length, hilt is at ~15% from bottom-left corner
-        private static final float PIVOT_X_RATIO = 0.15f;  // From left edge
-        private static final float PIVOT_Y_RATIO = 0.15f;  // From bottom edge
+        private static final float PIVOT_X_RATIO = 0.15f;
+        private static final float PIVOT_Y_RATIO = 0.15f;
         private static final Color HOLY_SLASH_COLOR = new Color(0.988f, 0.969f, 0.529f, 1f);
 
         public SwordSlash(Player player, GameProj gameProj, float duration, float range, Color color) {
@@ -402,14 +390,8 @@ public abstract class AbilityVisual {
 
         @Override
         protected void onUpdate(float delta) {
-            // Calculate progress (0 to 1)
             float progress = timer / duration;
 
-            // Alternative: Use quadratic easing for snappier feel
-            float easedProgress = progress < 0.5f ? 2 * progress * progress : 1 - (float)Math.pow(-2 * progress + 2, 2) / 2;
-
-            // Calculate current slash angle
-            // Goes from (targetAngle + startAngleOffset) to (targetAngle - startAngleOffset)
             slashAngle = targetAngle + startAngleOffset - (slashArcDegrees * progress);
         }
 
@@ -420,7 +402,6 @@ public abstract class AbilityVisual {
             Vector2 playerPos = player.getPosition();
             float progress = timer / duration;
 
-            // Alpha fades slightly at the end
             float alpha = 0.9f;
             if (progress > 0.7f) {
                 alpha = 0.9f * (1f - (progress - 0.7f) / 0.3f);
@@ -429,7 +410,6 @@ public abstract class AbilityVisual {
             if (swordTexture != null) {
                 renderTexturedSword(batch, playerPos, alpha);
             } else {
-                // Fallback: render a simple line
                 renderLineSword(batch, playerPos, alpha);
             }
         }
@@ -447,12 +427,11 @@ public abstract class AbilityVisual {
             float pivotX = drawWidth * PIVOT_X_RATIO;
             float pivotY = drawHeight * PIVOT_Y_RATIO;
 
-            float offsetDistance = 8f;  // Distance from player center to hilt
+            float offsetDistance = 8f;
             float angleRad = (float) Math.toRadians(slashAngle);
             float offsetX = (float) Math.cos(angleRad) * offsetDistance;
             float offsetY = (float) Math.sin(angleRad) * offsetDistance;
 
-            // Calculate draw position (bottom-left corner of the texture)
             float drawX = playerPos.x + offsetX - pivotX;
             float drawY = playerPos.y + offsetY - pivotY;
 
@@ -481,6 +460,125 @@ public abstract class AbilityVisual {
             drawLine(batch, playerPos.x, playerPos.y, endX, endY, 4f);
 
             batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    public static class SpearJab extends AbilityVisual {
+        private Player player;
+        private GameProj gameProj;
+        private float duration;
+        private float elapsed;
+        private float attackRange;
+        private float rotationOffset;
+        private Texture spearTexture;
+        private Color color;
+
+        private static final float SHOW_PHASE = 0.33f;
+        private static final float STRETCH_PHASE = 0.66f;
+
+        private SpearJab(Player player, GameProj gameProj, float duration, float attackRange, float rotationOffset, Color color) {
+            super(duration);
+            this.player = player;
+            this.gameProj = gameProj;
+            this.duration = duration;
+            this.attackRange = attackRange;
+            this.rotationOffset = rotationOffset;
+            this.elapsed = 0f;
+            this.color = new Color(color);
+
+            try {
+                this.spearTexture = Storage.assetManager.get("icons/gear/spearVisual.png", Texture.class);
+            } catch (Exception e) {
+                System.err.println("Failed to load spearVisual.png: " + e.getMessage());
+                this.spearTexture = null;
+            }
+        }
+
+        public static SpearJab createWhite(Player player, GameProj gameProj, float duration, float attackRange, float rotationOffset) {
+            return new SpearJab(player, gameProj, duration, attackRange, rotationOffset, Color.WHITE);
+        }
+
+        public static SpearJab createRed(Player player, GameProj gameProj, float duration, float attackRange, float rotationOffset) {
+            return new SpearJab(player, gameProj, duration, attackRange, rotationOffset, new Color(1f, 0.2f, 0.2f, 1f));
+        }
+
+        @Override
+        public void update(float delta) {
+            elapsed += delta;
+        }
+
+        @Override
+        public boolean isActive() {
+            return elapsed < duration;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (spearTexture == null || player == null || player.getBody() == null) return;
+
+            Color originalColor = batch.getColor().cpy();
+
+            Vector2 playerPos = player.getPosition();
+
+            Vector3 mousePos3D = gameProj.getCamera().unproject(
+                    new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
+            );
+            Vector2 mousePos = new Vector2(mousePos3D.x, mousePos3D.y);
+
+            float targetAngle = (float) Math.toDegrees(
+                    Math.atan2(mousePos.y - playerPos.y, mousePos.x - playerPos.x)
+            );
+
+            float angle = targetAngle + rotationOffset;
+
+            float progress = elapsed / duration;
+
+            float scaleX = 1f;
+            float scaleY = 0.6f;
+
+            if (progress < SHOW_PHASE) {
+                scaleX = 0.5f;
+            } else if (progress < STRETCH_PHASE) {
+                float stretchProgress = (progress - SHOW_PHASE) / (STRETCH_PHASE - SHOW_PHASE);
+                scaleX = 0.5f + (attackRange / 300f) * stretchProgress;
+            } else {
+                float shrinkProgress = (progress - STRETCH_PHASE) / (1f - STRETCH_PHASE);
+                float maxStretch = 1f + (attackRange / 300f);
+                scaleX = maxStretch * (1f - shrinkProgress) + 1f * shrinkProgress;
+            }
+
+            batch.setColor(color.r, color.g, color.b, 0.8f);
+
+            TextureRegion spearRegion = new TextureRegion(spearTexture);
+
+            float width = spearTexture.getWidth();
+            float height = spearTexture.getHeight();
+
+            float originX = 0f;
+            float originY = height / 2f;
+
+            float offsetDistance = 15f;
+            float offsetX = (float) Math.cos(Math.toRadians(angle)) * offsetDistance;
+            float offsetY = (float) Math.sin(Math.toRadians(angle)) * offsetDistance;
+
+            batch.draw(
+                    spearRegion,
+                    playerPos.x + offsetX,
+                    playerPos.y + offsetY - originY,
+                    originX,
+                    originY,
+                    width,
+                    height,
+                    scaleX,
+                    scaleY,
+                    angle
+            );
+
+            batch.setColor(originalColor);
+        }
+
+        @Override
+        public void dispose() {
         }
     }
 
@@ -1632,6 +1730,199 @@ public abstract class AbilityVisual {
             }
 
             batch.setColor(SWORD_COLOR.r, SWORD_COLOR.g, SWORD_COLOR.b, pulse);
+            batch.draw(frame,
+                    pos.x - size / 2f,
+                    pos.y - size / 2f,
+                    size, size);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // GROUND SLAM VISUAL
+    // =========================================================================
+    public static class GroundSlam extends AbilityVisual {
+        private Player player;
+        private Texture texture;
+        private float radius;
+        private float flashTimer = 0f;
+
+        private static final float FLASH_SPEED = 10f;
+
+        public GroundSlam(Player player, float radius, float duration) {
+            super(duration);
+            this.player = player;
+            this.radius = radius;
+
+            try {
+                this.texture = Storage.assetManager.get("character/abilities/GroundSlam.png", Texture.class);
+            } catch (Exception e) {
+                this.texture = null;
+            }
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            flashTimer += delta * FLASH_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active || texture == null) return;
+
+            Vector2 pos = player.getPosition();
+            float progress = timer / duration;
+
+            // Flash in quickly, then fade out
+            float alpha;
+            if (progress < 0.2f) {
+                alpha = 0.9f * (progress / 0.2f);
+            } else {
+                alpha = 0.9f * (1f - (progress - 0.2f) / 0.8f);
+            }
+
+            float size = radius * 2f;
+
+            batch.setColor(1f, 1f, 1f, alpha);
+            batch.draw(texture, pos.x - size / 2f, pos.y - size / 2f, size, size);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    // =========================================================================
+    // WHIRLWIND VISUAL - Rotating spear around player
+    // =========================================================================
+    public static class Whirlwind extends AbilityVisual {
+        private Player player;
+        private GameProj gameProj;
+        private Texture spearTexture;
+        private float radius;
+        private float rotationAngle = 0f;
+
+        private static final float ROTATIONS_PER_SECOND = 3f;
+        private static final float SPEAR_DISTANCE = 20f;
+
+        public Whirlwind(Player player, float radius, float duration) {
+            super(duration);
+            this.player = player;
+            this.radius = radius;
+
+            try {
+                this.spearTexture = Storage.assetManager.get("icons/gear/spearVisual.png", Texture.class);
+            } catch (Exception e) {
+                System.err.println("Failed to load spearVisual.png for Whirlwind");
+                this.spearTexture = null;
+            }
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            // Rotate spear - 3 full rotations per second = 1080 degrees per second
+            rotationAngle += 360f * ROTATIONS_PER_SECOND * delta;
+            if (rotationAngle >= 360f) {
+                rotationAngle -= 360f;
+            }
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active || spearTexture == null || player == null || player.getBody() == null) return;
+
+            Color originalColor = batch.getColor().cpy();
+
+            Vector2 playerPos = player.getPosition();
+
+            // Calculate spear position in circular orbit
+            float angleRad = (float) Math.toRadians(rotationAngle);
+            float spearX = playerPos.x + (float) Math.cos(angleRad) * SPEAR_DISTANCE;
+            float spearY = playerPos.y + (float) Math.sin(angleRad) * SPEAR_DISTANCE;
+
+            float width = spearTexture.getWidth();
+            float height = spearTexture.getHeight();
+
+            float scaleX = 0.8f; // Normal size spear
+            float scaleY = 0.6f; // Keep it thinner
+
+            float originX = 0f;
+            float originY = height / 2f;
+
+            // Fade in and out
+            float progress = timer / duration;
+            float alpha;
+            if (progress < 0.2f) {
+                alpha = progress / 0.2f;
+            } else if (progress > 0.8f) {
+                alpha = 1f - (progress - 0.8f) / 0.2f;
+            } else {
+                alpha = 1f;
+            }
+
+            batch.setColor(1f, 1f, 1f, alpha * 0.9f);
+
+            TextureRegion spearRegion = new TextureRegion(spearTexture);
+
+            batch.draw(
+                    spearRegion,
+                    spearX,
+                    spearY - originY,
+                    originX,
+                    originY,
+                    width,
+                    height,
+                    scaleX,
+                    scaleY,
+                    rotationAngle // The spear points in the direction it's traveling
+            );
+
+            batch.setColor(originalColor);
+        }
+    }
+
+    // =========================================================================
+    // BLAZING FURY AURA - Flashing red aura on player
+    // =========================================================================
+    public static class BlazingFuryAura extends AbilityVisual {
+        private Player player;
+        private float pulseTimer = 0f;
+
+        private static final Color FURY_COLOR = new Color(1f, 0.2f, 0.1f, 1f); // Bright red
+        private static final float PULSE_SPEED = 8f; // Fast pulsing
+
+        public BlazingFuryAura(Player player, float duration) {
+            super(duration);
+            this.player = player;
+        }
+
+        @Override
+        protected void onUpdate(float delta) {
+            pulseTimer += delta * PULSE_SPEED;
+        }
+
+        @Override
+        public void render(SpriteBatch batch) {
+            if (!active) return;
+
+            Vector2 pos = player.getPosition();
+
+            // Fast flashing pulse between 0.3 and 0.5 alpha
+            float pulse = 0.4f + 0.2f * (float) Math.sin(pulseTimer);
+            float size = 22f;
+
+            TextureRegion currentFrame = player.getAnimationManager().getCurrentFrame();
+            TextureRegion frame = new TextureRegion(currentFrame);
+
+            // Handle sprite flipping
+            if (player.isPlayerFlipped()) {
+                if (!frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            } else {
+                if (frame.isFlipX()) {
+                    frame.flip(true, false);
+                }
+            }
+
+            batch.setColor(FURY_COLOR.r, FURY_COLOR.g, FURY_COLOR.b, pulse);
             batch.draw(frame,
                     pos.x - size / 2f,
                     pos.y - size / 2f,

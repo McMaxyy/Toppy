@@ -138,7 +138,7 @@ public class SkillTree {
         addSkill(new Skill("holy_aura", "Holy Aura", "Damages nearby enemies every second for 10 seconds",
                 SkillCategory.CLASS, loadIcon("icons/abilities/HolyAura.png")));
         addSkill(new Skill("holy_blessing", "Holy Blessing", "+20 defense, +10 attack, +100 health for 6 seconds",
-                SkillCategory.CLASS, defaultIcon));
+                SkillCategory.CLASS, loadIcon("icons/abilities/HolyBlessing.png")));
         addSkill(new Skill("holy_sword", "Holy Sword", "Bigger sword attacks and +10 damage for 6 seconds",
                 SkillCategory.CLASS, loadIcon("icons/abilities/HolySword.png")));
 
@@ -148,9 +148,9 @@ public class SkillTree {
         addSkill(new Skill("charge", "Charge", "Dash forward, dealing damage and stunning enemies",
                 SkillCategory.MOVEMENT, loadIcon("icons/abilities/Charge.png")));
         addSkill(new Skill("shadow_step", "Shadow Step", "Dash backwards away from danger",
-                SkillCategory.MOVEMENT, defaultIcon));
+                SkillCategory.MOVEMENT, loadIcon("icons/abilities/ShadowStep.png")));
         addSkill(new Skill("vault", "Vault", "Leap through enemies, damaging all in your path",
-                SkillCategory.MOVEMENT, defaultIcon));
+                SkillCategory.MOVEMENT, loadIcon("icons/abilities/Vault.png")));
 
         // Utility abilities
         addSkill(new Skill("bubble", "Bubble", "Gain a shield that blocks all damage for 2 seconds",
@@ -160,11 +160,11 @@ public class SkillTree {
         addSkill(new Skill("sprint", "Sprint", "Gain +15 DEX for 10 seconds",
                 SkillCategory.UTILITY, loadIcon("icons/abilities/Sprint.png")));
         addSkill(new Skill("full_heal", "Full Heal", "Instantly restore all health",
-                SkillCategory.UTILITY, loadIcon("icons/abilities/Prayer.png")));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/Heal.png")));
         addSkill(new Skill("smoke_bomb", "Smoke Bomb", "Create a zone that protects you from damage for 3 seconds",
                 SkillCategory.UTILITY, loadIcon("icons/abilities/SmokeBomb.png")));
         addSkill(new Skill("life_leech", "Life Leech", "Your attacks heal you for 5 HP for 5 seconds",
-                SkillCategory.UTILITY, defaultIcon));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/LifeLeech.png")));
     }
 
     private void initializeMercenarySkills() {
@@ -173,8 +173,14 @@ public class SkillTree {
                 SkillCategory.CLASS, loadIcon("icons/abilities/DoubleSwing.png")));
         addSkill(new Skill("rend", "Rend", "Inflict bleeding wounds on enemies in a cone",
                 SkillCategory.CLASS, loadIcon("icons/abilities/Rend.png")));
-        addSkill(new Skill("prayer_merc", "Prayer", "Channel to restore 80 health",
-                SkillCategory.CLASS, loadIcon("icons/abilities/Prayer.png")));
+        addSkill(new Skill("ground_slam", "Ground Slam", "Stun all enemies within 60 units for 1 second",
+                SkillCategory.CLASS, loadIcon("icons/abilities/GroundSlam.png")));
+        addSkill(new Skill("whirlwind", "Whirlwind", "Spin your spear, damaging nearby enemies for 3 seconds",
+                SkillCategory.CLASS, loadIcon("icons/abilities/Whirlwind.png")));
+        addSkill(new Skill("execute", "Execute", "A devastating strike dealing 80 damage",
+                SkillCategory.CLASS, loadIcon("icons/abilities/Execute.png")));
+        addSkill(new Skill("blazing_fury", "Blazing Fury", "+10 AP and +10 DEX for 6 seconds",
+                SkillCategory.CLASS, loadIcon("icons/abilities/BlazingFury.png")));
 
         // Movement abilities
         addSkill(new Skill("blink", "Blink", "Teleport to mouse position",
@@ -182,9 +188,9 @@ public class SkillTree {
         addSkill(new Skill("charge", "Charge", "Dash forward, dealing damage and stunning enemies",
                 SkillCategory.MOVEMENT, loadIcon("icons/abilities/Charge.png")));
         addSkill(new Skill("shadow_step", "Shadow Step", "Dash backwards away from danger",
-                SkillCategory.MOVEMENT, defaultIcon));
+                SkillCategory.MOVEMENT, loadIcon("icons/abilities/ShadowStep.png")));
         addSkill(new Skill("vault", "Vault", "Leap through enemies, damaging all in your path",
-                SkillCategory.MOVEMENT, defaultIcon));
+                SkillCategory.MOVEMENT, loadIcon("icons/abilities/Vault.png")));
 
         // Utility abilities
         addSkill(new Skill("bubble", "Bubble", "Gain a shield that blocks all damage for 2 seconds",
@@ -192,13 +198,13 @@ public class SkillTree {
         addSkill(new Skill("pull", "Pull", "Create a vortex that pulls nearby enemies toward you",
                 SkillCategory.UTILITY, loadIcon("icons/abilities/Pull.png")));
         addSkill(new Skill("sprint", "Sprint", "Gain +15 DEX for 10 seconds",
-                SkillCategory.UTILITY, defaultIcon));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/Sprint.png")));
         addSkill(new Skill("full_heal", "Full Heal", "Instantly restore all health",
-                SkillCategory.UTILITY, loadIcon("icons/abilities/Prayer.png")));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/Heal.png")));
         addSkill(new Skill("smoke_bomb", "Smoke Bomb", "Create a zone that protects you from damage for 3 seconds",
-                SkillCategory.UTILITY, defaultIcon));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/SmokeBomb.png")));
         addSkill(new Skill("life_leech", "Life Leech", "Your attacks heal you for 5 HP for 5 seconds",
-                SkillCategory.UTILITY, defaultIcon));
+                SkillCategory.UTILITY, loadIcon("icons/abilities/LifeLeech.png")));
     }
 
     private void addSkill(Skill skill) {
@@ -335,9 +341,6 @@ public class SkillTree {
         }
     }
 
-    /**
-     * Count unlocked abilities by category
-     */
     private int countUnlockedByCategory(SkillCategory category) {
         int count = 0;
         List<Skill> skills;

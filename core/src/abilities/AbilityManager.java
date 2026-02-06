@@ -49,6 +49,10 @@ public class AbilityManager {
     private static final float BASE_SWORD_COOLDOWN_TIME = 0.5f;
     private static final float SWORD_ATTACK_RANGE = 45f;
 
+    private float spearCooldown = 0f;
+    private static final float BASE_SPEAR_COOLDOWN_TIME = 0.5f;
+    private static final float SPEAR_ATTACK_RANGE = 65f;
+
     private int hoveredSlotIndex = -1;
     private SkillTree.Skill hoveredSlotSkill = null;
 
@@ -77,26 +81,34 @@ public class AbilityManager {
         Texture smiteIcon = loadIcon("icons/abilities/Smite.png");
         Texture prayerIcon = loadIcon("icons/abilities/Prayer.png");
         Texture consecrateIcon = loadIcon("icons/abilities/ConsecratedGround.png");
-        Texture defaultIcon = loadIcon("icons/abilities/DoubleSwing.png");
         Texture rendIcon = loadIcon("icons/abilities/Rend.png");
         Texture doubleSwingIcon = loadIcon("icons/abilities/DoubleSwing.png");
         Texture smokeBombIcon = loadIcon(("icons/abilities/SmokeBomb.png"));
         Texture holySwordIcon = loadIcon(("icons/abilities/HolySword.png"));
         Texture sprintIcon = loadIcon(("icons/abilities/Sprint.png"));
+        Texture groundSlamIcon = loadIcon(("icons/abilities/GroundSlam.png"));
+        Texture whirlwindIcon = loadIcon(("icons/abilities/Whirlwind.png"));
+        Texture executeIcon = loadIcon(("icons/abilities/Execute.png"));
+        Texture blazingFuryIcon = loadIcon(("icons/abilities/BlazingFury.png"));
+        Texture shadowStepIcon = loadIcon(("icons/abilities/ShadowStep.png"));
+        Texture vaultIcon = loadIcon(("icons/abilities/Vault.png"));
+        Texture lifeLeechIcon = loadIcon(("icons/abilities/LifeLeech.png"));
+        Texture healIcon = loadIcon(("icons/abilities/Heal.png"));
+        Texture holyBlessingIcon = loadIcon(("icons/abilities/HolyBlessing.png"));
 
         // Movement abilities
-        abilityRegistry.put("shadow_step", new ShadowStepAbility(defaultIcon));
+        abilityRegistry.put("shadow_step", new ShadowStepAbility(shadowStepIcon));
         abilityRegistry.put("blink", new PaladinBlinkAbility(blinkIcon));
         abilityRegistry.put("charge", new ChargeAbility(chargeIcon));
-        abilityRegistry.put("vault", new VaultAbility(defaultIcon));
+        abilityRegistry.put("vault", new VaultAbility(vaultIcon));
 
         // Utility abilities
         abilityRegistry.put("bubble", new PaladinBubbleAbility(bubbleIcon));
         abilityRegistry.put("pull", new PullAbility(pullIcon));
         abilityRegistry.put("sprint", new SprintAbility(sprintIcon));
-        abilityRegistry.put("full_heal", new FullHealAbility(prayerIcon));
+        abilityRegistry.put("full_heal", new FullHealAbility(healIcon));
         abilityRegistry.put("smoke_bomb", new SmokeBombAbility(smokeBombIcon));
-        abilityRegistry.put("life_leech", new LifeLeechAbility(defaultIcon));
+        abilityRegistry.put("life_leech", new LifeLeechAbility(lifeLeechIcon));
 
         // Class abilities - Paladin
         if (playerClass == PlayerClass.PALADIN) {
@@ -104,7 +116,7 @@ public class AbilityManager {
             abilityRegistry.put("prayer", new PaladinPrayerAbility(prayerIcon));
             abilityRegistry.put("consecrated_ground", new ConsecratedGroundAbility(consecrateIcon));
             abilityRegistry.put("holy_aura", new HolyAuraAbility(holyAuraIcon));
-            abilityRegistry.put("holy_blessing", new HolyBlessingAbility(defaultIcon));
+            abilityRegistry.put("holy_blessing", new HolyBlessingAbility(holyBlessingIcon));
             abilityRegistry.put("holy_sword", new HolySwordAbility(holySwordIcon));
         }
 
@@ -112,6 +124,10 @@ public class AbilityManager {
         if (playerClass == PlayerClass.MERCENARY) {
             abilityRegistry.put("double_swing", new DoubleSwingAbility(doubleSwingIcon));
             abilityRegistry.put("rend", new RendAbility(rendIcon));
+            abilityRegistry.put("ground_slam", new GroundSlamAbility(groundSlamIcon));
+            abilityRegistry.put("whirlwind", new WhirlwindAbility(whirlwindIcon));
+            abilityRegistry.put("execute", new ExecuteAbility(executeIcon));
+            abilityRegistry.put("blazing_fury", new BlazingFuryAbility(blazingFuryIcon));
         }
     }
 
@@ -154,6 +170,7 @@ public class AbilityManager {
 
         if (offhandCooldown > 0) offhandCooldown -= delta;
         if (swordCooldown > 0) swordCooldown -= delta;
+        if (spearCooldown > 0) spearCooldown -= delta;
 
         // Update status effects
         for (Map.Entry<Object, List<StatusEffect>> entry : new HashMap<>(activeEffects).entrySet()) {
@@ -276,6 +293,12 @@ public class AbilityManager {
                 performSwordAttack();
             }
         }
+
+        if (playerClass == PlayerClass.MERCENARY && Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+            if (!gameProj.isPaused() && !player.getInventory().isOpen() && !skillTree.isOpen()) {
+                performSpearAttack();
+            }
+        }
     }
 
     private void useAbility(int slot) {
@@ -296,6 +319,175 @@ public class AbilityManager {
             performShieldBash();
             offhandCooldown = getEffectiveCooldown(BASE_OFFHAND_COOLDOWN_TIME);
         }
+    }
+
+    private void performSpearAttack() {
+        if (spearCooldown > 0) return;
+
+        SoundManager.getInstance().playHitSound("Sword");
+
+        float attackRange = SPEAR_ATTACK_RANGE;
+        player.addAbilityVisual(AbilityVisual.SpearJab.createWhite(player, gameProj, 0.3f, attackRange, 0f));
+
+        com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
+        int playerDamage = player.getStats().getTotalDamage() + player.getStats().getActualDamage();
+
+        com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(
+                new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
+        );
+        com.badlogic.gdx.math.Vector2 mousePos = new com.badlogic.gdx.math.Vector2(mousePos3D.x, mousePos3D.y);
+        com.badlogic.gdx.math.Vector2 attackDir = new com.badlogic.gdx.math.Vector2(
+                mousePos.x - playerPos.x, mousePos.y - playerPos.y
+        ).nor();
+
+        // Damage overworld enemies
+        for (managers.Chunk chunk : gameProj.getChunks().values()) {
+            for (entities.Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    float distanceAlongLine = toEnemy.dot(attackDir);
+                    if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                        com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                        float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                        if (perpDistance < 15f) {
+                            enemy.takeDamage(playerDamage);
+                            player.onBasicAttackHit();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Damage Herman
+        if (gameProj.isHermanSpawned()) {
+            Herman herman = gameProj.getHerman();
+            if (herman != null && herman.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = herman.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                float distanceAlongLine = toEnemy.dot(attackDir);
+                if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                    com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                    float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                    if (perpDistance < 15f) {
+                        herman.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
+                    }
+                }
+            }
+
+            Herman hermanDuplicate = gameProj.getHermanDuplicate();
+            if (hermanDuplicate != null && hermanDuplicate.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = hermanDuplicate.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                float distanceAlongLine = toEnemy.dot(attackDir);
+                if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                    com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                    float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                    if (perpDistance < 15f) {
+                        hermanDuplicate.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
+                    }
+                }
+            }
+        }
+
+        // Damage dungeon enemies
+        if (gameProj.getCurrentDungeon() != null) {
+            for (entities.DungeonEnemy enemy : new ArrayList<>(gameProj.getCurrentDungeon().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    float distanceAlongLine = toEnemy.dot(attackDir);
+                    if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                        com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                        float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                        if (perpDistance < 15f) {
+                            enemy.takeDamage(playerDamage);
+                            player.onBasicAttackHit();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Damage boss room enemies
+        if (gameProj.getCurrentBossRoom() != null) {
+            entities.BossKitty boss = gameProj.getCurrentBossRoom().getBoss();
+            if (boss != null && boss.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = boss.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                float distanceAlongLine = toEnemy.dot(attackDir);
+                if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                    com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                    float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                    if (perpDistance < 15f) {
+                        boss.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
+                    }
+                }
+            }
+
+            entities.Cyclops cyclops = gameProj.getCurrentBossRoom().getCyclops();
+            if (cyclops != null && cyclops.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = cyclops.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                float distanceAlongLine = toEnemy.dot(attackDir);
+                if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                    com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                    float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                    if (perpDistance < 15f) {
+                        cyclops.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
+                    }
+                }
+            }
+
+            entities.GhostBoss ghostBoss = gameProj.getCurrentBossRoom().getGhostBoss();
+            if (ghostBoss != null && ghostBoss.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = ghostBoss.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                float distanceAlongLine = toEnemy.dot(attackDir);
+                if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                    com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                    float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                    if (perpDistance < 15f) {
+                        ghostBoss.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
+                    }
+                }
+            }
+        }
+
+        spearCooldown = getEffectiveCooldown(BASE_SPEAR_COOLDOWN_TIME);
     }
 
     private void performSwordAttack() {
@@ -623,9 +815,13 @@ public class AbilityManager {
             weapon.renderIcon(batch, attackStartX + 3, startY + 3, SLOT_SIZE - 6);
         }
 
-        float effectiveSwordCooldown = getEffectiveCooldown(BASE_SWORD_COOLDOWN_TIME);
+        // Render cooldown for LMB based on class
         if (playerClass == PlayerClass.PALADIN && swordCooldown > 0) {
+            float effectiveSwordCooldown = getEffectiveCooldown(BASE_SWORD_COOLDOWN_TIME);
             renderCooldownOverlay(batch, attackStartX, startY, swordCooldown / effectiveSwordCooldown);
+        } else if (playerClass == PlayerClass.MERCENARY && spearCooldown > 0) {
+            float effectiveSpearCooldown = getEffectiveCooldown(BASE_SPEAR_COOLDOWN_TIME);
+            renderCooldownOverlay(batch, attackStartX, startY, spearCooldown / effectiveSpearCooldown);
         }
 
         Item offhand = player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.OFFHAND);
@@ -700,9 +896,19 @@ public class AbilityManager {
     }
 
     private void renderAttackSlot(float x, float y, String label, Item equippedItem) {
+        boolean onCooldown = false;
+
         if (label.equals("RMB") && offhandCooldown > 0) {
-            shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f);
-        } else if (label.equals("LMB") && playerClass == PlayerClass.PALADIN && swordCooldown > 0) {
+            onCooldown = true;
+        } else if (label.equals("LMB")) {
+            if (playerClass == PlayerClass.PALADIN && swordCooldown > 0) {
+                onCooldown = true;
+            } else if (playerClass == PlayerClass.MERCENARY && spearCooldown > 0) {
+                onCooldown = true;
+            }
+        }
+
+        if (onCooldown) {
             shapeRenderer.setColor(0.2f, 0.2f, 0.3f, 0.8f);
         } else {
             shapeRenderer.setColor(0.35f, 0.3f, 0.3f, 0.8f);

@@ -3,7 +3,6 @@ package entities;
 import abilities.AbilityVisual;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -72,22 +71,15 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private float hitFlashTimer = 0f;
     private static final float HIT_FLASH_DURATION = 0.3f;
     private boolean playerBuffs[] = new boolean[4];
-    // Vault ability state
     private boolean isVaulting = false;
     private float vaultTimer = 0f;
     private Vector2 vaultVelocity = new Vector2();
 
-    // Sprint visual state
     private boolean isSprinting = false;
-
-    // Holy Blessing visual state
     private boolean isHolyBlessingActive = false;
-
-    // Holy Sword state
+    private boolean isBlazingFuryActive = false;
     private boolean isHolySwordActive = false;
     private float holySwordConeMultiplier = 1.0f;
-
-    // Life Leech state
     private boolean isLifeLeechActive = false;
     private int lifeLeechHealAmount = 0;
 
@@ -126,7 +118,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
         this.speed = stats.getBaseSpeed();
         stats.setSpeedChangeListener(this);
 
-        // Set the player class on the animation manager
         animationManager.setPlayerClass(playerClass);
 
         BodyDef bodyDef = new BodyDef();
@@ -396,14 +387,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
             }
         }
 
-        if (playerClass == PlayerClass.MERCENARY) {
-            if(Gdx.input.isButtonPressed(Input.Buttons.LEFT) && spearCooldown <= 0
-                    && !gameP.isPaused() && !inventory.isOpen()) {
-                createSpear();
-                spearCooldown = 0.5f;
-            }
-        }
-        // Paladin LMB is handled in AbilityManager
 
         if (dashCooldownTimer > 0) {
             dashCooldownTimer -= delta;
@@ -464,7 +447,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
             }
         }
 
-        // Use speed from stats (which includes DEX bonuses)
         float velocityX = dx * speed * delta;
         float velocityY = dy * speed * delta;
 
@@ -648,6 +630,14 @@ public class Player implements PlayerStats.SpeedChangeListener {
         return isHolyBlessingActive;
     }
 
+    public void setBlazingFuryActive(boolean active) {
+        this.isBlazingFuryActive = active;
+    }
+
+    public boolean isBlazingFuryActive() {
+        return isBlazingFuryActive;
+    }
+
     public void setHolySwordActive(boolean active, float coneMultiplier) {
         this.isHolySwordActive = active;
         this.holySwordConeMultiplier = coneMultiplier;
@@ -770,6 +760,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
+        // Render projectile spears (these are kept for future projectile functionality)
         if (playerClass == PlayerClass.MERCENARY) {
             for (int i = 0; i < spearBodies.size; i++) {
                 Body spearBody = spearBodies.get(i);
@@ -790,8 +781,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
                             rotationAngle - 45);
                 }
             }
-
-            renderCooldownBar(batch, TILE_SIZE);
         }
 
         if (isJustHit) {
@@ -829,27 +818,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
     public void renderSkillBar(SpriteBatch batch) {
         if (abilityManager != null) {
             abilityManager.renderSkillBar(batch);
-        }
-    }
-
-    private void renderCooldownBar(SpriteBatch batch, float TILE_SIZE) {
-        if (spearCooldown > 0) {
-            float barWidth = TILE_SIZE / 2f;
-            float barHeight = 2f;
-            float cooldownPercentage = spearCooldown / 0.5f;
-            float filledWidth = barWidth * (1 - cooldownPercentage);
-
-            Vector2 position = body.getPosition();
-            float barX = position.x - TILE_SIZE / 4f;
-            float barY = position.y + TILE_SIZE / 4f;
-
-            batch.setColor(1f, 0.4f, 0.7f, 1f);
-            batch.draw(whitePixel, barX, barY, barWidth, barHeight);
-
-            batch.setColor(0.1f, 0.1f, 0.1f, 1f);
-            batch.draw(whitePixel, barX, barY, filledWidth, barHeight);
-
-            batch.setColor(1, 1, 1, 1);
         }
     }
 

@@ -392,9 +392,6 @@ class LifeLeechEffect extends StatusEffect {
     }
 }
 
-/**
- * Holy Blessing Effect - Grants defense, attack, and health bonuses
- */
 class HolyBlessingEffect extends StatusEffect {
     private Player player;
     private int defenseBonus;
@@ -442,9 +439,6 @@ class HolyBlessingEffect extends StatusEffect {
     }
 }
 
-/**
- * Holy Sword Effect - Increases attack damage and cone size for basic attacks
- */
 class HolySwordEffect extends StatusEffect {
     private Player player;
     private int attackBonus;
@@ -487,5 +481,49 @@ class HolySwordEffect extends StatusEffect {
 
     public float getConeSizeMultiplier() {
         return coneSizeMultiplier;
+    }
+}
+
+class BlazingFuryEffect extends StatusEffect {
+    private Player player;
+    private int attackBonus;
+    private int dexBonus;
+    private boolean applied = false;
+
+    public BlazingFuryEffect(Player player, float duration, int attackBonus, int dexBonus) {
+        super("Blazing Fury", duration, EffectType.BUFF);
+        this.player = player;
+        this.attackBonus = attackBonus;
+        this.dexBonus = dexBonus;
+    }
+
+    @Override
+    public void onApply() {
+        if (!applied) {
+            player.getStats().addGearDex(dexBonus);
+            player.getStats().addGearDamage(attackBonus);
+            player.setHolyBlessingActive(true);
+            applied = true;
+        }
+    }
+
+    @Override
+    public void onExpire() {
+        if (applied) {
+            player.getStats().removeGearDex(dexBonus);
+            player.getStats().removeGearDamage(attackBonus);
+            player.setHolyBlessingActive(false);
+            applied = false;
+        }
+    }
+
+    @Override
+    public void onUpdate(float delta) {
+        // No periodic updates needed
+    }
+
+    @Override
+    public String getName() {
+        return "Blazing Fury";
     }
 }

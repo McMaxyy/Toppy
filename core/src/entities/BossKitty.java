@@ -113,9 +113,9 @@ public class BossKitty {
 
         if (isStunned) {
             body.setLinearVelocity(0, 0);
-            if (getAnimationManager().getState("BossKitty") != State.IDLE) {
-                getAnimationManager().setState(State.IDLE, "BossKitty");
-            }
+//            if (getAnimationManager().getState("BossKitty") != State.IDLE) {
+//                getAnimationManager().setState(State.IDLE, "BossKitty");
+//            }
             bounds.setPosition(body.getPosition().x - bounds.width / 2f,
                     body.getPosition().y - bounds.height / 2f);
             return;

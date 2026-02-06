@@ -92,6 +92,7 @@ public class Storage {
         assetManager.load("icons/gear/ironSpear.png", Texture.class);
         assetManager.load("icons/gear/ironShield.png", Texture.class);
         assetManager.load("icons/gear/ironSword.png", Texture.class);
+        assetManager.load("icons/gear/spearVisual.png", Texture.class);
 
         assetManager.load("icons/abilities/Blink.png", Texture.class);
         assetManager.load("icons/abilities/Charge.png", Texture.class);
@@ -106,6 +107,15 @@ public class Storage {
         assetManager.load("icons/abilities/SmokeBomb.png", Texture.class);
         assetManager.load("icons/abilities/HolySword.png", Texture.class);
         assetManager.load("icons/abilities/Sprint.png", Texture.class);
+        assetManager.load("icons/abilities/Whirlwind.png", Texture.class);
+        assetManager.load("icons/abilities/Execute.png", Texture.class);
+        assetManager.load("icons/abilities/BlazingFury.png", Texture.class);
+        assetManager.load("icons/abilities/GroundSlam.png", Texture.class);
+        assetManager.load("icons/abilities/Vault.png", Texture.class);
+        assetManager.load("icons/abilities/ShadowStep.png", Texture.class);
+        assetManager.load("icons/abilities/LifeLeech.png", Texture.class);
+        assetManager.load("icons/abilities/Heal.png", Texture.class);
+        assetManager.load("icons/abilities/HolyBlessing.png", Texture.class);
 
         assetManager.load("character/abilities/Bubble.png", Texture.class);
         assetManager.load("character/abilities/Prayer.png", Texture.class);
@@ -117,6 +127,8 @@ public class Storage {
         assetManager.load("character/abilities/ShieldAttack.png", Texture.class);
         assetManager.load("character/abilities/SmokeBomb.png", Texture.class);
         assetManager.load("character/abilities/HolySword.png", Texture.class);
+        assetManager.load("character/abilities/GroundSlam.png", Texture.class);
+
 
         assetManager.load("icons/abilities/Cone.png", Texture.class);
 

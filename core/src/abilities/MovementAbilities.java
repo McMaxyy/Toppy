@@ -162,42 +162,43 @@ class ChargeAbility extends Ability {
 
         Set<Object> hitEnemies = chargingPlayer.getChargeHitEnemies();
 
-        // Check overworld enemies
-        for (Chunk chunk : currentGameProj.getChunks().values()) {
-            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
-                if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
-                    float dist = playerPos.dst(enemy.getBody().getPosition());
-                    if (dist < hitRadius) {
-                        enemy.takeDamage(0);
-                        StunEffect stun = new StunEffect(enemy, STUN_DURATION);
-                        stun.onApply();
-                        currentGameProj.addStatusEffect(enemy, stun);
-                        hitEnemies.add(enemy);
+        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom()) {
+            for (Chunk chunk : currentGameProj.getChunks().values()) {
+                for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                    if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
+                        float dist = playerPos.dst(enemy.getBody().getPosition());
+                        if (dist < hitRadius) {
+                            enemy.takeDamage(0);
+                            StunEffect stun = new StunEffect(enemy, STUN_DURATION);
+                            stun.onApply();
+                            currentGameProj.addStatusEffect(enemy, stun);
+                            hitEnemies.add(enemy);
+                        }
                     }
                 }
-            }
 
-            Herman herman = currentGameProj.getHerman();
-            if (herman != null && herman.getBody() != null && !hitEnemies.contains(herman)) {
-                float dist = playerPos.dst(herman.getBody().getPosition());
-                if (dist < hitRadius) {
-                    herman.takeDamage(0);
-                    StunEffect stun = new StunEffect(herman, STUN_DURATION);
-                    stun.onApply();
-                    currentGameProj.addStatusEffect(herman, stun);
-                    hitEnemies.add(herman);
+                Herman herman = currentGameProj.getHerman();
+                if (herman != null && herman.getBody() != null && !hitEnemies.contains(herman)) {
+                    float dist = playerPos.dst(herman.getBody().getPosition());
+                    if (dist < hitRadius) {
+                        herman.takeDamage(0);
+                        StunEffect stun = new StunEffect(herman, STUN_DURATION);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(herman, stun);
+                        hitEnemies.add(herman);
+                    }
                 }
-            }
 
-            Herman hermanDuplicate = currentGameProj.getHermanDuplicate();
-            if (hermanDuplicate != null && hermanDuplicate.getBody() != null && !hitEnemies.contains(hermanDuplicate)) {
-                float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
-                if (dist < hitRadius) {
-                    hermanDuplicate.takeDamage(0);
-                    StunEffect stun = new StunEffect(hermanDuplicate, STUN_DURATION);
-                    stun.onApply();
-                    currentGameProj.addStatusEffect(hermanDuplicate, stun);
-                    hitEnemies.add(hermanDuplicate);
+                Herman hermanDuplicate = currentGameProj.getHermanDuplicate();
+                if (hermanDuplicate != null && hermanDuplicate.getBody() != null && !hitEnemies.contains(hermanDuplicate)) {
+                    float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
+                    if (dist < hitRadius) {
+                        hermanDuplicate.takeDamage(0);
+                        StunEffect stun = new StunEffect(hermanDuplicate, STUN_DURATION);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(hermanDuplicate, stun);
+                        hitEnemies.add(hermanDuplicate);
+                    }
                 }
             }
         }
@@ -442,32 +443,34 @@ class VaultAbility extends Ability {
         int actualDamage = vaultingPlayer.getStats().getActualDamage();
         int totalDamage = damage + actualDamage;
 
-        for (Chunk chunk : currentGameProj.getChunks().values()) {
-            for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
-                if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
-                    float dist = playerPos.dst(enemy.getBody().getPosition());
-                    if (dist < hitRadius) {
-                        enemy.takeDamage(totalDamage);
-                        hitEnemies.add(enemy);
+        if (!currentGameProj.isInBossRoom() && !currentGameProj.isInDungeon()) {
+            for (Chunk chunk : currentGameProj.getChunks().values()) {
+                for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                    if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
+                        float dist = playerPos.dst(enemy.getBody().getPosition());
+                        if (dist < hitRadius) {
+                            enemy.takeDamage(totalDamage);
+                            hitEnemies.add(enemy);
+                        }
                     }
                 }
-            }
 
-            Herman herman = currentGameProj.getHerman();
-            if (herman != null && herman.getBody() != null && !hitEnemies.contains(herman)) {
-                float dist = playerPos.dst(herman.getBody().getPosition());
-                if (dist < hitRadius) {
-                    herman.takeDamage(totalDamage);
-                    hitEnemies.add(herman);
+                Herman herman = currentGameProj.getHerman();
+                if (herman != null && herman.getBody() != null && !hitEnemies.contains(herman)) {
+                    float dist = playerPos.dst(herman.getBody().getPosition());
+                    if (dist < hitRadius) {
+                        herman.takeDamage(totalDamage);
+                        hitEnemies.add(herman);
+                    }
                 }
-            }
 
-            Herman hermanDuplicate = currentGameProj.getHermanDuplicate();
-            if (hermanDuplicate != null && hermanDuplicate.getBody() != null && !hitEnemies.contains(hermanDuplicate)) {
-                float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
-                if (dist < hitRadius) {
-                    hermanDuplicate.takeDamage(totalDamage);
-                    hitEnemies.add(hermanDuplicate);
+                Herman hermanDuplicate = currentGameProj.getHermanDuplicate();
+                if (hermanDuplicate != null && hermanDuplicate.getBody() != null && !hitEnemies.contains(hermanDuplicate)) {
+                    float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
+                    if (dist < hitRadius) {
+                        hermanDuplicate.takeDamage(totalDamage);
+                        hitEnemies.add(hermanDuplicate);
+                    }
                 }
             }
         }

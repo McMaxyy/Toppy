@@ -78,7 +78,7 @@ public class GameProj implements Screen, ContactListener {
     private BossRoom currentBossRoom;
     private final List<Portal> dungeonPortals = new ArrayList<>();
     private Vector2 overworldPlayerPosition;
-    private final int NUM_DUNGEONS = 5;
+    private final int NUM_DUNGEONS = 3;
 
     private boolean bossKittyDefeated = false;
     private boolean cyclopsDefeated = false;
