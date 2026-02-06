@@ -9,8 +9,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
-import com.badlogic.gdx.physics.box2d.FixtureDef;
-import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 
 import java.util.ArrayList;
@@ -19,7 +17,6 @@ import java.util.List;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
-import managers.CollisionFilter;
 
 public class Herman {
     public Rectangle bounds;

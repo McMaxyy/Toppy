@@ -317,7 +317,7 @@ public class EnemyStats {
                     15 + (level * 8),
                     level,
                     AttackType.AOE,
-                    "ghost_enemy",
+                    "dungeon_enemy",
                     1.0f,
                     60f,
                     1.0f,
@@ -371,7 +371,7 @@ public class EnemyStats {
         public static EnemyStats createHerman(int level) {
             return new EnemyStats(
                     "Herman",
-                    1200 + (level * 60),
+                    200 + (level * 60),
                     20 + (level * 5),
                     12 + (level * 4),
                     6000 + (level * 100),

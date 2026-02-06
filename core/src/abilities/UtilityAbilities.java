@@ -123,7 +123,7 @@ class PullAbility extends Ability {
         Vector2 playerPos = pullingPlayer.getPosition();
         float progress = pullTimer / PULL_DURATION;
 
-        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom()) {
+        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom() && !currentGameProj.isInEndlessRoom()) {
             for (Chunk chunk : currentGameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -338,6 +338,39 @@ class PullAbility extends Ability {
                         stun.onApply();
                         currentGameProj.addStatusEffect(ghostBoss, stun);
                         affectedEnemies.add(ghostBoss);
+                    }
+                }
+            }
+        }
+
+        if (currentGameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(currentGameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    Vector2 enemyPos = enemy.getBody().getPosition();
+                    float dist = playerPos.dst(enemyPos);
+
+                    if (dist < PULL_RADIUS) {
+                        Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
+
+                        Vector2 targetPos = new Vector2(
+                                playerPos.x - direction.x * 10f,
+                                playerPos.y - direction.y * 10f
+                        );
+
+                        Vector2 newPos = new Vector2(
+                                enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.1f,
+                                enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.1f
+                        );
+
+                        enemy.getBody().setTransform(newPos, enemy.getBody().getAngle());
+                        enemy.getBody().setLinearVelocity(0, 0);
+
+                        if (!affectedEnemies.contains(enemy)) {
+                            StunEffect stun = new StunEffect(enemy, 0.5f);
+                            stun.onApply();
+                            currentGameProj.addStatusEffect(enemy, stun);
+                            affectedEnemies.add(enemy);
+                        }
                     }
                 }
             }

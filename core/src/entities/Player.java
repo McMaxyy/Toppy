@@ -265,7 +265,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
             Fixture fixture = body.getFixtureList().first();
             Filter filter = fixture.getFilterData();
 
-            if (invulnerable && !gameP.isInDungeon() && !gameP.isInBossRoom()) {
+            if (invulnerable && !gameP.isInDungeon() && !gameP.isInBossRoom() && !gameP.isInEndlessRoom()) {
                 switch (movementAbility) {
                     case "Charge":
                         filter.maskBits = notOriginalMaskBits;
@@ -279,7 +279,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
                         filter.maskBits = originalMaskBits;
                         break;
                 }
-            } else if (invulnerable && (gameP.isInDungeon() || gameP.isInBossRoom())) {
+            } else if (invulnerable && (gameP.isInDungeon() || gameP.isInBossRoom() || gameP.isInEndlessRoom())) {
                 switch (movementAbility) {
                     case "ShadowStep":
                     case "Vault":
@@ -433,7 +433,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
 
                 getAnimationManager().setState(AnimationManager.State.RUNNING, "Player");
 
-                if (!gameP.isInDungeon() && !gameP.isInBossRoom()) {
+                if (!gameP.isInDungeon() && !gameP.isInBossRoom() && !gameP.isInEndlessRoom()) {
                     SoundManager.getInstance().startGrassRunning();
                 } else
                     SoundManager.getInstance().startStoneRunning();
@@ -516,7 +516,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
         if (getAnimationManager().isAnimationFinished()) {
             playerDeath = false;
             dyingAnimationStarted = false;
-            gameScreen.switchToNewState(GameScreen.START);
+            gameScreen.switchToNewState(GameScreen.POSTGAME);
         }
     }
 

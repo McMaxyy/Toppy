@@ -14,9 +14,6 @@ import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.SoundManager;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Enemy {
     public Rectangle bounds;
     private final Texture texture;
@@ -52,7 +49,8 @@ public class Enemy {
     private boolean isAttacking = false;
     private boolean hasDealtDamage = false;
 
-    private List<Projectile> projectiles = new ArrayList<>();
+    // Pooled projectile system
+    private Projectile projectile; // Single pooled projectile
     private static final Color MUSHIE_PROJECTILE_COLOR = new Color(0.2f, 0.8f, 0.2f, 1f);
 
     // Projectile textures
@@ -78,6 +76,22 @@ public class Enemy {
 
         // Load projectile texture
         loadProjectileTextures();
+
+        // Create pooled projectile if this is a ranged enemy
+        if (stats.getAttackType() == AttackType.RANGED) {
+            this.projectile = new Projectile(
+                    body.getWorld(),
+                    new Vector2(body.getPosition()),
+                    new Vector2(1, 0),
+                    stats.getProjectileSpeed(),
+                    stats.getAttackRange() * 2f,
+                    stats.getDamage(),
+                    MUSHIE_PROJECTILE_COLOR,
+                    this,
+                    poisonBallTexture
+            );
+            this.projectile.setActive(false);
+        }
 
         this.currentState = State.IDLE;
         this.animationTime = 0f;
@@ -195,7 +209,7 @@ public class Enemy {
             updateMovement(delta);
         }
 
-        updateProjectiles(delta);
+        updateProjectile(delta);
 
         bounds.setPosition(body.getPosition().x - bounds.width / 2f,
                 body.getPosition().y - bounds.height / 2f);
@@ -247,7 +261,7 @@ public class Enemy {
     private void executeAttack() {
         switch (stats.getAttackType()) {
             case RANGED:
-                createProjectile();
+                fireProjectile();
                 break;
             case MELEE:
             case CONAL:
@@ -307,43 +321,33 @@ public class Enemy {
         attackDirection.set(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
     }
 
-    private void createProjectile() {
+    private void fireProjectile() {
+        if (projectile == null) return;
+
         Vector2 startPos = new Vector2(body.getPosition());
         Vector2 playerPos = player.getPosition();
         Vector2 direction = new Vector2(playerPos.x - startPos.x, playerPos.y - startPos.y).nor();
 
-        Projectile projectile = new Projectile(
-                body.getWorld(),
-                startPos,
-                direction,
-                stats.getProjectileSpeed(),
-                stats.getAttackRange() * 2f,
-                stats.getDamage(),
-                MUSHIE_PROJECTILE_COLOR,
-                this,
-                poisonBallTexture
-        );
-        projectiles.add(projectile);
+        // Reset and reuse the pooled projectile
+        projectile.reset(startPos, direction);
     }
 
-    private void updateProjectiles(float delta) {
-        for (int i = projectiles.size() - 1; i >= 0; i--) {
-            Projectile projectile = projectiles.get(i);
-            projectile.update(delta);
+    private void updateProjectile(float delta) {
+        if (projectile == null || !projectile.isActive()) return;
 
-            if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
-                float dist = projectile.getPosition().dst(player.getPosition());
-                if (dist < 10f) {
-                    player.getStats().takeDamage(projectile.getDamage());
-                    player.onTakeDamage();
-                    projectile.markForRemoval();
-                }
-            }
+        projectile.update(delta);
 
-            if (projectile.isMarkedForRemoval()) {
-                projectile.dispose(body.getWorld());
-                projectiles.remove(i);
+        if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
+            float dist = projectile.getPosition().dst(player.getPosition());
+            if (dist < 10f) {
+                player.getStats().takeDamage(projectile.getDamage());
+                player.onTakeDamage();
+                projectile.setActive(false);
             }
+        }
+
+        if (projectile.isMarkedForRemoval()) {
+            projectile.setActive(false);
         }
     }
 
@@ -422,8 +426,8 @@ public class Enemy {
             // Render health bar
             renderHealthBar(batch);
 
-            // Render projectiles
-            for (Projectile projectile : projectiles) {
+            // Render projectile if active
+            if (projectile != null && projectile.isActive()) {
                 projectile.render(batch);
             }
         }
@@ -494,13 +498,10 @@ public class Enemy {
     }
 
     public void dispose() {
-        // Dispose projectiles
-        for (Projectile projectile : projectiles) {
-            if (body != null && body.getWorld() != null) {
-                projectile.dispose(body.getWorld());
-            }
+        // Projectile body is destroyed by World, just clear reference
+        if (projectile != null) {
+            projectile = null;
         }
-        projectiles.clear();
     }
 
     public void removeEnemies() {
@@ -575,8 +576,9 @@ public class Enemy {
         return animationManager;
     }
 
-    public List<Projectile> getProjectiles() {
-        return projectiles;
+    public Projectile getProjectile() {
+        return projectile;
     }
+
     public boolean isStunned() { return isStunned; }
 }

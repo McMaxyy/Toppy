@@ -27,6 +27,8 @@ public class Projectile {
     private Texture projectileTexture; // Custom projectile texture
     private Object owner; // The entity that fired this projectile
     private float rotation; // Rotation angle in degrees
+    private float speed; // Store speed for reuse
+    private boolean isActive = false; // Whether projectile is currently flying
 
     // Constructor for colored projectiles (legacy)
     public Projectile(World world, Vector2 startPos, Vector2 direction, float speed,
@@ -42,6 +44,7 @@ public class Projectile {
         this.damage = damage;
         this.color = color;
         this.owner = owner;
+        this.speed = speed;
         this.texture = Storage.assetManager.get("tiles/hpBar.png", Texture.class);
         this.projectileTexture = projectileTexture;
 
@@ -69,10 +72,46 @@ public class Projectile {
         shape.dispose();
 
         this.velocity = new Vector2(direction).nor().scl(speed);
+        body.setLinearVelocity(0, 0); // Start with no velocity (inactive)
+    }
+
+    /**
+     * Reset projectile to new position and direction (for pooling)
+     */
+    public void reset(Vector2 newStartPos, Vector2 newDirection) {
+        this.startPosition.set(newStartPos);
+        this.markForRemoval = false;
+        this.isActive = true;
+
+        // Update rotation
+        this.rotation = MathUtils.atan2(newDirection.y, newDirection.x) * MathUtils.radiansToDegrees;
+
+        // Reset position and velocity
+        body.setTransform(newStartPos, 0);
+        this.velocity = new Vector2(newDirection).nor().scl(speed);
         body.setLinearVelocity(velocity);
     }
 
+    /**
+     * Set whether projectile is active (visible and moving)
+     */
+    public void setActive(boolean active) {
+        this.isActive = active;
+        if (!active) {
+            body.setLinearVelocity(0, 0);
+            markForRemoval = false;
+        }
+    }
+
+    /**
+     * Check if projectile is active
+     */
+    public boolean isActive() {
+        return isActive;
+    }
+
     public void update(float delta) {
+        if (!isActive) return;
         if (markForRemoval) return;
 
         float distance = body.getPosition().dst(startPosition);
@@ -82,38 +121,39 @@ public class Projectile {
     }
 
     public void render(SpriteBatch batch) {
-        if (!markForRemoval) {
-            Vector2 pos = body.getPosition();
+        if (!isActive) return;
+        if (markForRemoval) return;
 
-            if (projectileTexture != null) {
-                float width = projectileTexture.getWidth();
-                float height = projectileTexture.getHeight();
-                float scale = size * 2 / Math.max(width, height);
-                float drawWidth = width * scale;
-                float drawHeight = height * scale;
+        Vector2 pos = body.getPosition();
 
-                batch.setColor(1, 1, 1, 1);
-                batch.draw(projectileTexture,
-                        pos.x - drawWidth / 2, pos.y - drawHeight / 2,
-                        drawWidth / 2, drawHeight / 2,
-                        drawWidth, drawHeight,
-                        1f, 1f,
-                        rotation,
-                        0, 0,
-                        (int) width, (int) height,
-                        false, false);
-            } else {
-                batch.setColor(color.r, color.g, color.b, 0.3f);
-                batch.draw(texture, pos.x - size, pos.y - size, size * 2, size * 2);
+        if (projectileTexture != null) {
+            float width = projectileTexture.getWidth();
+            float height = projectileTexture.getHeight();
+            float scale = size * 2 / Math.max(width, height);
+            float drawWidth = width * scale;
+            float drawHeight = height * scale;
 
-                batch.setColor(color.r, color.g, color.b, 0.8f);
-                batch.draw(texture, pos.x - size / 2, pos.y - size / 2, size, size);
+            batch.setColor(1, 1, 1, 1);
+            batch.draw(projectileTexture,
+                    pos.x - drawWidth / 2, pos.y - drawHeight / 2,
+                    drawWidth / 2, drawHeight / 2,
+                    drawWidth, drawHeight,
+                    1f, 1f,
+                    rotation,
+                    0, 0,
+                    (int) width, (int) height,
+                    false, false);
+        } else {
+            batch.setColor(color.r, color.g, color.b, 0.3f);
+            batch.draw(texture, pos.x - size, pos.y - size, size * 2, size * 2);
 
-                batch.setColor(1f, 1f, 1f, 0.9f);
-                batch.draw(texture, pos.x - size / 4, pos.y - size / 4, size / 2, size / 2);
+            batch.setColor(color.r, color.g, color.b, 0.8f);
+            batch.draw(texture, pos.x - size / 2, pos.y - size / 2, size, size);
 
-                batch.setColor(1, 1, 1, 1);
-            }
+            batch.setColor(1f, 1f, 1f, 0.9f);
+            batch.draw(texture, pos.x - size / 4, pos.y - size / 4, size / 2, size / 2);
+
+            batch.setColor(1, 1, 1, 1);
         }
     }
 

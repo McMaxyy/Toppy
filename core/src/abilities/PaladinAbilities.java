@@ -41,7 +41,7 @@ class SmiteAbility extends Ability {
 
         int enemiesHit = 0;
 
-        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom() && !gameProj.isInEndlessRoom()) {
             for (Chunk chunk : gameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -110,6 +110,18 @@ class SmiteAbility extends Ability {
                 if (dist < SMITE_RADIUS) {
                     ghostBoss.takeDamage(damage + actualDamage);
                     enemiesHit++;
+                }
+            }
+        }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < SMITE_RADIUS) {
+                        enemy.takeDamage(damage + actualDamage);
+                        enemiesHit++;
+                    }
                 }
             }
         }
@@ -205,7 +217,7 @@ class ConsecratedGroundAbility extends Ability {
 
         int scaledDamage = damage + actualDamage;
 
-        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom() && !gameProj.isInEndlessRoom()) {
             for (Chunk chunk : gameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -284,6 +296,19 @@ class ConsecratedGroundAbility extends Ability {
                 }
             }
         }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < CONSECRATE_RADIUS) {
+                        ConsecratedEffect effect = new ConsecratedEffect(enemy, CONSECRATE_DELAY, scaledDamage);
+                        effect.onApply();
+                        gameProj.addStatusEffect(enemy, effect);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -355,7 +380,7 @@ class HolyAuraAbility extends Ability {
         int actualDamage = auraPlayer.getStats().getActualDamage();
         int scaledDamage = damage + actualDamage;
 
-        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom()) {
+        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom() && !currentGameProj.isInEndlessRoom()) {
             for (Chunk chunk : currentGameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -417,6 +442,17 @@ class HolyAuraAbility extends Ability {
                 float dist = playerPos.dst(ghostBoss.getBody().getPosition());
                 if (dist < AURA_RADIUS) {
                     ghostBoss.takeDamage(scaledDamage);
+                }
+            }
+        }
+
+        if (currentGameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(currentGameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < AURA_RADIUS) {
+                        enemy.takeDamage(scaledDamage);
+                    }
                 }
             }
         }

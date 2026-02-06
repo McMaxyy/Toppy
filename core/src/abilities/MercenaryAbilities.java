@@ -68,7 +68,7 @@ class DoubleSwingAbility extends Ability {
         Vector2 mousePos = new Vector2(mousePos3D.x, mousePos3D.y);
         Vector2 attackDir = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
 
-        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom() && !gameProj.isInEndlessRoom()) {
             for (Chunk chunk : gameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -149,6 +149,19 @@ class DoubleSwingAbility extends Ability {
                 }
             }
         }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    Vector2 enemyPos = enemy.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+
+                    if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        enemy.takeDamage(damage + (player.getLevel() * 5));
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -185,7 +198,7 @@ class RendAbility extends Ability {
         Vector2 mousePos = new Vector2(mousePos3D.x, mousePos3D.y);
         Vector2 attackDir = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
 
-        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom() && !gameProj.isInEndlessRoom()) {
             for (Chunk chunk : gameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -300,6 +313,24 @@ class RendAbility extends Ability {
                 }
             }
         }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    Vector2 enemyPos = enemy.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+                    float dist = toEnemy.len();
+
+                    if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        enemy.takeDamage(damage);
+
+                        BleedEffect bleed = new BleedEffect(enemy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
+                        bleed.onApply();
+                        gameProj.addStatusEffect(enemy, bleed);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -332,7 +363,7 @@ class GroundSlamAbility extends Ability {
         player.addAbilityVisual(slamVisual);
 
         // Stun enemies in overworld
-        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom() && !gameProj.isInEndlessRoom()) {
             for (Chunk chunk : gameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -413,6 +444,19 @@ class GroundSlamAbility extends Ability {
                 }
             }
         }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < SLAM_RADIUS) {
+                        StunEffect stun = new StunEffect(enemy, STUN_DURATION);
+                        stun.onApply();
+                        gameProj.addStatusEffect(enemy, stun);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -485,7 +529,7 @@ class WhirlwindAbility extends Ability {
         int actualDamage = whirlwindPlayer.getStats().getActualDamage();
         int scaledDamage = damage + actualDamage;
 
-        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom()) {
+        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom() && !currentGameProj.isInEndlessRoom()) {
             for (Chunk chunk : currentGameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -550,6 +594,17 @@ class WhirlwindAbility extends Ability {
                 }
             }
         }
+
+        if (currentGameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(currentGameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < WHIRLWIND_RADIUS) {
+                        enemy.takeDamage(scaledDamage);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -591,7 +646,7 @@ class ExecuteAbility extends Ability {
         Vector2 attackDir = new Vector2(mousePos.x - playerPos.x, mousePos.y - playerPos.y).nor();
 
         // Line attack with precise width
-        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom()) {
+        if (!gameProj.isInDungeon() && !gameProj.isInBossRoom() && !gameProj.isInEndlessRoom()) {
             for (Chunk chunk : gameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null) {
@@ -708,6 +763,25 @@ class ExecuteAbility extends Ability {
 
                     if (perpDistance < LINE_WIDTH) {
                         ghostBoss.takeDamage(totalDamage);
+                    }
+                }
+            }
+        }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    Vector2 enemyPos = enemy.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+
+                    float distanceAlongLine = toEnemy.dot(attackDir);
+                    if (distanceAlongLine > 0 && distanceAlongLine < EXECUTE_RANGE) {
+                        Vector2 projectedPoint = new Vector2(attackDir).scl(distanceAlongLine);
+                        float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                        if (perpDistance < LINE_WIDTH) {
+                            enemy.takeDamage(totalDamage);
+                        }
                     }
                 }
             }

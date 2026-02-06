@@ -162,7 +162,7 @@ class ChargeAbility extends Ability {
 
         Set<Object> hitEnemies = chargingPlayer.getChargeHitEnemies();
 
-        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom()) {
+        if (!currentGameProj.isInDungeon() && !currentGameProj.isInBossRoom() && !currentGameProj.isInEndlessRoom()) {
             for (Chunk chunk : currentGameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
@@ -254,6 +254,21 @@ class ChargeAbility extends Ability {
                     stun.onApply();
                     currentGameProj.addStatusEffect(ghostBoss, stun);
                     hitEnemies.add(ghostBoss);
+                }
+            }
+        }
+
+        if (currentGameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(currentGameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < hitRadius) {
+                        enemy.takeDamage(0);
+                        StunEffect stun = new StunEffect(enemy, STUN_DURATION);
+                        stun.onApply();
+                        currentGameProj.addStatusEffect(enemy, stun);
+                        hitEnemies.add(enemy);
+                    }
                 }
             }
         }
@@ -443,7 +458,7 @@ class VaultAbility extends Ability {
         int actualDamage = vaultingPlayer.getStats().getActualDamage();
         int totalDamage = damage + actualDamage;
 
-        if (!currentGameProj.isInBossRoom() && !currentGameProj.isInDungeon()) {
+        if (!currentGameProj.isInBossRoom() && !currentGameProj.isInDungeon() && !currentGameProj.isInEndlessRoom()) {
             for (Chunk chunk : currentGameProj.getChunks().values()) {
                 for (Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
                     if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
@@ -512,6 +527,18 @@ class VaultAbility extends Ability {
                 if (dist < hitRadius) {
                     ghostBoss.takeDamage(totalDamage);
                     hitEnemies.add(ghostBoss);
+                }
+            }
+        }
+
+        if (currentGameProj.getCurrentEndlessRoom() != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(currentGameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null && !hitEnemies.contains(enemy)) {
+                    float dist = playerPos.dst(enemy.getBody().getPosition());
+                    if (dist < hitRadius) {
+                        enemy.takeDamage(totalDamage);
+                        hitEnemies.add(enemy);
+                    }
                 }
             }
         }

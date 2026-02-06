@@ -136,7 +136,7 @@ public class Ghost {
     private void updateMovement(float delta) {
         float distanceToPlayer = getDistanceToPlayer();
 
-        if (distanceToPlayer <= 30f) {
+        if (distanceToPlayer <= 35f) {
             startExplosion();
         } else if (isPlayerInRadius()) {
             moveTowardsPlayer();
@@ -220,8 +220,6 @@ public class Ghost {
                 batch.setColor(1f, 0.5f, 0.5f, 1f);
             }
 
-            // Add ghostly transparency effect
-//            float alpha = isExploding ? Math.max(0.3f, 1f - (explosionTimer / 1.0f)) : 0.85f;
             if (!isJustHit) {
                 batch.setColor(1f, 1f, 1f, 1f);
             }
@@ -288,10 +286,10 @@ public class Ghost {
 
     public void markForRemoval() {
         markForRemoval = true;
-        // Notify owner boss if this ghost was spawned by one
         if (ownerBoss != null) {
             ownerBoss.onGhostlingDeath(this);
-        }
+        } else
+            takeDamage(stats.getCurrentHealth());
     }
 
     public boolean isMarkedForRemoval() {

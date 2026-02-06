@@ -53,6 +53,7 @@ public class GameProj implements Screen, ContactListener {
     private final OrthographicCamera camera;
     private final OrthographicCamera hudCamera;
     private Box2DWorld world;
+    private float totalGameTime = 0f;
 
     private Texture groundTexture;
     private Player player;
@@ -73,12 +74,16 @@ public class GameProj implements Screen, ContactListener {
 
     private boolean inDungeon = false;
     private boolean inBossRoom = false;
-
     private Dungeon currentDungeon;
     private BossRoom currentBossRoom;
     private final List<Portal> dungeonPortals = new ArrayList<>();
     private Vector2 overworldPlayerPosition;
     private final int NUM_DUNGEONS = 3;
+    private boolean inEndlessRoom = false;
+    private EndlessRoom currentEndlessRoom;
+    private Portal endlessPortal;
+    private boolean endlessPortalSpawned = false;
+    private float endlessTimeSurvived = 0f;
 
     private boolean bossKittyDefeated = false;
     private boolean cyclopsDefeated = false;
@@ -149,6 +154,7 @@ public class GameProj implements Screen, ContactListener {
         itemSpawner.spawnItem("deceptors_iron_gloves", player.getPosition());
 
         setupCursorConfinement();
+        spawnHerman();
     }
 
     private void setupCursorConfinement() {
@@ -759,6 +765,39 @@ public class GameProj implements Screen, ContactListener {
         hudLabel.setText("Enemies killed: " + enemiesKilled);
     }
 
+    private void enterEndlessRoom() {
+        SoundManager.getInstance().playDungeonMusic();
+
+        inEndlessRoom = true;
+        inDungeon = false;
+        inBossRoom = false;
+        itemSpawner.clear();
+        endlessTimeSurvived = 0f;
+
+        overworldPlayerPosition = new Vector2(player.getPosition());
+
+        for (Chunk chunk : chunks.values()) {
+            chunk.disableObstacles();
+            chunk.disableEnemies();
+        }
+
+        if (mapBoundary != null) {
+            mapBoundary.disable();
+        }
+
+        if (merchant != null) {
+            merchant.disable();
+        }
+
+        int endlessRoomTileSize = (int) (TILE_SIZE / 1.2f);
+        currentEndlessRoom = new EndlessRoom(endlessRoomTileSize, world.getWorld(), player, animationManager);
+
+        Vector2 spawnPoint = currentEndlessRoom.getSpawnPoint();
+        player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
+
+        hudLabel.setText("Endless Mode - Survive as long as you can!");
+    }
+
     @Override
     public void show() {}
 
@@ -815,6 +854,8 @@ public class GameProj implements Screen, ContactListener {
         if (!isPaused && !merchantShopOpen) {
             world.getWorld().step(1 / 60f, 6, 2);
 
+            totalGameTime += delta;
+
             if (!inDungeon && !inBossRoom) {
                 if (minimap != null) {
                     minimap.update();
@@ -837,20 +878,24 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
 
-            if (!inDungeon && !inBossRoom) {
+            if (!inDungeon && !inBossRoom && !inEndlessRoom) {
                 renderOverworld(delta);
             } else if (inDungeon) {
                 renderDungeon(delta);
             } else if (inBossRoom) {
                 renderBossRoom(delta);
+            } else if (inEndlessRoom) {
+                renderEndlessRoom(delta);
             }
         } else {
-            if (!inDungeon && !inBossRoom) {
+            if (!inDungeon && !inBossRoom && !inEndlessRoom) {
                 renderOverworld(0);
             } else if (inDungeon) {
                 renderDungeon(0);
             } else if (inBossRoom) {
                 renderBossRoom(0);
+            } else if (inEndlessRoom) {
+                renderEndlessRoom(0);
             }
         }
 
@@ -898,6 +943,95 @@ public class GameProj implements Screen, ContactListener {
         isPaused = false;
         settings.close();
         player.setPaused(false);
+    }
+
+    private void renderEndlessRoom(float delta) {
+        if (batch == null) return;
+
+        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+        camera.update();
+
+        if (delta > 0) {
+            checkForDeadEnemies();
+            endlessTimeSurvived += delta;
+        }
+
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+
+        if (currentEndlessRoom != null) {
+            currentEndlessRoom.render(batch);
+            itemSpawner.render(batch);
+
+            if (delta > 0) {
+                currentEndlessRoom.renderEnemies(batch, delta);
+                currentEndlessRoom.update(delta);
+            } else {
+                currentEndlessRoom.renderEnemies(batch, 0);
+            }
+        }
+
+        if (delta > 0) {
+            statusEffectTimer += delta;
+        }
+        StatusEffectRenderer.render(batch, statusEffects, statusEffectTimer);
+
+        player.render(batch, PLAYER_TILE_SIZE);
+        player.renderAbilityEffects(batch);
+
+        if (delta > 0) {
+            player.update(delta);
+            updateStatusEffects(delta);
+        }
+
+        if (batch != null) {
+            batch.end();
+
+            if (delta > 0) {
+                itemSpawner.update(delta);
+                itemSpawner.checkPickups(player, player.getInventory());
+            }
+
+            batch.setProjectionMatrix(hudCamera.combined);
+
+            if (player.getInventory().isOpen()) {
+                player.getInventory().render(batch, false, player);
+            }
+
+            batch.begin();
+            playerStatusUI.render(batch);
+            player.renderSkillBar(batch);
+            if (player != null && player.getAbilityManager() != null) {
+                player.getAbilityManager().renderSkillTree(batch);
+            }
+            renderExpBar(batch);
+            renderEndlessStats(batch);
+            batch.end();
+        }
+    }
+
+    private void renderEndlessStats(SpriteBatch batch) {
+        if (currentEndlessRoom == null) return;
+
+        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.5f);
+
+        int minutes = (int)(endlessTimeSurvived / 60);
+        int seconds = (int)(endlessTimeSurvived % 60);
+        String timeText = String.format("Time: %02d:%02d", minutes, seconds);
+
+        String waveText = "Wave: " + currentEndlessRoom.getCurrentWave();
+        String killsText = "Kills: " + currentEndlessRoom.getTotalEnemiesKilled();
+
+        float x = hudViewport.getWorldWidth() - 200f;
+        float y = hudViewport.getWorldHeight() - 50f;
+
+        font.draw(batch, timeText, x, y);
+        font.draw(batch, waveText, x, y - 25f);
+        font.draw(batch, killsText, x, y - 50f);
+
+        font.getData().setScale(1f);
     }
 
     private void renderOverworld(float delta) {
@@ -978,6 +1112,16 @@ public class GameProj implements Screen, ContactListener {
                     Gdx.input.isKeyJustPressed(Input.Keys.E) && !portal.getIsCleared()) {
                 enterDungeon();
                 break;
+            }
+        }
+
+        if (endlessPortal != null && !isPaused && !merchantShopOpen) {
+            endlessPortal.update(delta);
+            endlessPortal.render(batch);
+
+            if (endlessPortal.isPlayerNear(player.getPosition(), 20f) &&
+                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                enterEndlessRoom();
             }
         }
 
@@ -1290,6 +1434,10 @@ public class GameProj implements Screen, ContactListener {
         return currentBossRoom;
     }
 
+    public EndlessRoom getCurrentEndlessRoom() {
+        return currentEndlessRoom;
+    }
+
     public boolean isPaused() {
         return isPaused;
     }
@@ -1367,6 +1515,27 @@ public class GameProj implements Screen, ContactListener {
             lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
 
             player.getStats().addExperience(dungeonEnemy.getStats().getExpReward());
+
+            if (!endlessPortalSpawned && hermanDefeated) {
+                spawnEndlessPortal(enemyPosition);
+            }
+        }
+    }
+
+    private void spawnEndlessPortal(Vector2 position) {
+        endlessPortalSpawned = true;
+
+        // Spawn portal slightly offset from Herman's death position
+        float portalX = position.x + 50f;
+        float portalY = position.y;
+
+        endlessPortal = new Portal(portalX, portalY, 32, world.getWorld(), false);
+
+        hudLabel.setText("A mysterious portal has appeared...");
+
+        // Add to minimap
+        if (minimap != null) {
+//            minimap.setEndlessPortal(endlessPortal);
         }
     }
 
@@ -1438,6 +1607,24 @@ public class GameProj implements Screen, ContactListener {
                 bodiesToDestroy.add(ghostBoss.getBody());
                 ghostBoss.clearBody();
                 currentBossRoom.setGhostBoss(null);
+            }
+        }
+
+        if (inEndlessRoom && currentEndlessRoom != null) {
+            for (EndlessEnemy enemy : new ArrayList<>(currentEndlessRoom.getEnemies())) {
+                if (enemy.isMarkedForRemoval() && enemy.getBody() != null) {
+
+                    String lootTable = enemy.getStats().getLootTableType();
+                    lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemy.getBody().getPosition());
+
+                    player.getStats().addExperience(enemy.getStats().getExpReward());
+
+                    currentEndlessRoom.incrementKills();
+
+                    bodiesToDestroy.add(enemy.getBody());
+                    enemy.clearBody();
+                    currentEndlessRoom.getEnemies().remove(enemy);
+                }
             }
         }
 
@@ -1572,7 +1759,6 @@ public class GameProj implements Screen, ContactListener {
         hermanDefeated = true;
         hudLabel.setText("Herman has been defeated! The forest is at peace.");
 
-        // Remove arena barriers
         for (Body barrier : hermanArenaBarriers) {
             if (barrier != null) {
                 world.getWorld().destroyBody(barrier);
@@ -1581,6 +1767,10 @@ public class GameProj implements Screen, ContactListener {
         hermanArenaBarriers.clear();
 
          SoundManager.getInstance().playForestMusic();
+
+        if (!endlessPortalSpawned) {
+            spawnEndlessPortal(player.getPosition());
+        }
     }
 
     private void checkHermanFullyDefeated() {
@@ -1590,7 +1780,6 @@ public class GameProj implements Screen, ContactListener {
                 (herman.isMarkedForRemoval()) ||
                 (herman.getStats().isDead());
 
-        // If main hasn't duplicated yet, only check main
         boolean duplicateDead = true;
         if (herman != null && herman.hasDuplicated()) {
             duplicateDead = (hermanDuplicate == null) ||
@@ -1604,6 +1793,18 @@ public class GameProj implements Screen, ContactListener {
             herman = null;
             hermanDuplicate = null;
         }
+    }
+
+    public float getTotalGameTime() {
+        return totalGameTime;
+    }
+
+    public float getEndlessTimeSurvived() {
+        return endlessTimeSurvived;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 
     public Herman getHerman() {
@@ -1634,6 +1835,10 @@ public class GameProj implements Screen, ContactListener {
 
     public boolean isInBossRoom() {
         return inBossRoom;
+    }
+
+    public boolean isInEndlessRoom() {
+        return inEndlessRoom;
     }
 
     @Override
@@ -1730,6 +1935,11 @@ public class GameProj implements Screen, ContactListener {
                 currentBossRoom = null;
             }
 
+            if (currentEndlessRoom != null) {
+                currentEndlessRoom.dispose();
+                currentEndlessRoom = null;
+            }
+
             if (dungeonPortals != null) {
                 for (Portal portal : dungeonPortals) {
                     if (portal != null) {
@@ -1791,6 +2001,13 @@ public class GameProj implements Screen, ContactListener {
                 }
                 hermanDuplicate.dispose();
                 hermanDuplicate = null;
+            }
+
+            if (endlessPortal != null) {
+                if (world != null) {
+                    endlessPortal.dispose(world.getWorld());
+                    endlessPortal = null;
+                }
             }
 
             SoundManager.getInstance().dispose();
@@ -1856,6 +2073,18 @@ public class GameProj implements Screen, ContactListener {
                 Cyclops cyclops = currentBossRoom.getCyclops();
                 if (cyclops != null && cyclops.getBody() == enemyBody) {
                     cyclops.takeDamage(playerDamage);
+                }
+
+                GhostBoss ghostBoss = currentBossRoom.getGhostBoss();
+                if (ghostBoss != null && ghostBoss.getBody() == enemyBody) {
+                    ghostBoss.takeDamage(playerDamage);
+                }
+            } else if (inEndlessRoom && currentEndlessRoom != null) {
+                for (EndlessEnemy enemy : currentEndlessRoom.getEnemies()) {
+                    if (enemy.getBody() == enemyBody) {
+                        enemy.takeDamage(playerDamage);
+                        break;
+                    }
                 }
             }
 
@@ -1931,6 +2160,16 @@ public class GameProj implements Screen, ContactListener {
                         player.playerDie();
                     }
                 }
+            } else if (inEndlessRoom && currentEndlessRoom != null) {
+                for (EndlessEnemy enemy : currentEndlessRoom.getEnemies()) {
+                    if (enemy.getBody() == enemyBody && !player.isInvulnerable()) {
+                        enemy.damagePlayer();
+                        if (player.getStats().isDead()) {
+                            player.playerDie();
+                        }
+                        break;
+                    }
+                }
             }
         }
 
@@ -1992,40 +2231,33 @@ public class GameProj implements Screen, ContactListener {
             if (!inDungeon && !inBossRoom) {
                 for (Chunk chunk : chunks.values()) {
                     for (Enemy enemy : chunk.getEnemies()) {
-                        for (Projectile projectile : enemy.getProjectiles()) {
-                            if (projectile.getBody() == reflectBody) {
+                            if (enemy.getProjectile().getBody() == reflectBody) {
                                 for (Enemy targetEnemy : chunk.getEnemies()) {
                                     if (targetEnemy.getBody() == enemyBody) {
-                                        targetEnemy.takeDamage(projectile.getDamage());
-                                        projectile.markForRemoval();
+                                        targetEnemy.takeDamage(enemy.getProjectile().getDamage());
                                         break;
                                     }
                                 }
                                 for (BossKitty boss : chunk.getBossKitty()) {
                                     if (boss.getBody() == enemyBody) {
-                                        boss.takeDamage(projectile.getDamage());
-                                        projectile.markForRemoval();
+                                        boss.takeDamage(enemy.getProjectile().getDamage());
                                         break;
                                     }
                                 }
                                 break;
                             }
-                        }
                     }
                 }
             } else if (inDungeon && currentDungeon != null) {
                 for (DungeonEnemy enemy : currentDungeon.getEnemies()) {
-                    for (Projectile projectile : enemy.getProjectiles()) {
-                        if (projectile.getBody() == reflectBody) {
-                            for (DungeonEnemy targetEnemy : currentDungeon.getEnemies()) {
-                                if (targetEnemy.getBody() == enemyBody) {
-                                    targetEnemy.takeDamage(projectile.getDamage());
-                                    projectile.markForRemoval();
-                                    break;
-                                }
+                    if (enemy.getProjectile().getBody() == reflectBody) {
+                        for (DungeonEnemy targetEnemy : currentDungeon.getEnemies()) {
+                            if (targetEnemy.getBody() == enemyBody) {
+                                targetEnemy.takeDamage(enemy.getProjectile().getDamage());
+                                break;
                             }
-                            break;
                         }
+                        break;
                     }
                 }
             } else if (inBossRoom && currentBossRoom != null) {
@@ -2034,34 +2266,6 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
-        // ==== REFLECTED PROJECTILE HIT OBSTACLE ====
-        if ((categoryA == CollisionFilter.REFLECT && categoryB == CollisionFilter.OBSTACLE) ||
-                (categoryB == CollisionFilter.REFLECT && categoryA == CollisionFilter.OBSTACLE)) {
-
-            Body reflectBody = (categoryA == CollisionFilter.REFLECT) ? fixtureA.getBody() : fixtureB.getBody();
-
-            if (!inDungeon && !inBossRoom) {
-                for (Chunk chunk : chunks.values()) {
-                    for (Enemy enemy : chunk.getEnemies()) {
-                        for (Projectile projectile : enemy.getProjectiles()) {
-                            if (projectile.getBody() == reflectBody) {
-                                projectile.markForRemoval();
-                                break;
-                            }
-                        }
-                    }
-                }
-            } else if (inDungeon && currentDungeon != null) {
-                for (DungeonEnemy enemy : currentDungeon.getEnemies()) {
-                    for (Projectile projectile : enemy.getProjectiles()) {
-                        if (projectile.getBody() == reflectBody) {
-                            projectile.markForRemoval();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
 
         if ((fixtureA.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0 &&
                 (fixtureB.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0) {

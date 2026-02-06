@@ -12,7 +12,7 @@ public class PlayerStats {
 
     private static final int BASE_VIT = 30;
     private static final int BASE_DEX = 45;
-    private static final int BASE_DAMAGE = 10;
+    private static final int BASE_DAMAGE = 20;
     private static final int BASE_DEFENSE = 1;
 
     private static final int HEALTH_PER_VIT = 10;
@@ -49,7 +49,7 @@ public class PlayerStats {
     }
 
     public PlayerStats() {
-        this.level = 1;
+        this.level = 3;
         this.baseDamage = BASE_DAMAGE;
         this.defense = BASE_DEFENSE;
         this.gearDamage = 0;
@@ -65,10 +65,10 @@ public class PlayerStats {
         this.allocatedAttackSpeed = 0f;
         this.gearAttackSpeed = 0f;
 
-        this.allocatedDexPoints = 0;
-        this.allocatedHealthPoints = 0;
-        this.allocatedAttackPoints = 0;
-        this.allocatedDefensePoints = 0;
+        this.allocatedDexPoints = 5;
+        this.allocatedHealthPoints = 5;
+        this.allocatedAttackPoints = 5;
+        this.allocatedDefensePoints = 5;
         this.availableStatPoints = 0;
 
         this.maxHealth = getTotalVit() * HEALTH_PER_VIT;

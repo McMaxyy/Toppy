@@ -30,7 +30,7 @@ public class DungeonEnemy {
     private boolean isMoving = false;
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
-    private List<Projectile> projectiles = new ArrayList<>();
+    private Projectile projectile; // Single pooled projectile
     private boolean isKnockedBack = false;
     private float knockbackTimer = 0f;
     private Vector2 knockbackVelocity = new Vector2();
@@ -111,6 +111,25 @@ public class DungeonEnemy {
 
         // Load projectile textures
         loadProjectileTextures();
+
+        // Create pooled projectile if this is a ranged enemy
+        if (stats.getAttackType() == AttackType.RANGED) {
+            Texture projectileTexture = (enemyType == EnemyType.SKELETON_MAGE) ? fireballTexture : poisonBallTexture;
+            Color projectileColor = (enemyType == EnemyType.SKELETON_MAGE) ? MAGE_PROJECTILE_COLOR : MUSHIE_PROJECTILE_COLOR;
+
+            this.projectile = new Projectile(
+                    body.getWorld(),
+                    new Vector2(body.getPosition()),
+                    new Vector2(1, 0),
+                    stats.getProjectileSpeed(),
+                    stats.getAttackRange() * 2f,
+                    stats.getDamage(),
+                    projectileColor,
+                    this,
+                    projectileTexture
+            );
+            this.projectile.setActive(false);
+        }
 
         for (int i = 0; i < velocityHistory.length; i++) {
             velocityHistory[i] = new Vector2();
@@ -249,7 +268,7 @@ public class DungeonEnemy {
             updateMovement(delta);
         }
 
-        updateProjectiles(delta);
+        updateProjectile(delta);
 
         isFlipped = body.getPosition().x > player.getBody().getPosition().x;
         updateStuckDetection(delta);
@@ -435,7 +454,7 @@ public class DungeonEnemy {
     private void executeAttack() {
         switch (stats.getAttackType()) {
             case RANGED:
-                createProjectile();
+                fireProjectile();
                 break;
             case CONAL:
                 if (isPlayerInAttackCone()) {
@@ -466,46 +485,33 @@ public class DungeonEnemy {
         }
     }
 
-    private void createProjectile() {
+    private void fireProjectile() {
+        if (projectile == null) return;
+
         Vector2 startPos = new Vector2(body.getPosition());
         Vector2 playerPos = player.getPosition();
         Vector2 direction = new Vector2(playerPos.x - startPos.x, playerPos.y - startPos.y).nor();
 
-        Texture projectileTexture = fireballTexture;
-        Color projectileColor = MAGE_PROJECTILE_COLOR;
-
-        Projectile projectile = new Projectile(
-                body.getWorld(),
-                startPos,
-                direction,
-                stats.getProjectileSpeed(),
-                stats.getAttackRange() * 2f,
-                stats.getDamage(),
-                projectileColor,
-                this,
-                projectileTexture
-        );
-        projectiles.add(projectile);
+        // Reset and reuse the pooled projectile
+        projectile.reset(startPos, direction);
     }
 
-    private void updateProjectiles(float delta) {
-        for (int i = projectiles.size() - 1; i >= 0; i--) {
-            Projectile projectile = projectiles.get(i);
-            projectile.update(delta);
+    private void updateProjectile(float delta) {
+        if (projectile == null || !projectile.isActive()) return;
 
-            if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
-                float dist = projectile.getPosition().dst(player.getPosition());
-                if (dist < 10f) {
-                    player.getStats().takeDamage(projectile.getDamage());
-                    player.onTakeDamage();
-                    projectile.markForRemoval();
-                }
-            }
+        projectile.update(delta);
 
-            if (projectile.isMarkedForRemoval()) {
-                projectile.dispose(body.getWorld());
-                projectiles.remove(i);
+        if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
+            float dist = projectile.getPosition().dst(player.getPosition());
+            if (dist < 10f) {
+                player.getStats().takeDamage(projectile.getDamage());
+                player.onTakeDamage();
+                projectile.setActive(false);
             }
+        }
+
+        if (projectile.isMarkedForRemoval()) {
+            projectile.setActive(false);
         }
     }
 
@@ -689,8 +695,8 @@ public class DungeonEnemy {
 
             renderHealthBar(batch);
 
-            // Render projectiles
-            for (Projectile projectile : projectiles) {
+            // Render projectile if active
+            if (projectile != null && projectile.isActive()) {
                 projectile.render(batch);
             }
         }
@@ -784,12 +790,10 @@ public class DungeonEnemy {
     }
 
     public void dispose() {
-        for (Projectile projectile : projectiles) {
-            if (body != null && body.getWorld() != null) {
-                projectile.dispose(body.getWorld());
-            }
+        // Projectile body is destroyed by World, just clear reference
+        if (projectile != null) {
+            projectile = null;
         }
-        projectiles.clear();
     }
 
     public void markForRemoval() {
@@ -834,8 +838,9 @@ public class DungeonEnemy {
         }
     }
 
-    public List<Projectile> getProjectiles() {
-        return projectiles;
+    public Projectile getProjectile() {
+        return projectile;
     }
+
     public boolean isStunned() { return isStunned; }
 }

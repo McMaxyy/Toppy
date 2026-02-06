@@ -190,6 +190,16 @@ public class StatusEffectRenderer {
             if (e.getBody() != null) {
                 return e.getBody().getPosition();
             }
+        } else if (entity instanceof Herman) {
+            Herman e = (Herman) entity;
+            if (e.getBody() != null) {
+                return e.getBody().getPosition();
+            }
+        } else if (entity instanceof EndlessEnemy) {
+            EndlessEnemy e = (EndlessEnemy) entity;
+            if (e.getBody() != null) {
+                return e.getBody().getPosition();
+            }
         }
         return null;
     }
@@ -205,6 +215,10 @@ public class StatusEffectRenderer {
             return ((Cyclops) entity).bounds.height;
         } else if (entity instanceof GhostBoss) {
             return ((GhostBoss) entity).bounds.height;
+        } else if (entity instanceof Herman) {
+            return ((Herman) entity).bounds.height;
+        } else if (entity instanceof EndlessEnemy) {
+            return ((EndlessEnemy) entity).bounds.height;
         }
         return 16f;
     }

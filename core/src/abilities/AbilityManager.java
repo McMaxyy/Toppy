@@ -330,7 +330,7 @@ public class AbilityManager {
         player.addAbilityVisual(AbilityVisual.SpearJab.createWhite(player, gameProj, 0.3f, attackRange, 0f));
 
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
-        int playerDamage = player.getStats().getTotalDamage() + player.getStats().getActualDamage();
+        int playerDamage = player.getStats().getTotalDamage();
 
         com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(
                 new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
@@ -487,6 +487,28 @@ public class AbilityManager {
             }
         }
 
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (entities.EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    float distanceAlongLine = toEnemy.dot(attackDir);
+                    if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                        com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                        float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                        if (perpDistance < 15f) {
+                            enemy.takeDamage(playerDamage);
+                            player.onBasicAttackHit();
+                        }
+                    }
+                }
+            }
+        }
+
         spearCooldown = getEffectiveCooldown(BASE_SPEAR_COOLDOWN_TIME);
     }
 
@@ -504,7 +526,7 @@ public class AbilityManager {
         }
 
         com.badlogic.gdx.math.Vector2 playerPos = player.getPosition();
-        int playerDamage = player.getStats().getTotalDamage() + player.getStats().getActualDamage();
+        int playerDamage = player.getStats().getTotalDamage();
 
         com.badlogic.gdx.math.Vector3 mousePos3D = gameProj.getCamera().unproject(
                 new com.badlogic.gdx.math.Vector3(Gdx.input.getX(), Gdx.input.getY(), 0)
@@ -609,6 +631,21 @@ public class AbilityManager {
                 if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
                     ghostBoss.takeDamage(playerDamage);
                     player.onBasicAttackHit();
+                }
+            }
+        }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (entities.EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+                    if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        enemy.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
+                    }
                 }
             }
         }
@@ -747,6 +784,24 @@ public class AbilityManager {
                     stun.onApply();
                     gameProj.addStatusEffect(ghostBoss, stun);
                     player.onBasicAttackHit();
+                }
+            }
+        }
+
+        if (gameProj.getCurrentEndlessRoom() != null) {
+            for (entities.EndlessEnemy enemy : new ArrayList<>(gameProj.getCurrentEndlessRoom().getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+                    if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        enemy.takeDamage(shieldDamage);
+                        StunEffect stun = new StunEffect(enemy, 1f);
+                        stun.onApply();
+                        gameProj.addStatusEffect(enemy, stun);
+                        player.onBasicAttackHit();
+                    }
                 }
             }
         }

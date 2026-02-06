@@ -80,6 +80,8 @@ class BleedEffect extends StatusEffect {
                 ((GhostBoss) target).takeDamage(damagePerTick);
             } else if (target instanceof Herman) {
                 ((Herman) target).takeDamage(damagePerTick);
+            } else if (target instanceof EndlessEnemy) {
+                ((EndlessEnemy) target).takeDamage(damagePerTick);
             }
 
             tickTimer = 0f;
@@ -130,6 +132,8 @@ class StunEffect extends StatusEffect {
             ((GhostBoss) target).setStunned(true);
         } else if (target instanceof Herman) {
             ((Herman) target).setStunned(true);
+        } else if (target instanceof EndlessEnemy) {
+            ((EndlessEnemy) target).setStunned(true);
         }
 
         if (target instanceof Enemy && ((Enemy) target).getBody() != null) {
@@ -144,6 +148,8 @@ class StunEffect extends StatusEffect {
             ((GhostBoss) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof Herman && ((Herman) target).getBody() != null) {
             ((Herman) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof EndlessEnemy && ((EndlessEnemy) target).getBody() != null) {
+            ((EndlessEnemy) target).getBody().setLinearVelocity(0, 0);
         }
     }
 
@@ -161,6 +167,8 @@ class StunEffect extends StatusEffect {
             ((GhostBoss) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof Herman && ((Herman) target).getBody() != null) {
             ((Herman) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof EndlessEnemy && ((EndlessEnemy) target).getBody() != null) {
+            ((EndlessEnemy) target).getBody().setLinearVelocity(0, 0);
         }
     }
 
@@ -178,6 +186,8 @@ class StunEffect extends StatusEffect {
             ((GhostBoss) target).setStunned(false);
         } else if (target instanceof Herman) {
             ((Herman) target).setStunned(false);
+        } else if (target instanceof EndlessEnemy) {
+            ((EndlessEnemy) target).setStunned(false);
         }
     }
 
@@ -235,6 +245,8 @@ class ConsecratedEffect extends StatusEffect {
                 ((GhostBoss) target).takeDamage(damage);
             } else if (target instanceof Herman && !((Herman) target).isMarkedForRemoval()) {
                 ((Herman) target).takeDamage(damage);
+            } else if (target instanceof EndlessEnemy && !((EndlessEnemy) target).isMarkedForRemoval()) {
+                ((EndlessEnemy) target).takeDamage(damage);
             }
             damageDealt = true;
 
