@@ -164,6 +164,13 @@ public class Storage {
         assetManager.load("enemies/SkeletonMage/Idle.png", Texture.class);
         assetManager.load("enemies/SkeletonMage/Attacking.png", Texture.class);
 
+        assetManager.load("enemies/Hedgehog/Walking.png", Texture.class);
+        assetManager.load("enemies/Hedgehog/Idle.png", Texture.class);
+        assetManager.load("enemies/Hedgehog/Attacking.png", Texture.class);
+
+        assetManager.load("enemies/Lemmy/Walking.png", Texture.class);
+        assetManager.load("enemies/Lemmy/Idle.png", Texture.class);
+
         assetManager.load("enemies/Wolfie/Walking.png", Texture.class);
         assetManager.load("enemies/Wolfie/Idle.png", Texture.class);
         assetManager.load("enemies/Wolfie/Attacking.png", Texture.class);

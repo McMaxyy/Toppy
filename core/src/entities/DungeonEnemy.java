@@ -16,6 +16,7 @@ import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.Dungeon;
+import ui.ScreenShake;
 
 public class DungeonEnemy {
     public Rectangle bounds;
@@ -767,6 +768,7 @@ public class DungeonEnemy {
             hitFlashTimer = HIT_FLASH_DURATION;
 
             applyKnockback();
+            ScreenShake.rumble(3f, 0.3f);
         }
 
         combatTimer = COMBAT_TIMER;

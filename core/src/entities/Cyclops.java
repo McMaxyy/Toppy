@@ -11,6 +11,7 @@ import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.SoundManager;
+import ui.ScreenShake;
 
 public class Cyclops {
     public Rectangle bounds;
@@ -514,6 +515,8 @@ public class Cyclops {
             stats.takeDamage(damage);
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
+
+            ScreenShake.rumble(3f, 0.3f);
         }
 
         if (stats.isDead()) {

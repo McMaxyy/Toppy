@@ -13,6 +13,7 @@ import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.SoundManager;
+import ui.ScreenShake;
 
 public class Enemy {
     public Rectangle bounds;
@@ -32,28 +33,22 @@ public class Enemy {
     private static final float KNOCKBACK_DURATION = 0.15f;
     private static final float KNOCKBACK_FORCE = 150f;
 
-    // Enemy type system
     private EnemyType enemyType;
 
-    // Per-instance animation tracking
     private float animationTime = 0f;
     private State currentState = State.IDLE;
 
-    // Stats system
     private EnemyStats stats;
     private Texture healthBarTexture;
     private Texture whitePixelTexture;
 
-    // Attack system
     private float attackCooldown = 0f;
     private boolean isAttacking = false;
     private boolean hasDealtDamage = false;
 
-    // Pooled projectile system
-    private Projectile projectile; // Single pooled projectile
+    private Projectile projectile;
     private static final Color MUSHIE_PROJECTILE_COLOR = new Color(0.2f, 0.8f, 0.2f, 1f);
 
-    // Projectile textures
     private static Texture poisonBallTexture;
 
     private boolean isJustHit = false;
@@ -74,10 +69,8 @@ public class Enemy {
         this.healthBarTexture = Storage.assetManager.get("tiles/hpBar.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
 
-        // Load projectile texture
         loadProjectileTextures();
 
-        // Create pooled projectile if this is a ranged enemy
         if (stats.getAttackType() == AttackType.RANGED) {
             this.projectile = new Projectile(
                     body.getWorld(),
@@ -107,21 +100,6 @@ public class Enemy {
         }
     }
 
-    private static EnemyType determineEnemyType(String name) {
-        if (name == null) return EnemyType.MUSHIE;
-        switch (name.toLowerCase()) {
-            case "wolfie":
-                return EnemyType.WOLFIE;
-            case "skeleton":
-                return EnemyType.SKELETON;
-            case "boss kitty":
-            case "bosskitty":
-                return EnemyType.BOSS_KITTY;
-            default:
-                return EnemyType.MUSHIE;
-        }
-    }
-
     private void setState(State newState) {
         if (currentState != newState) {
             currentState = newState;
@@ -132,7 +110,6 @@ public class Enemy {
     private TextureRegion getCurrentFrame() {
         Animation<TextureRegion> animation = animationManager.getAnimationForState(enemyType, currentState);
         if (animation != null) {
-            // Loop for IDLE and RUNNING, don't loop for ATTACKING
             boolean loop = (currentState == State.IDLE || currentState == State.RUNNING);
             return animation.getKeyFrame(animationTime, loop);
         }
@@ -263,12 +240,6 @@ public class Enemy {
             case RANGED:
                 fireProjectile();
                 break;
-            case MELEE:
-            case CONAL:
-                if (canDamagePlayer()) {
-                    damagePlayer();
-                }
-                break;
             case AOE:
                 if (isPlayerInAoeRange()) {
                     damagePlayer();
@@ -279,6 +250,8 @@ public class Enemy {
                     damagePlayer();
                 }
                 break;
+            case CONAL:
+            case MELEE:
             default:
                 if (canDamagePlayer()) {
                     damagePlayer();
@@ -479,6 +452,7 @@ public class Enemy {
             hitFlashTimer = HIT_FLASH_DURATION;
 
             applyKnockback();
+            ScreenShake.rumble(0.4f, 0.3f);
         }
 
         if (stats.isDead()) {

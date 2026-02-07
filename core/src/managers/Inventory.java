@@ -689,10 +689,10 @@ public class Inventory {
         font.draw(batch, "VIT: " + totalVit, equipmentX + 10, statsStartY - 10);
 
         font.setColor(Color.ORANGE);
-        font.draw(batch, "AP: " + totalAP, equipmentX + 10, statsStartY - 40);
+        font.draw(batch, "ATT: " + totalAP, equipmentX + 10, statsStartY - 40);
 
         font.setColor(Color.CYAN);
-        font.draw(batch, "DP: " + totalDP, equipmentX + 10, statsStartY - 70);
+        font.draw(batch, "DEF: " + totalDP, equipmentX + 10, statsStartY - 70);
 
         font.setColor(Color.GREEN);
         font.draw(batch, "DEX: " + totalDex, equipmentX + 10, statsStartY - 100);

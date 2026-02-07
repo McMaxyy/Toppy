@@ -37,7 +37,7 @@ public class EndlessRoom {
 
     private static final int ROOM_WIDTH = 40;
     private static final int ROOM_HEIGHT = 30;
-    private static final int WALL_THICKNESS = 2;
+    private static final int WALL_THICKNESS = 1;
 
     private static final float SPAWN_INTERVAL = 1.5f;
     private static final int MIN_ENEMIES_PER_CLUMP = 7;

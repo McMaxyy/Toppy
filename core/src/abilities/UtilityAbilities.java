@@ -157,6 +157,37 @@ class PullAbility extends Ability {
                 }
             }
 
+            for (Lemmy lemmy : new ArrayList<>(currentGameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    Vector2 enemyPos = lemmy.getBody().getPosition();
+                    float dist = playerPos.dst(enemyPos);
+
+                    if (dist < PULL_RADIUS) {
+                        Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
+
+                        Vector2 targetPos = new Vector2(
+                                playerPos.x - direction.x * 10f,
+                                playerPos.y - direction.y * 10f
+                        );
+
+                        Vector2 newPos = new Vector2(
+                                enemyPos.x + (targetPos.x - enemyPos.x) * progress * 0.1f,
+                                enemyPos.y + (targetPos.y - enemyPos.y) * progress * 0.1f
+                        );
+
+                        lemmy.getBody().setTransform(newPos, lemmy.getBody().getAngle());
+                        lemmy.getBody().setLinearVelocity(0, 0);
+
+                        if (!affectedEnemies.contains(lemmy)) {
+                            StunEffect stun = new StunEffect(lemmy, 0.5f);
+                            stun.onApply();
+                            currentGameProj.addStatusEffect(lemmy, stun);
+                            affectedEnemies.add(lemmy);
+                        }
+                    }
+                }
+            }
+
             Herman herman = currentGameProj.getHerman();
             if (herman != null && herman.getBody() != null) {
                 Vector2 enemyPos = herman.getBody().getPosition();

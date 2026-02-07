@@ -21,10 +21,10 @@ public class BossHealthUI {
     private GhostBoss ghostBoss;
 
     // Bar dimensions
-    private static final float BAR_WIDTH_RATIO = 1f / 3f; // 1/3 of screen width
+    private static final float BAR_WIDTH_RATIO = 1f / 3f;
     private static final float BAR_HEIGHT = 25f;
     private static final float TOP_MARGIN = 30f;
-    private static final float BAR_SPACING = 20f; // Space between multiple bars
+    private static final float BAR_SPACING = 20f;
 
     public BossHealthUI(Viewport hudViewport) {
         this.hudViewport = hudViewport;
@@ -67,31 +67,31 @@ public class BossHealthUI {
 
         int barIndex = 0;
 
-        // Render Herman (overworld boss)
+        // Render Herman
         if (herman != null && !herman.isMarkedForRemoval() && herman.isActivated()) {
             renderHermanBar(batch, screenWidth, screenHeight, barIndex);
             barIndex++;
         }
 
-        // Render Herman Duplicate (below main Herman)
+        // Render Herman Duplicate
         if (hermanDuplicate != null && !hermanDuplicate.isMarkedForRemoval() && hermanDuplicate.isActivated()) {
             renderHermanDuplicateBar(batch, screenWidth, screenHeight, barIndex);
             barIndex++;
         }
 
-        // Render BossKitty (boss room)
+        // Render BossKitty
         if (bossKitty != null && !bossKitty.isMarkedForRemoval()) {
             renderBossKittyBar(batch, screenWidth, screenHeight, barIndex);
             barIndex++;
         }
 
-        // Render Cyclops (boss room)
+        // Render Cyclops
         if (cyclops != null && !cyclops.isMarkedForRemoval()) {
             renderCyclopsBar(batch, screenWidth, screenHeight, barIndex);
             barIndex++;
         }
 
-        // Render GhostBoss (boss room)
+        // Render GhostBoss
         if (ghostBoss != null && !ghostBoss.isMarkedForRemoval()) {
             renderGhostBossBar(batch, screenWidth, screenHeight, barIndex);
             barIndex++;
@@ -249,6 +249,5 @@ public class BossHealthUI {
     }
 
     public void dispose() {
-        // Textures and fonts are managed by AssetManager, don't dispose them here
     }
 }

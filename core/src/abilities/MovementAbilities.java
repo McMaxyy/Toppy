@@ -177,6 +177,19 @@ class ChargeAbility extends Ability {
                     }
                 }
 
+                for (Lemmy lemmy : new ArrayList<>(currentGameProj.getGlobalLemmy())) {
+                    if (lemmy != null && lemmy.getBody() != null && !hitEnemies.contains(lemmy)) {
+                        float dist = playerPos.dst(lemmy.getBody().getPosition());
+                        if (dist < hitRadius) {
+                            lemmy.takeDamage(0);
+                            StunEffect stun = new StunEffect(lemmy, STUN_DURATION);
+                            stun.onApply();
+                            currentGameProj.addStatusEffect(lemmy, stun);
+                            hitEnemies.add(lemmy);
+                        }
+                    }
+                }
+
                 Herman herman = currentGameProj.getHerman();
                 if (herman != null && herman.getBody() != null && !hitEnemies.contains(herman)) {
                     float dist = playerPos.dst(herman.getBody().getPosition());
@@ -466,6 +479,16 @@ class VaultAbility extends Ability {
                         if (dist < hitRadius) {
                             enemy.takeDamage(totalDamage);
                             hitEnemies.add(enemy);
+                        }
+                    }
+                }
+
+                for (Lemmy lemmy : new ArrayList<>(currentGameProj.getGlobalLemmy())) {
+                    if (lemmy != null && lemmy.getBody() != null && !hitEnemies.contains(lemmy)) {
+                        float dist = playerPos.dst(lemmy.getBody().getPosition());
+                        if (dist < hitRadius) {
+                            lemmy.takeDamage(totalDamage);
+                            hitEnemies.add(lemmy);
                         }
                     }
                 }

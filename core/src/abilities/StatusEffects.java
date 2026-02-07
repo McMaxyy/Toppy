@@ -82,6 +82,8 @@ class BleedEffect extends StatusEffect {
                 ((Herman) target).takeDamage(damagePerTick);
             } else if (target instanceof EndlessEnemy) {
                 ((EndlessEnemy) target).takeDamage(damagePerTick);
+            } else if (target instanceof Lemmy) {
+                ((Lemmy) target).takeDamage(damagePerTick);
             }
 
             tickTimer = 0f;
@@ -134,6 +136,8 @@ class StunEffect extends StatusEffect {
             ((Herman) target).setStunned(true);
         } else if (target instanceof EndlessEnemy) {
             ((EndlessEnemy) target).setStunned(true);
+        } else if (target instanceof Lemmy) {
+            ((Lemmy) target).setStunned(true);
         }
 
         if (target instanceof Enemy && ((Enemy) target).getBody() != null) {
@@ -150,6 +154,8 @@ class StunEffect extends StatusEffect {
             ((Herman) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof EndlessEnemy && ((EndlessEnemy) target).getBody() != null) {
             ((EndlessEnemy) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof Lemmy && ((Lemmy) target).getBody() != null) {
+            ((Lemmy) target).getBody().setLinearVelocity(0, 0);
         }
     }
 
@@ -169,6 +175,8 @@ class StunEffect extends StatusEffect {
             ((Herman) target).getBody().setLinearVelocity(0, 0);
         } else if (target instanceof EndlessEnemy && ((EndlessEnemy) target).getBody() != null) {
             ((EndlessEnemy) target).getBody().setLinearVelocity(0, 0);
+        } else if (target instanceof Lemmy && ((Lemmy) target).getBody() != null) {
+            ((Lemmy) target).getBody().setLinearVelocity(0, 0);
         }
     }
 
@@ -188,6 +196,8 @@ class StunEffect extends StatusEffect {
             ((Herman) target).setStunned(false);
         } else if (target instanceof EndlessEnemy) {
             ((EndlessEnemy) target).setStunned(false);
+        } else if (target instanceof Lemmy) {
+            ((Lemmy) target).setStunned(false);
         }
     }
 
@@ -247,6 +257,8 @@ class ConsecratedEffect extends StatusEffect {
                 ((Herman) target).takeDamage(damage);
             } else if (target instanceof EndlessEnemy && !((EndlessEnemy) target).isMarkedForRemoval()) {
                 ((EndlessEnemy) target).takeDamage(damage);
+            } else if (target instanceof Lemmy && !((Lemmy) target).isMarkedForRemoval()) {
+                ((Lemmy) target).takeDamage(damage);
             }
             damageDealt = true;
 

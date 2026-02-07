@@ -150,10 +150,6 @@ public class AbilityManager {
         }
     }
 
-    /**
-     * Gets the effective cooldown after applying attack speed reduction.
-     * Minimum cooldown is 0.1f to prevent instant attacks.
-     */
     private float getEffectiveCooldown(float baseCooldown) {
         float attackSpeedReduction = player.getStats().getTotalAttackSpeed();
         return Math.max(0.1f, baseCooldown - attackSpeedReduction);
@@ -343,6 +339,26 @@ public class AbilityManager {
         // Damage overworld enemies
         for (managers.Chunk chunk : gameProj.getChunks().values()) {
             for (entities.Enemy enemy : new ArrayList<>(chunk.getEnemies())) {
+                if (enemy.getBody() != null) {
+                    com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                    com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                            enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                    );
+
+                    float distanceAlongLine = toEnemy.dot(attackDir);
+                    if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                        com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                        float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                        if (perpDistance < 15f) {
+                            enemy.takeDamage(playerDamage);
+                            player.onBasicAttackHit();
+                        }
+                    }
+                }
+            }
+
+            for (entities.Lemmy enemy : new ArrayList<>(gameProj.getGlobalLemmy())) {
                 if (enemy.getBody() != null) {
                     com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
                     com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
@@ -553,6 +569,20 @@ public class AbilityManager {
             }
         }
 
+        for (entities.Lemmy enemy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+            if (enemy.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    enemy.takeDamage(playerDamage);
+                    player.onBasicAttackHit();
+                }
+            }
+        }
+
         // Damage Herman
         if (gameProj.isHermanSpawned()) {
             Herman herman = gameProj.getHerman();
@@ -684,6 +714,22 @@ public class AbilityManager {
                         gameProj.addStatusEffect(enemy, stun);
                         player.onBasicAttackHit();
                     }
+                }
+            }
+        }
+
+        for (entities.Lemmy enemy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+            if (enemy.getBody() != null) {
+                com.badlogic.gdx.math.Vector2 enemyPos = enemy.getBody().getPosition();
+                com.badlogic.gdx.math.Vector2 toEnemy = new com.badlogic.gdx.math.Vector2(
+                        enemyPos.x - playerPos.x, enemyPos.y - playerPos.y
+                );
+                if (toEnemy.len() < attackRange && toEnemy.nor().dot(attackDir) > 0.5f) {
+                    enemy.takeDamage(shieldDamage);
+                    StunEffect stun = new StunEffect(enemy, 1f);
+                    stun.onApply();
+                    gameProj.addStatusEffect(enemy, stun);
+                    player.onBasicAttackHit();
                 }
             }
         }

@@ -21,6 +21,7 @@ import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.CollisionFilter;
+import ui.ScreenShake;
 
 public class GhostBoss {
     public Rectangle bounds;
@@ -693,6 +694,8 @@ public class GhostBoss {
             stats.takeDamage(damage);
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
+
+            ScreenShake.rumble(3f, 0.3f);
         }
 
         if (stats.isDead()) {

@@ -48,7 +48,7 @@ public class BossRoom {
     // Room dimensions
     private static final int ROOM_WIDTH = 20;
     private static final int ROOM_HEIGHT = 15;
-    private static final int WALL_THICKNESS = 2;
+    private static final int WALL_THICKNESS = 1;
 
     // Boss type enum
     public enum BossType {

@@ -11,7 +11,9 @@ public enum EnemyType {
     SKELETON_MAGE("Skeleton Mage"),
     GHOST("Ghost"),
     GHOST_BOSS("GhostBoss"),
-    HERMAN("Herman");
+    HERMAN("Herman"),
+    HEDGEHOG("Hedgehog"),
+    LEMMY("Lemmy");
 
     private final String animationKey;
 

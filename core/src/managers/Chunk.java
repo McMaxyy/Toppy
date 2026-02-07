@@ -28,7 +28,7 @@ public class Chunk {
     private final List<EnemyInfo> pendingEnemies;
     private final List<BossKitty> bossKitty;
     private final List<Cyclops> cyclopsList;
-
+    private final List<Lemmy> lemmys;
     private final World world;
     private final Player player;
     private final AnimationManager animationManager;
@@ -47,6 +47,7 @@ public class Chunk {
         this.pendingEnemies = new ArrayList<>();
         this.bossKitty = new ArrayList<>();
         this.cyclopsList = new ArrayList<>();
+        this.lemmys = new ArrayList<>();
         this.player = player;
 
         generateObstacles(random);
@@ -83,8 +84,15 @@ public class Chunk {
 
             int enemiesInClump = 8 + random.nextInt(5);
 
-            // Decide enemy type for this clump (50% Mushie ranged, 50% Wolfie melee)
-            EnemyType clumpEnemyType = random.nextBoolean() ? EnemyType.MUSHIE : EnemyType.WOLFIE;
+            EnemyType clumpEnemyType;
+            int typeRoll = random.nextInt(100);
+            if (typeRoll < 33) {
+                clumpEnemyType = EnemyType.MUSHIE;
+            } else if (typeRoll < 66) {
+                clumpEnemyType = EnemyType.WOLFIE;
+            } else {
+                clumpEnemyType = EnemyType.HEDGEHOG;
+            }
 
             for (int i = 0; i < enemiesInClump; i++) {
                 float offsetX = (random.nextFloat() * 3f - 1.5f) * tileSize;
@@ -236,6 +244,9 @@ public class Chunk {
         for (Enemy existing : enemies) {
             if (existing.bounds.overlaps(newBounds)) return true;
         }
+        for (Lemmy existing : lemmys) {
+            if (existing.getBounds().overlaps(newBounds)) return true;
+        }
         for (ObstacleInfo pending : pendingObstacles) {
             if (new Rectangle(pending.x, pending.y, pending.width, pending.height).overlaps(newBounds)) return true;
         }
@@ -245,25 +256,34 @@ public class Chunk {
     public void addBodiesToWorld(World world) {
         if (bodiesAdded) return;
 
-        // Add obstacle bodies
         for (ObstacleInfo obstacleInfo : pendingObstacles) {
             Body body = createObstacleBody(world, obstacleInfo.x, obstacleInfo.y, obstacleInfo.width, obstacleInfo.height);
             obstacles.add(new Obstacle(new Rectangle(obstacleInfo.x, obstacleInfo.y, obstacleInfo.width, obstacleInfo.height), obstacleInfo.texture, body));
         }
         pendingObstacles.clear();
 
-        // Add enemy bodies if not in boss stage
         if (!Storage.isStageClear()) {
             for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
 
-                // Create enemy stats based on enemy type
                 EnemyStats stats;
                 switch (enemyInfo.enemyType) {
                     case WOLFIE:
                         stats = EnemyStats.Factory.createWolfieEnemy(enemyInfo.level);
                         enemies.add(new Enemy(
                                 new Rectangle(enemyInfo.x, enemyInfo.y, 20, 16),
+                                enemyInfo.texture,
+                                body,
+                                player,
+                                getAnimationManager(),
+                                stats,
+                                enemyInfo.enemyType
+                        ));
+                        break;
+                    case HEDGEHOG:
+                        stats = EnemyStats.Factory.createHedgehogEnemy(enemyInfo.level);
+                        enemies.add(new Enemy(
+                                new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
                                 enemyInfo.texture,
                                 body,
                                 player,
@@ -287,7 +307,7 @@ public class Chunk {
                         break;
                 }
 
-
+                body.setUserData(enemies.get(enemies.size() - 1));
             }
             pendingEnemies.clear();
         } else if (!Storage.isBossAlive()) {
@@ -335,6 +355,11 @@ public class Chunk {
                 cyclops.getBody().setActive(false);
             }
         }
+        for (Lemmy lemmy : lemmys) {
+            if (lemmy.getBody() != null) {
+                lemmy.getBody().setActive(false);
+            }
+        }
     }
 
     public void enableEnemies() {
@@ -353,10 +378,16 @@ public class Chunk {
                 cyclops.getBody().setActive(true);
             }
         }
+        for (Lemmy lemmy : lemmys) {
+            if (lemmy.getBody() != null) {
+                lemmy.getBody().setActive(true);
+            }
+        }
     }
 
     public void removeEnemies() {
         enemies.clear();
+        lemmys.clear();
     }
 
     private Body createObstacleBody(World world, float x, float y, float width, float height) {
@@ -417,18 +448,13 @@ public class Chunk {
         return body;
     }
 
-    /**
-     * Check if the given bounds overlap with any obstacle in this chunk
-     */
     public boolean isOverlappingAnyObstacle(Rectangle bounds) {
-        // Check existing obstacles
         for (Obstacle obstacle : obstacles) {
             if (obstacle.bounds.overlaps(bounds)) {
                 return true;
             }
         }
 
-        // Check pending obstacles (not yet added to world)
         for (ObstacleInfo pending : pendingObstacles) {
             Rectangle pendingBounds = new Rectangle(pending.x, pending.y, pending.width, pending.height);
             if (pendingBounds.overlaps(bounds)) {
@@ -437,25 +463,6 @@ public class Chunk {
         }
 
         return false;
-    }
-
-    public void removeObstaclesInRadius(World world, Vector2 center, float radius) {
-        List<Obstacle> toRemove = new ArrayList<>();
-
-        for (Obstacle obstacle : obstacles) {
-            float obstacleX = obstacle.bounds.x + obstacle.bounds.width / 2f;
-            float obstacleY = obstacle.bounds.y + obstacle.bounds.height / 2f;
-            float distance = center.dst(obstacleX, obstacleY);
-
-            if (distance <= radius) {
-                if (obstacle.body != null) {
-                    world.destroyBody(obstacle.body);
-                }
-                toRemove.add(obstacle);
-            }
-        }
-
-        obstacles.removeAll(toRemove);
     }
 
     public void renderGround(SpriteBatch batch, Texture groundTexture) {
@@ -479,24 +486,14 @@ public class Chunk {
         }
     }
 
-    public void renderEnemies(SpriteBatch batch) {
+    public void renderEnemies(SpriteBatch batch, boolean isPaused) {
+        float deltaTime = Gdx.graphics.getDeltaTime();
+
         for (Enemy enemy : enemies) {
-            enemy.update(Gdx.graphics.getDeltaTime());
+            if (!isPaused) {
+                enemy.update(deltaTime);
+            }
             enemy.render(batch);
-        }
-    }
-
-    public void renderBossKitty(SpriteBatch batch) {
-        for (BossKitty enemy : bossKitty) {
-            enemy.update(Gdx.graphics.getDeltaTime());
-            enemy.render(batch);
-        }
-    }
-
-    public void renderCyclops(SpriteBatch batch) {
-        for (Cyclops cyclops : cyclopsList) {
-            cyclops.update(Gdx.graphics.getDeltaTime());
-            cyclops.render(batch);
         }
     }
 
@@ -516,26 +513,24 @@ public class Chunk {
         for (Cyclops cyclops : cyclopsList) {
             cyclops.dispose();
         }
+
+        for (Lemmy lemmy : new ArrayList<>(lemmys)) {
+            if (lemmy.getBody() != null) {
+                try {
+                    world.destroyBody(lemmy.getBody());
+                } catch (Exception e) {
+                }
+                lemmy.clearBody();
+            }
+            lemmy.dispose();
+        }
+        lemmys.clear();
     }
 
     public void updateEnemies() {
         enemies.removeIf(enemy -> {
             enemy.update(Gdx.graphics.getDeltaTime());
             return enemy.isMarkedForRemoval();
-        });
-    }
-
-    public void updateBossKitty() {
-        bossKitty.removeIf(bossKitty -> {
-            bossKitty.update(Gdx.graphics.getDeltaTime());
-            return bossKitty.isMarkedForRemoval();
-        });
-    }
-
-    public void updateCyclops() {
-        cyclopsList.removeIf(cyclops -> {
-            cyclops.update(Gdx.graphics.getDeltaTime());
-            return cyclops.isMarkedForRemoval();
         });
     }
 
@@ -593,6 +588,10 @@ public class Chunk {
 
     public List<Cyclops> getCyclopsList() {
         return cyclopsList;
+    }
+
+    public List<Lemmy> getLemmys() {
+        return lemmys;
     }
 
     public AnimationManager getAnimationManager() {

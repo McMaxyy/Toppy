@@ -368,6 +368,46 @@ public class EnemyStats {
             );
         }
 
+        public static EnemyStats createHedgehogEnemy(int level) {
+            return new EnemyStats(
+                    "Hedgehog",
+                    50 + (level * 18),
+                    12 + (level * 4),
+                    3 + level,
+                    12 + (level * 8),
+                    level,
+                    AttackType.AOE,
+                    "melee_enemy",
+                    2.5f,
+                    30f,
+                    1.2f,
+                    0f,
+                    40f,
+                    0f,
+                    0f
+            );
+        }
+
+        public static EnemyStats createLemmy(int level) {
+            return new EnemyStats(
+                    "Lemmy",
+                    300 + (level * 10),
+                    0,
+                    0,
+                    25 + (level * 15),
+                    level,
+                    AttackType.MELEE,
+                    "loot_goblin",
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    0f
+            );
+        }
+
         public static EnemyStats createHerman(int level) {
             return new EnemyStats(
                     "Herman",

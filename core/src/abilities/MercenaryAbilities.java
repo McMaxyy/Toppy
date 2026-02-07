@@ -82,6 +82,17 @@ class DoubleSwingAbility extends Ability {
                 }
             }
 
+            for (Lemmy lemmy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    Vector2 enemyPos = lemmy.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+
+                    if (toEnemy.len() < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        lemmy.takeDamage(damage + (player.getLevel() * 5));
+                    }
+                }
+            }
+
             Herman herman = gameProj.getHerman();
             if (herman != null && herman.getBody() != null) {
                 Vector2 enemyPos = herman.getBody().getPosition();
@@ -213,6 +224,22 @@ class RendAbility extends Ability {
                             bleed.onApply();
                             gameProj.addStatusEffect(enemy, bleed);
                         }
+                    }
+                }
+            }
+
+            for (Lemmy lemmy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    Vector2 enemyPos = lemmy.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+                    float dist = toEnemy.len();
+
+                    if (dist < distance && toEnemy.nor().dot(attackDir) > 0.5f) {
+                        lemmy.takeDamage(damage);
+
+                        BleedEffect bleed = new BleedEffect(lemmy, BLEED_DURATION, BLEED_DAMAGE_PER_TICK + (player.getLevel() * 3));
+                        bleed.onApply();
+                        gameProj.addStatusEffect(lemmy, bleed);
                     }
                 }
             }
@@ -373,6 +400,17 @@ class GroundSlamAbility extends Ability {
                             stun.onApply();
                             gameProj.addStatusEffect(enemy, stun);
                         }
+                    }
+                }
+            }
+
+            for (Lemmy lemmy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    float dist = playerPos.dst(lemmy.getBody().getPosition());
+                    if (dist < SLAM_RADIUS) {
+                        StunEffect stun = new StunEffect(lemmy, STUN_DURATION);
+                        stun.onApply();
+                        gameProj.addStatusEffect(lemmy, stun);
                     }
                 }
             }
@@ -541,6 +579,15 @@ class WhirlwindAbility extends Ability {
                 }
             }
 
+            for (Lemmy lemmy : new ArrayList<>(currentGameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    float dist = playerPos.dst(lemmy.getBody().getPosition());
+                    if (dist < WHIRLWIND_RADIUS) {
+                        lemmy.takeDamage(scaledDamage);
+                    }
+                }
+            }
+
             Herman herman = currentGameProj.getHerman();
             if (herman != null && herman.getBody() != null) {
                 float dist = playerPos.dst(herman.getBody().getPosition());
@@ -661,6 +708,23 @@ class ExecuteAbility extends Ability {
                             if (perpDistance < LINE_WIDTH) {
                                 enemy.takeDamage(totalDamage);
                             }
+                        }
+                    }
+                }
+            }
+
+            for (Lemmy lemmy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    Vector2 enemyPos = lemmy.getBody().getPosition();
+                    Vector2 toEnemy = new Vector2(enemyPos.x - playerPos.x, enemyPos.y - playerPos.y);
+
+                    float distanceAlongLine = toEnemy.dot(attackDir);
+                    if (distanceAlongLine > 0 && distanceAlongLine < EXECUTE_RANGE) {
+                        Vector2 projectedPoint = new Vector2(attackDir).scl(distanceAlongLine);
+                        float perpDistance = toEnemy.cpy().sub(projectedPoint).len();
+
+                        if (perpDistance < LINE_WIDTH) {
+                            lemmy.takeDamage(totalDamage);
                         }
                     }
                 }

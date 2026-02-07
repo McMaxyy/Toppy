@@ -43,9 +43,14 @@ public class PlayerStats {
     private float regenTimer;
 
     private SpeedChangeListener speedChangeListener;
+    private HealthChangeListener healthChangeListener;
 
     public interface SpeedChangeListener {
         void onSpeedChanged(float newSpeed);
+    }
+
+    public interface HealthChangeListener {
+        void onHealthChanged(int amount);
     }
 
     public PlayerStats() {
@@ -78,6 +83,10 @@ public class PlayerStats {
 
     public void setSpeedChangeListener(SpeedChangeListener listener) {
         this.speedChangeListener = listener;
+    }
+
+    public void setHealthChangeListener(HealthChangeListener listener) {
+        this.healthChangeListener = listener;
     }
 
     public void update(float delta) {
@@ -224,6 +233,10 @@ public class PlayerStats {
     public void takeDamage(int damage) {
         int actualDamage = Math.max(1, damage - (getTotalDefense() / 3));
         currentHealth = Math.max(0, currentHealth - actualDamage);
+
+        if (healthChangeListener != null) {
+            healthChangeListener.onHealthChanged(-actualDamage);
+        }
     }
 
     public int getActualDamage() {
@@ -231,11 +244,25 @@ public class PlayerStats {
     }
 
     public void heal(int amount) {
-        currentHealth = Math.min(maxHealth, currentHealth + amount + getActualDamage());
+        int actualHeal = amount + getActualDamage();
+        int oldHealth = currentHealth;
+        currentHealth = Math.min(maxHealth, currentHealth + actualHeal);
+        int healedAmount = currentHealth - oldHealth;
+
+        if (healthChangeListener != null && healedAmount > 0) {
+            healthChangeListener.onHealthChanged(healedAmount);
+        }
     }
 
     public void fullHeal() {
+        int oldHealth = currentHealth;
         currentHealth = maxHealth;
+        int healedAmount = currentHealth - oldHealth;
+
+        // Trigger health change callback
+        if (healthChangeListener != null && healedAmount > 0) {
+            healthChangeListener.onHealthChanged(healedAmount);
+        }
     }
 
     public boolean addExperience(int exp) {

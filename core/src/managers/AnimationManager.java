@@ -42,18 +42,17 @@ public class AnimationManager {
 	private Animation<TextureRegion> skeletonMageIdleAnimation;
 	private Animation<TextureRegion> skeletonMageRunningAnimation;
 	private Animation<TextureRegion> skeletonMageAttackingAnimation;
-
-	// Ghost animations
+	private Animation<TextureRegion> hedgehogIdleAnimation;
+	private Animation<TextureRegion> hedgehogRunningAnimation;
+	private Animation<TextureRegion> hedgehogAttackingAnimation;
+	private Animation<TextureRegion> lemmyIdleAnimation;
+	private Animation<TextureRegion> lemmyRunningAnimation;
 	private Animation<TextureRegion> ghostIdleAnimation;
 	private Animation<TextureRegion> ghostRunningAnimation;
 	private Animation<TextureRegion> ghostAttackingAnimation;
-
-	// GhostBoss animations
 	private Animation<TextureRegion> ghostBossIdleAnimation;
 	private Animation<TextureRegion> ghostBossRunningAnimation;
 	private Animation<TextureRegion> ghostBossAttackingAnimation;
-
-	// Herman animations
 	private Animation<TextureRegion> hermanIdleAnimation;
 	private Animation<TextureRegion> hermanAttackingAnimation;
 	private Animation<TextureRegion> hermanSpecialAttackAnimation;
@@ -70,6 +69,8 @@ public class AnimationManager {
 	private float ghostAnimationTime = 0f;
 	private float ghostBossAnimationTime = 0f;
 	private float hermanAnimationTime = 0f;
+	private float hedgehogAnimationTime = 0f;
+	private float lemmyAnimationTime = 0f;
 
 	private PlayerClass currentPlayerClass = PlayerClass.MERCENARY;
 
@@ -89,6 +90,8 @@ public class AnimationManager {
 	private State ghostCurrentState = State.IDLE;
 	private State ghostBossCurrentState = State.IDLE;
 	private State hermanCurrentState = State.IDLE;
+	private State hedgehogCurrentState = State.IDLE;
+	private State lemmyCurrentState = State.IDLE;
 
 	public AnimationManager() {
 		loadAnimations();
@@ -185,6 +188,8 @@ public class AnimationManager {
 		loadGhostAnimations();
 		loadGhostBossAnimations();
 		loadHermanAnimations();
+		loadHedgehogAnimations();
+		loadLemmyAnimations();
 	}
 
 	private void loadMushieAnimations() {
@@ -440,6 +445,58 @@ public class AnimationManager {
 		}
 	}
 
+	private void loadHedgehogAnimations() {
+		try {
+			Texture hedgehogWalkingTexture = Storage.assetManager.get("enemies/Hedgehog/Walking.png", Texture.class);
+			hedgehogWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] hedgehogWalkFrames = TextureRegion.split(hedgehogWalkingTexture, hedgehogWalkingTexture.getWidth() / 4, hedgehogWalkingTexture.getHeight());
+			Array<TextureRegion> hedgehogWalkingFrames = new Array<>();
+			for (int i = 0; i < 4; i++) hedgehogWalkingFrames.add(hedgehogWalkFrames[0][i]);
+			hedgehogRunningAnimation = new Animation<>(0.3f, hedgehogWalkingFrames, Animation.PlayMode.LOOP);
+
+			Texture hedgehogIdleTexture = Storage.assetManager.get("enemies/Hedgehog/Idle.png", Texture.class);
+			hedgehogIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] hedgehogIdleFrames = TextureRegion.split(hedgehogIdleTexture, hedgehogIdleTexture.getWidth() / 4, hedgehogIdleTexture.getHeight());
+			Array<TextureRegion> hedgehogIdleFrame = new Array<>();
+			for (int i = 0; i < 4; i++) hedgehogIdleFrame.add(hedgehogIdleFrames[0][i]);
+			hedgehogIdleAnimation = new Animation<>(0.4f, hedgehogIdleFrame, Animation.PlayMode.LOOP);
+
+			Texture hedgehogAttackingTexture = Storage.assetManager.get("enemies/Hedgehog/Attacking.png", Texture.class);
+			hedgehogAttackingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] hedgehogAttackingFrames = TextureRegion.split(hedgehogAttackingTexture, hedgehogAttackingTexture.getWidth() / 4, hedgehogAttackingTexture.getHeight());
+			Array<TextureRegion> hedgehogAttackingFrame = new Array<>();
+			for (int i = 0; i < 4; i++) hedgehogAttackingFrame.add(hedgehogAttackingFrames[0][i]);
+			hedgehogAttackingAnimation = new Animation<>(0.2f, hedgehogAttackingFrame, Animation.PlayMode.NORMAL);
+		} catch (Exception e) {
+			System.err.println("Failed to load Hedgehog animations, using Wolfie as fallback: " + e.getMessage());
+			hedgehogIdleAnimation = wolfieIdleAnimation;
+			hedgehogRunningAnimation = wolfieRunningAnimation;
+			hedgehogAttackingAnimation = wolfieAttackingAnimation;
+		}
+	}
+
+	private void loadLemmyAnimations() {
+		try {
+			Texture lemmyWalkingTexture = Storage.assetManager.get("enemies/Lemmy/Walking.png", Texture.class);
+			lemmyWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] lemmyWalkFrames = TextureRegion.split(lemmyWalkingTexture, lemmyWalkingTexture.getWidth() / 4, lemmyWalkingTexture.getHeight());
+			Array<TextureRegion> lemmyWalkingFrames = new Array<>();
+			for (int i = 0; i < 4; i++) lemmyWalkingFrames.add(lemmyWalkFrames[0][i]);
+			lemmyRunningAnimation = new Animation<>(0.25f, lemmyWalkingFrames, Animation.PlayMode.LOOP);
+
+			Texture lemmyIdleTexture = Storage.assetManager.get("enemies/Lemmy/Idle.png", Texture.class);
+			lemmyIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+			TextureRegion[][] lemmyIdleFrames = TextureRegion.split(lemmyIdleTexture, lemmyIdleTexture.getWidth() / 4, lemmyIdleTexture.getHeight());
+			Array<TextureRegion> lemmyIdleFrame = new Array<>();
+			for (int i = 0; i < 4; i++) lemmyIdleFrame.add(lemmyIdleFrames[0][i]);
+			lemmyIdleAnimation = new Animation<>(0.3f, lemmyIdleFrame, Animation.PlayMode.LOOP);
+		} catch (Exception e) {
+			System.err.println("Failed to load Lemmy animations, using Mushie as fallback: " + e.getMessage());
+			lemmyIdleAnimation = mushieIdleAnimation;
+			lemmyRunningAnimation = mushieRunningAnimation;
+		}
+	}
+
 	public void update(float delta) {
 		playerAnimationTime += delta;
 		mushieAnimationTime += delta;
@@ -453,6 +510,8 @@ public class AnimationManager {
 		ghostAnimationTime += delta;
 		ghostBossAnimationTime += delta;
 		hermanAnimationTime += delta;
+		hedgehogAnimationTime += delta;
+		lemmyAnimationTime += delta;
 	}
 
 	public Animation<TextureRegion> getAnimationForState(EnemyType enemyType, State state) {
@@ -518,6 +577,17 @@ public class AnimationManager {
 					case SPECIAL_ATTACK: return hermanSpecialAttackAnimation;
 					default: return hermanIdleAnimation;
 				}
+			case HEDGEHOG:
+				switch (state) {
+					case RUNNING: return hedgehogRunningAnimation;
+					case ATTACKING: return hedgehogAttackingAnimation;
+					default: return hedgehogIdleAnimation;
+				}
+			case LEMMY:
+				switch (state) {
+					case RUNNING: return lemmyRunningAnimation;
+					default: return lemmyIdleAnimation;
+				}
 			default:
 				return mushieIdleAnimation;
 		}
@@ -561,6 +631,12 @@ public class AnimationManager {
 			case "Herman":
 				if (hermanCurrentState != newState) { hermanCurrentState = newState; hermanAnimationTime = 0f; }
 				break;
+			case "Hedgehog":
+				if (hedgehogCurrentState != newState) { hedgehogCurrentState = newState; hedgehogAnimationTime = 0f; }
+				break;
+			case "Lemmy":
+				if (lemmyCurrentState != newState) { lemmyCurrentState = newState; lemmyAnimationTime = 0f; }
+				break;
 		}
 	}
 
@@ -578,6 +654,8 @@ public class AnimationManager {
 			case "Ghost": return ghostCurrentState;
 			case "GhostBoss": return ghostBossCurrentState;
 			case "Herman": return hermanCurrentState;
+			case "Hedgehog": return hedgehogCurrentState;
+			case "Lemmy": return lemmyCurrentState;
 			default: return null;
 		}
 	}
@@ -618,16 +696,6 @@ public class AnimationManager {
 		return currentAnimation.isAnimationFinished(playerAnimationTime);
 	}
 
-	public TextureRegion getMushieCurrentFrame() {
-		Animation<TextureRegion> currentAnimation;
-		switch (mushieCurrentState) {
-			case RUNNING: currentAnimation = mushieRunningAnimation; break;
-			case ATTACKING: currentAnimation = mushieAttackingAnimation; break;
-			default: currentAnimation = mushieIdleAnimation; break;
-		}
-		return currentAnimation.getKeyFrame(mushieAnimationTime);
-	}
-
 	public TextureRegion getBossKittyCurrentFrame() {
 		Animation<TextureRegion> currentAnimation;
 		switch (bossKittyCurrentState) {
@@ -635,26 +703,6 @@ public class AnimationManager {
 			default: currentAnimation = bossKittyRunningAnimation; break;
 		}
 		return currentAnimation.getKeyFrame(bossKittyAnimationTime);
-	}
-
-	public TextureRegion getSkeletonCurrentFrame() {
-		Animation<TextureRegion> currentAnimation;
-		switch (skeletonCurrentState) {
-			case RUNNING: currentAnimation = skeletonRunningAnimation; break;
-			case ATTACKING: currentAnimation = skeletonAttackingAnimation; break;
-			default: currentAnimation = skeletonIdleAnimation; break;
-		}
-		return currentAnimation.getKeyFrame(skeletonAnimationTime);
-	}
-
-	public TextureRegion getWolfieCurrentFrame() {
-		Animation<TextureRegion> currentAnimation;
-		switch (wolfieCurrentState) {
-			case RUNNING: currentAnimation = wolfieRunningAnimation; break;
-			case ATTACKING: currentAnimation = wolfieAttackingAnimation; break;
-			default: currentAnimation = wolfieIdleAnimation; break;
-		}
-		return currentAnimation.getKeyFrame(wolfieAnimationTime);
 	}
 
 	public TextureRegion getCyclopsCurrentFrame() {
@@ -669,58 +717,5 @@ public class AnimationManager {
 
 	public TextureRegion getMerchantCurrentFrame() {
 		return merchantIdleAnimation.getKeyFrame(merchantAnimationTime);
-	}
-
-	public TextureRegion getGhostCurrentFrame() {
-		Animation<TextureRegion> currentAnimation;
-		switch (ghostCurrentState) {
-			case RUNNING: currentAnimation = ghostRunningAnimation; break;
-			case ATTACKING: currentAnimation = ghostAttackingAnimation; break;
-			default: currentAnimation = ghostIdleAnimation; break;
-		}
-		return currentAnimation.getKeyFrame(ghostAnimationTime);
-	}
-
-	public TextureRegion getGhostBossCurrentFrame() {
-		Animation<TextureRegion> currentAnimation;
-		switch (ghostBossCurrentState) {
-			case RUNNING: currentAnimation = ghostBossRunningAnimation; break;
-			case ATTACKING: currentAnimation = ghostBossAttackingAnimation; break;
-			default: currentAnimation = ghostBossIdleAnimation; break;
-		}
-		return currentAnimation.getKeyFrame(ghostBossAnimationTime);
-	}
-
-	public TextureRegion getHermanCurrentFrame() {
-		Animation<TextureRegion> currentAnimation;
-		switch (hermanCurrentState) {
-			case ATTACKING: currentAnimation = hermanAttackingAnimation; break;
-			case SPECIAL_ATTACK: currentAnimation = hermanSpecialAttackAnimation; break;
-			default: currentAnimation = hermanIdleAnimation; break;
-		}
-		return currentAnimation.getKeyFrame(hermanAnimationTime);
-	}
-
-	public boolean isBossKittyAnimationFinished() {
-		switch (bossKittyCurrentState) {
-			case DYING: return bossKittyDyingAnimation.isAnimationFinished(bossKittyAnimationTime);
-			default: return bossKittyRunningAnimation.isAnimationFinished(bossKittyAnimationTime);
-		}
-	}
-
-	public boolean isCyclopsAnimationFinished() {
-		switch (cyclopsCurrentState) {
-			case RUNNING: return cyclopsRunningAnimation.isAnimationFinished(cyclopsAnimationTime);
-			case ATTACKING: return cyclopsAttackingAnimation.isAnimationFinished(cyclopsAnimationTime);
-			default: return cyclopsIdleAnimation.isAnimationFinished(cyclopsAnimationTime);
-		}
-	}
-
-	public boolean isHermanAnimationFinished() {
-		switch (hermanCurrentState) {
-			case ATTACKING: return hermanAttackingAnimation.isAnimationFinished(hermanAnimationTime);
-			case SPECIAL_ATTACK: return hermanSpecialAttackAnimation.isAnimationFinished(hermanAnimationTime);
-			default: return hermanIdleAnimation.isAnimationFinished(hermanAnimationTime);
-		}
 	}
 }

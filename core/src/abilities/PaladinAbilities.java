@@ -71,6 +71,16 @@ class SmiteAbility extends Ability {
                     enemiesHit++;
                 }
             }
+
+            for (Lemmy lemmy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    float dist = playerPos.dst(lemmy.getBody().getPosition());
+                    if (dist < SMITE_RADIUS) {
+                        lemmy.takeDamage(damage + actualDamage);
+                        enemiesHit++;
+                    }
+                }
+            }
         }
 
         if (gameProj.getCurrentDungeon() != null) {
@@ -250,6 +260,17 @@ class ConsecratedGroundAbility extends Ability {
                     gameProj.addStatusEffect(hermanDuplicate, effect);
                 }
             }
+
+            for (Lemmy lemmy : new ArrayList<>(gameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    float dist = playerPos.dst(lemmy.getBody().getPosition());
+                    if (dist < CONSECRATE_RADIUS) {
+                        ConsecratedEffect effect = new ConsecratedEffect(lemmy, CONSECRATE_DELAY, scaledDamage);
+                        effect.onApply();
+                        gameProj.addStatusEffect(lemmy, effect);
+                    }
+                }
+            }
         }
 
         if (gameProj.getCurrentDungeon() != null) {
@@ -405,6 +426,15 @@ class HolyAuraAbility extends Ability {
                 float dist = playerPos.dst(hermanDuplicate.getBody().getPosition());
                 if (dist < AURA_RADIUS) {
                     hermanDuplicate.takeDamage(scaledDamage);
+                }
+            }
+
+            for (Lemmy lemmy : new ArrayList<>(currentGameProj.getGlobalLemmy())) {
+                if (lemmy != null && lemmy.getBody() != null) {
+                    float dist = playerPos.dst(lemmy.getBody().getPosition());
+                    if (dist < AURA_RADIUS) {
+                        lemmy.takeDamage(scaledDamage);
+                    }
                 }
             }
         }

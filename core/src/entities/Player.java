@@ -319,12 +319,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
         float moveX = 0;
         float moveY = 0;
 
-        if (abilityManager != null && abilityManager.getSkillTree() != null &&
-                abilityManager.getSkillTree().isOpen()) {
-            body.setLinearVelocity(0, 0);
-            return;
-        }
-
         if (isVaulting) {
             vaultTimer -= delta;
 

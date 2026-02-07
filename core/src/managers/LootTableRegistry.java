@@ -74,6 +74,14 @@ public class LootTableRegistry {
                 .addDrop("health_potion", 1.0f, 2, 3);
         registerLootTable("mega_boss", megaBoss);
 
+        LootTable lootGoblin = new LootTable()
+                .setGuaranteedCoins(1)
+                .addDrop("coin_pile", 1.0f, 1, 3)
+                .addDrop("coin", 1.0f, 1, 5)
+                .addDrop(Item.ItemType.CONSUMABLE, "buff_potion", 0.01f);
+
+        registerLootTable("loot_goblin", lootGoblin);
+
         LootTable eliteEnemy = new LootTable()
                 .setGuaranteedCoins(3);
         registerLootTable("elite_enemy", eliteEnemy);

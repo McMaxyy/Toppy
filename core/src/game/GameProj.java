@@ -20,6 +20,7 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -32,10 +33,7 @@ import config.Storage;
 import entities.*;
 import managers.*;
 import abilities.StatusEffect;
-import ui.BossHealthUI;
-import ui.MerchantShop;
-import ui.PlayerStatusUI;
-import ui.Settings;
+import ui.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -55,7 +53,7 @@ public class GameProj implements Screen, ContactListener {
     private final OrthographicCamera hudCamera;
     private Box2DWorld world;
     private float totalGameTime = 0f;
-
+    private PlayerHealthPopup playerHealthPopup;
     private Texture groundTexture;
     private Player player;
     private final ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
@@ -64,8 +62,6 @@ public class GameProj implements Screen, ContactListener {
     private final ExecutorService chunkGenerator;
     private Label hudLabel;
     private int enemiesKilled = 0;
-    private boolean bossSpawned = false;
-
     private final int MAP_SIZE_CHUNKS = 5;
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 16;
@@ -91,6 +87,7 @@ public class GameProj implements Screen, ContactListener {
     private boolean ghostBossDefeated = false;
     private Herman herman;
     private Herman hermanDuplicate;
+    private List<Lemmy> globalLemmys = new ArrayList<>();
     private boolean hermanSpawned = false;
     private boolean hermanDefeated = false;
     private List<Body> hermanArenaBarriers = new ArrayList<>();
@@ -142,6 +139,7 @@ public class GameProj implements Screen, ContactListener {
         world = new Box2DWorld(this);
         random = new Random();
         world.getWorld().setContactListener(this);
+        Player.gameStarted = false;
 
         chunkGenerator = Executors.newFixedThreadPool(2);
 
@@ -155,7 +153,8 @@ public class GameProj implements Screen, ContactListener {
         itemSpawner.spawnItem("deceptors_iron_gloves", player.getPosition());
 
         setupCursorConfinement();
-        spawnHerman();
+//        spawnHerman();
+        spawnLemmys();
     }
 
     private void setupCursorConfinement() {
@@ -246,6 +245,11 @@ public class GameProj implements Screen, ContactListener {
         batch = new SpriteBatch();
 
         playerStatusUI = new PlayerStatusUI(player, hudViewport);
+        playerHealthPopup = new PlayerHealthPopup(hudViewport, camera);
+
+        player.getStats().setHealthChangeListener((amount) -> {
+            playerHealthPopup.showHealthChange(amount, player.getPosition().x, player.getPosition().y);
+        });
 
         hudStage = new Stage(hudViewport, batch);
 
@@ -270,29 +274,10 @@ public class GameProj implements Screen, ContactListener {
 
         bossHealthUI = new BossHealthUI(hudViewport);
 
-        generateInitialChunks();
         setRandomPlayerSpawn();
         spawnAllDungeonPortals();
         spawnMerchant();
         SoundManager.getInstance().playForestMusic();
-    }
-
-    private void generateInitialChunks() {
-        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
-        int minChunk = -halfMapChunks;
-        int maxChunk = halfMapChunks;
-
-        // Generate all chunks synchronously at startup
-        for (int x = minChunk; x <= maxChunk; x++) {
-            for (int y = minChunk; y <= maxChunk; y++) {
-                Vector2 chunkCoord = new Vector2(x, y);
-                if (!chunks.containsKey(chunkCoord)) {
-                    Chunk newChunk = new Chunk(x, y, CHUNK_SIZE, TILE_SIZE, random, world.getWorld(), player, animationManager);
-                    newChunk.addBodiesToWorld(world.getWorld());
-                    chunks.put(chunkCoord, newChunk);
-                }
-            }
-        }
     }
 
     private void setRandomPlayerSpawn() {
@@ -875,6 +860,9 @@ public class GameProj implements Screen, ContactListener {
             world.getWorld().step(1 / 60f, 6, 2);
 
             totalGameTime += delta;
+            Vector3 shakeOffset = ScreenShake.tick(delta);
+
+            playerHealthPopup.update(delta);
 
             if (!inDungeon && !inBossRoom) {
                 if (minimap != null) {
@@ -976,6 +964,10 @@ public class GameProj implements Screen, ContactListener {
         if (batch == null) return;
 
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+
+        Vector3 shakeOffset = ScreenShake.getPos();
+        camera.position.add(shakeOffset.x, shakeOffset.y, 0);
+
         camera.update();
 
         if (delta > 0) {
@@ -1033,6 +1025,9 @@ public class GameProj implements Screen, ContactListener {
             }
             renderExpBar(batch);
             renderEndlessStats(batch);
+            if (playerHealthPopup != null) {
+                playerHealthPopup.render(batch);
+            }
             batch.end();
         }
     }
@@ -1093,6 +1088,10 @@ public class GameProj implements Screen, ContactListener {
         float clampedY = Math.max(mapMinY + cameraHalfHeight, Math.min(targetY, mapMaxY - cameraHalfHeight));
 
         camera.position.set(clampedX, clampedY, 0);
+
+        Vector3 shakeOffset = ScreenShake.getPos();
+        camera.position.add(shakeOffset.x, shakeOffset.y, 0);
+
         camera.update();
 
         batch.setProjectionMatrix(camera.combined);
@@ -1113,7 +1112,7 @@ public class GameProj implements Screen, ContactListener {
         itemSpawner.render(batch);
 
         for (Chunk chunk : chunks.values()) {
-            chunk.renderEnemies(batch);
+            chunk.renderEnemies(batch, isPaused);
         }
 
         if (merchant != null && merchant.isActive()) {
@@ -1166,6 +1165,15 @@ public class GameProj implements Screen, ContactListener {
             hermanDuplicate.render(batch);
         }
 
+        for (Lemmy lemmy : globalLemmys) {
+            if (!lemmy.isMarkedForRemoval()) {
+                if (delta > 0) {
+                    lemmy.update(delta);
+                }
+                lemmy.render(batch);
+            }
+        }
+
         if (delta > 0) {
             statusEffectTimer += delta;
         }
@@ -1209,6 +1217,9 @@ public class GameProj implements Screen, ContactListener {
                 player.getAbilityManager().renderSkillTree(batch);
             }
             renderExpBar(batch);
+            if (playerHealthPopup != null) {
+                playerHealthPopup.render(batch);
+            }
             batch.end();
 
             if (minimap != null && minimap.isMapOpen()) {
@@ -1237,6 +1248,10 @@ public class GameProj implements Screen, ContactListener {
         float clampedY = Math.max(dungeonMinY + cameraHalfHeight, Math.min(targetY, dungeonMaxY - cameraHalfHeight));
 
         camera.position.set(clampedX, clampedY, 0);
+
+        Vector3 shakeOffset = ScreenShake.getPos();
+        camera.position.add(shakeOffset.x, shakeOffset.y, 0);
+
         camera.update();
 
         if (delta > 0) {
@@ -1303,6 +1318,9 @@ public class GameProj implements Screen, ContactListener {
                 player.getAbilityManager().renderSkillTree(batch);
             }
             renderExpBar(batch);
+            if (playerHealthPopup != null) {
+                playerHealthPopup.render(batch);
+            }
             batch.end();
 
             if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
@@ -1315,6 +1333,10 @@ public class GameProj implements Screen, ContactListener {
         if (batch == null) return;
 
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+
+        Vector3 shakeOffset = ScreenShake.getPos();
+        camera.position.add(shakeOffset.x, shakeOffset.y, 0);
+
         camera.update();
 
         if (delta > 0) {
@@ -1380,6 +1402,9 @@ public class GameProj implements Screen, ContactListener {
                 player.getAbilityManager().renderSkillTree(batch);
             }
             renderExpBar(batch);
+            if (playerHealthPopup != null) {
+                playerHealthPopup.render(batch);
+            }
             batch.end();
         }
     }
@@ -1493,8 +1518,6 @@ public class GameProj implements Screen, ContactListener {
                 bossKittyDefeated = true;
                 currentBossRoom.onBossDefeated();
                 hudLabel.setText("Freydis defeated! Use the portal to return!");
-            } else {
-                bossSpawned = false;
             }
 
         } else if (enemy instanceof Cyclops) {
@@ -1603,6 +1626,22 @@ public class GameProj implements Screen, ContactListener {
                 }
 
                 checkHermanFullyDefeated();
+
+                for (Lemmy lemmy : new ArrayList<>(globalLemmys)) {
+                    if (lemmy.isMarkedForRemoval() && lemmy.getBody() != null) {
+                        String lootTable = lemmy.getStats().getLootTableType();
+                        lootTableRegistry.spawnLoot(lootTable, itemSpawner, lemmy.getBody().getPosition());
+
+                        player.getStats().addExperience(lemmy.getStats().getExpReward());
+
+                        enemiesKilled++;
+                        hudLabel.setText("Enemies killed: " + enemiesKilled);
+
+                        bodiesToDestroy.add(lemmy.getBody());
+                        lemmy.clearBody();
+                        globalLemmys.remove(lemmy);
+                    }
+                }
             }
         }
 
@@ -1776,7 +1815,6 @@ public class GameProj implements Screen, ContactListener {
         );
         duplicateBody.setUserData(hermanDuplicate);
 
-        // Duplicate is already activated since it spawns during combat
         hudLabel.setText("Herman has split in two!");
 
         if (bossHealthUI != null) {
@@ -1850,6 +1888,101 @@ public class GameProj implements Screen, ContactListener {
         }
     }
 
+    private void spawnLemmys() {
+        int lemmyCount = 1 + random.nextInt(3);
+
+        int halfMapChunks = MAP_SIZE_CHUNKS / 2;
+        int minChunk = -halfMapChunks;
+
+        for (int i = 0; i < lemmyCount; i++) {
+            boolean validPosition = false;
+            float lemmyX = 0, lemmyY = 0;
+            int attempts = 0;
+            int maxAttempts = 100;
+
+            while (!validPosition && attempts < maxAttempts) {
+                attempts++;
+
+                int lemmyChunkX = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+                int lemmyChunkY = minChunk + 1 + random.nextInt(MAP_SIZE_CHUNKS - 2);
+
+                float offsetX = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+                float offsetY = random.nextFloat() * CHUNK_SIZE * TILE_SIZE * 0.5f;
+
+                lemmyX = lemmyChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
+                lemmyY = lemmyChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+                Vector2 playerPos = player.getPosition();
+                float distanceFromPlayer = (float) Math.sqrt(
+                        Math.pow(lemmyX - playerPos.x, 2) +
+                                Math.pow(lemmyY - playerPos.y, 2)
+                );
+
+                if (distanceFromPlayer >= CHUNK_SIZE * TILE_SIZE * 0.75f) {
+                    validPosition = true;
+                }
+            }
+
+//            Body lemmyBody = createLemmyBody(lemmyX, lemmyY);
+            Body lemmyBody = createLemmyBody(player.getPosition().x, player.getPosition().y);
+
+            EnemyStats lemmyStats = EnemyStats.Factory.createLemmy(1);
+            Lemmy lemmy = new Lemmy(
+                    new Rectangle(lemmyX - 8, lemmyY - 8, 16, 16),
+                    lemmyBody,
+                    player,
+                    animationManager,
+                    lemmyStats
+            );
+            lemmyBody.setUserData(lemmy);
+            globalLemmys.add(lemmy);
+
+            int chunkX = (int) Math.floor(lemmyX / (CHUNK_SIZE * TILE_SIZE));
+            int chunkY = (int) Math.floor(lemmyY / (CHUNK_SIZE * TILE_SIZE));
+            Vector2 chunkCoord = new Vector2(chunkX, chunkY);
+            Chunk chunk = chunks.get(chunkCoord);
+            if (chunk != null) {
+                chunk.getLemmys().add(lemmy);
+            }
+        }
+    }
+
+    private Body createLemmyBody(float x, float y) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.DynamicBody;
+        bodyDef.position.set(x, y);
+
+        Body body = world.getWorld().createBody(bodyDef);
+
+        PolygonShape mainShape = new PolygonShape();
+        mainShape.setAsBox(16 / 3.5f, 16 / 4f);
+
+        FixtureDef mainFixtureDef = new FixtureDef();
+        mainFixtureDef.shape = mainShape;
+        mainFixtureDef.density = 0.5f;
+        mainFixtureDef.friction = 0.1f;
+        mainFixtureDef.filter.categoryBits = CollisionFilter.ENEMY;
+        mainFixtureDef.filter.maskBits = CollisionFilter.PLAYER | CollisionFilter.SPEAR |
+                CollisionFilter.ABILITY | CollisionFilter.OBSTACLE | CollisionFilter.WALL;
+        body.createFixture(mainFixtureDef);
+        mainShape.dispose();
+
+        PolygonShape enemyCollisionShape = new PolygonShape();
+        enemyCollisionShape.setAsBox(16 / 5f, 16 / 5f);
+
+        FixtureDef enemyFixtureDef = new FixtureDef();
+        enemyFixtureDef.shape = enemyCollisionShape;
+        enemyFixtureDef.density = 0.5f;
+        enemyFixtureDef.friction = 0.1f;
+        enemyFixtureDef.filter.categoryBits = CollisionFilter.ENEMY_ENEMY;
+        enemyFixtureDef.filter.maskBits = CollisionFilter.ENEMY_ENEMY;
+        body.createFixture(enemyFixtureDef);
+        enemyCollisionShape.dispose();
+
+        body.setFixedRotation(true);
+        return body;
+    }
+
     public float getTotalGameTime() {
         return totalGameTime;
     }
@@ -1869,6 +2002,8 @@ public class GameProj implements Screen, ContactListener {
     public Herman getHermanDuplicate() {
         return hermanDuplicate;
     }
+
+    public List<Lemmy> getGlobalLemmy() { return globalLemmys; }
 
     public boolean isHermanSpawned () {
         return hermanSpawned;
@@ -2070,6 +2205,23 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
 
+            for (Lemmy lemmy : new ArrayList<>(globalLemmys)) {
+                if (lemmy.getBody() != null && world != null) {
+                    try {
+                        world.getWorld().destroyBody(lemmy.getBody());
+                    } catch (Exception e) {
+                    }
+                    lemmy.clearBody();
+                }
+                lemmy.dispose();
+            }
+            globalLemmys.clear();
+
+            if (playerHealthPopup != null) {
+                playerHealthPopup.clear();
+                playerHealthPopup = null;
+            }
+
             SoundManager.getInstance().dispose();
 
             System.gc();
@@ -2101,19 +2253,24 @@ public class GameProj implements Screen, ContactListener {
 
             if (!inDungeon && !inBossRoom) {
                 for (Chunk chunk : chunks.values()) {
-                    if (!bossSpawned) {
-                        for (Enemy enemy : chunk.getEnemies()) {
-                            if (enemy.getBody() == enemyBody) {
-                                enemy.takeDamage(playerDamage);
-                                break;
-                            }
+                    for (Enemy enemy : chunk.getEnemies()) {
+                        if (enemy.getBody() == enemyBody) {
+                            enemy.takeDamage(playerDamage);
+                            break;
                         }
-                    } else {
-                        for (BossKitty boss : chunk.getBossKitty()) {
-                            if (boss.getBody() == enemyBody) {
-                                boss.takeDamage(playerDamage);
-                                break;
-                            }
+                    }
+
+                    if (herman != null && herman.getBody() == enemyBody) {
+                        herman.takeDamage(playerDamage);
+                    }
+                    if (hermanDuplicate != null && hermanDuplicate.getBody() == enemyBody) {
+                        hermanDuplicate.takeDamage(playerDamage);
+                    }
+
+                    for (Lemmy lemmy : globalLemmys) {
+                        if (lemmy.getBody() == enemyBody) {
+                            lemmy.takeDamage(playerDamage);
+                            break;
                         }
                     }
                 }
@@ -2172,25 +2329,13 @@ public class GameProj implements Screen, ContactListener {
 
             if (!inDungeon && !inBossRoom) {
                 for (Chunk chunk : chunks.values()) {
-                    if(!bossSpawned) {
-                        for (Enemy enemy : chunk.getEnemies()) {
-                            if (enemy.getBody() == enemyBody && !player.isInvulnerable()) {
-                                enemy.damagePlayer();
-                                if (player.getStats().isDead()) {
-                                    player.playerDie();
-                                }
-                                break;
+                    for (Enemy enemy : chunk.getEnemies()) {
+                        if (enemy.getBody() == enemyBody && !player.isInvulnerable()) {
+                            enemy.damagePlayer();
+                            if (player.getStats().isDead()) {
+                                player.playerDie();
                             }
-                        }
-                    } else {
-                        for (BossKitty boss : chunk.getBossKitty()) {
-                            if (boss.getBody() == enemyBody) {
-                                boss.damagePlayer();
-                                if (player.getStats().isDead()) {
-                                    player.playerDie();
-                                }
-                                break;
-                            }
+                            break;
                         }
                     }
                 }
