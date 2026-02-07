@@ -32,6 +32,7 @@ import config.Storage;
 import entities.*;
 import managers.*;
 import abilities.StatusEffect;
+import ui.BossHealthUI;
 import ui.MerchantShop;
 import ui.PlayerStatusUI;
 import ui.Settings;
@@ -103,7 +104,7 @@ public class GameProj implements Screen, ContactListener {
     private Settings settings;
     private boolean isPaused = false;
     private float statusEffectTimer = 0f;
-
+    private BossHealthUI bossHealthUI;
     private Merchant merchant;
     private MerchantShop merchantShop;
     private boolean merchantShopOpen = false;
@@ -266,6 +267,8 @@ public class GameProj implements Screen, ContactListener {
 
         merchantShop = new MerchantShop();
         merchantShop.setPlayer(player);
+
+        bossHealthUI = new BossHealthUI(hudViewport);
 
         generateInitialChunks();
         setRandomPlayerSpawn();
@@ -670,6 +673,7 @@ public class GameProj implements Screen, ContactListener {
             mapBoundary.disable();
         }
 
+
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
         String bossName;
 
@@ -684,6 +688,18 @@ public class GameProj implements Screen, ContactListener {
         else {
             currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, BossRoom.BossType.BOSS_KITTY);
             bossName = "Freydis";
+        }
+
+        if (bossHealthUI != null) {
+            if (currentBossRoom.getBoss() != null) {
+                bossHealthUI.setBossKitty(currentBossRoom.getBoss());
+            }
+            if (currentBossRoom.getCyclops() != null) {
+                bossHealthUI.setCyclops(currentBossRoom.getCyclops());
+            }
+            if (currentBossRoom.getGhostBoss() != null) {
+                bossHealthUI.setGhostBoss(currentBossRoom.getGhostBoss());
+            }
         }
 
         Vector2 spawnPoint = currentBossRoom.getSpawnPoint();
@@ -724,6 +740,10 @@ public class GameProj implements Screen, ContactListener {
 
         if (!hermanSpawned && ghostBossDefeated) {
             spawnHerman();
+        }
+
+        if (bossHealthUI != null) {
+            bossHealthUI.clearAll();
         }
 
         hudLabel.setText("Enemies killed: " + enemiesKilled);
@@ -914,6 +934,13 @@ public class GameProj implements Screen, ContactListener {
 
         if (settings != null && settings.isOpen()) {
             settings.render(batch, false);
+        }
+
+        if (bossHealthUI != null) {
+            batch.setProjectionMatrix(hudCamera.combined);
+            batch.begin();
+            bossHealthUI.render(batch);
+            batch.end();
         }
 
         if (useCustomCursor && batch != null) {
@@ -1558,6 +1585,9 @@ public class GameProj implements Screen, ContactListener {
                         handleEnemyDeath(herman, herman.getBody().getPosition(), true);
                         bodiesToDestroy.add(herman.getBody());
                         herman.clearBody();
+                        if (bossHealthUI != null) {
+                            bossHealthUI.setHerman(null);
+                        }
                     }
                 }
 
@@ -1566,6 +1596,9 @@ public class GameProj implements Screen, ContactListener {
                         handleEnemyDeath(hermanDuplicate, hermanDuplicate.getBody().getPosition(), true);
                         bodiesToDestroy.add(hermanDuplicate.getBody());
                         hermanDuplicate.clearBody();
+                        if (bossHealthUI != null) {
+                            bossHealthUI.setHermanDuplicate(null);
+                        }
                     }
                 }
 
@@ -1591,6 +1624,9 @@ public class GameProj implements Screen, ContactListener {
                 bodiesToDestroy.add(bossRoomBoss.getBody());
                 bossRoomBoss.clearBody();
                 currentBossRoom.setBoss(null);
+                if (bossHealthUI != null) {
+                    bossHealthUI.setBossKitty(null);
+                }
             }
 
             Cyclops cyclopsRoomBoss = currentBossRoom.getCyclops();
@@ -1599,6 +1635,9 @@ public class GameProj implements Screen, ContactListener {
                 bodiesToDestroy.add(cyclopsRoomBoss.getBody());
                 cyclopsRoomBoss.clearBody();
                 currentBossRoom.setCyclops(null);
+                if (bossHealthUI != null) {
+                    bossHealthUI.setCyclops(null);
+                }
             }
 
             GhostBoss ghostBoss = currentBossRoom.getGhostBoss();
@@ -1607,6 +1646,9 @@ public class GameProj implements Screen, ContactListener {
                 bodiesToDestroy.add(ghostBoss.getBody());
                 ghostBoss.clearBody();
                 currentBossRoom.setGhostBoss(null);
+                if (bossHealthUI != null) {
+                    bossHealthUI.setGhostBoss(null);
+                }
             }
         }
 
@@ -1709,6 +1751,10 @@ public class GameProj implements Screen, ContactListener {
         if (minimap != null) {
              minimap.setHerman(herman);
         }
+
+        if (bossHealthUI != null) {
+            bossHealthUI.setHerman(herman);
+        }
     }
 
     private void spawnHermanDuplicate(Vector2 position, int health) {
@@ -1732,6 +1778,10 @@ public class GameProj implements Screen, ContactListener {
 
         // Duplicate is already activated since it spawns during combat
         hudLabel.setText("Herman has split in two!");
+
+        if (bossHealthUI != null) {
+            bossHealthUI.setHermanDuplicate(hermanDuplicate);
+        }
     }
 
     private Body createHermanBody(float x, float y) {
@@ -1770,6 +1820,11 @@ public class GameProj implements Screen, ContactListener {
 
         if (!endlessPortalSpawned) {
             spawnEndlessPortal(player.getPosition());
+        }
+
+        if (bossHealthUI != null) {
+            bossHealthUI.setHerman(null);
+            bossHealthUI.setHermanDuplicate(null);
         }
     }
 
@@ -1940,6 +1995,11 @@ public class GameProj implements Screen, ContactListener {
                 currentEndlessRoom = null;
             }
 
+            if (bossHealthUI != null) {
+                bossHealthUI.dispose();
+                bossHealthUI = null;
+            }
+
             if (dungeonPortals != null) {
                 for (Portal portal : dungeonPortals) {
                     if (portal != null) {
@@ -1995,7 +2055,7 @@ public class GameProj implements Screen, ContactListener {
                 herman = null;
             }
 
-            if (hermanDuplicate != null) {
+            if (hermanDuplicate != null && world != null) {
                 if (hermanDuplicate.getBody() != null) {
                     world.getWorld().destroyBody(hermanDuplicate.getBody());
                 }

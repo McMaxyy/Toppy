@@ -136,7 +136,7 @@ public class Ghost {
     private void updateMovement(float delta) {
         float distanceToPlayer = getDistanceToPlayer();
 
-        if (distanceToPlayer <= 35f) {
+        if (distanceToPlayer <= 10f) {
             startExplosion();
         } else if (isPlayerInRadius()) {
             moveTowardsPlayer();

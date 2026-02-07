@@ -359,8 +359,6 @@ public class Cyclops {
         if (isJustHit) {
             batch.setColor(1f, 1f, 1f, 1f);
         }
-
-        renderBossHealthBar(batch);
     }
 
     private void renderGroundPoundIndicator(SpriteBatch batch) {
@@ -475,46 +473,6 @@ public class Cyclops {
 
         batch.setColor(0.8f, 0.2f, 0.8f, pulse);
         drawCircle(batch, bossPos, specialRadius, segments, angleStep, 3f);
-
-        batch.setColor(1f, 1f, 1f, 1f);
-    }
-
-    private void renderBossHealthBar(SpriteBatch batch) {
-        float barWidth = bounds.width * 1.5f;
-        float barHeight = 5f;
-        float barX = bounds.x - (barWidth - bounds.width) / 2f;
-        float barY = bounds.y + bounds.height + 5f;
-
-        // Background (dark purple for Cyclops)
-        batch.setColor(0.3f, 0.0f, 0.3f, 1f);
-        batch.draw(healthBarTexture, barX, barY, barWidth, barHeight);
-
-        // Foreground (gradient based on health)
-        float healthPercent = stats.getHealthPercentage();
-        float healthWidth = barWidth * healthPercent;
-
-        // Purple to orange gradient as health decreases
-        float red = 1.0f - (healthPercent * 0.2f);
-        float green = healthPercent * 0.5f;
-        float blue = healthPercent * 0.8f;
-        batch.setColor(red, green, blue, 1f);
-        batch.draw(healthBarTexture, barX, barY, healthWidth, barHeight);
-
-        // Ground pound cooldown indicator (orange bar below health)
-        if (groundPoundCooldown > 0) {
-            float cooldownPercent = groundPoundCooldown / GROUND_POUND_COOLDOWN;
-            float cooldownWidth = barWidth * (1f - cooldownPercent);
-            batch.setColor(1f, 0.5f, 0f, 0.7f);
-            batch.draw(healthBarTexture, barX, barY - 3f, cooldownWidth, barHeight * 0.4f);
-        }
-
-        // Special ability cooldown indicator
-        if (specialAbilityCooldown > 0) {
-            float cooldownPercent = specialAbilityCooldown / SPECIAL_ABILITY_COOLDOWN;
-            float cooldownWidth = barWidth * (1f - cooldownPercent);
-            batch.setColor(0.8f, 0.2f, 0.8f, 0.7f);
-            batch.draw(healthBarTexture, barX, barY - 6f, cooldownWidth, barHeight * 0.4f);
-        }
 
         batch.setColor(1f, 1f, 1f, 1f);
     }

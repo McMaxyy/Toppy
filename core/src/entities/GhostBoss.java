@@ -46,9 +46,9 @@ public class GhostBoss {
     private float attackCooldown = 0f;
     private boolean isAttacking = false;
 
-    private static  float PROJECTILE_COOLDOWN;
+    private static float PROJECTILE_COOLDOWN;
     private static float PROJECTILE_SPEED;
-    private static  float PROJECTILE_RANGE;
+    private static float PROJECTILE_RANGE;
     private static final Color SHADOW_BALL_COLOR = new Color(0.5f, 0.2f, 0.8f, 1f);
 
     // Summon Ghostlings attack
@@ -93,7 +93,9 @@ public class GhostBoss {
     private int roomHeight;
     private int tileSize;
 
-    private List<Projectile> projectiles = new ArrayList<>();
+    // Pooled projectile system - pool of 5 for boss + duplicates
+    private Projectile[] projectilePool = new Projectile[5];
+    private int nextProjectileIndex = 0;
     private World world;
 
     private boolean isJustHit = false;
@@ -139,6 +141,22 @@ public class GhostBoss {
             this.shadowBallTexture = Storage.assetManager.get("icons/effects/ShadowBall.png", Texture.class);
         } catch (Exception e) {
             this.shadowBallTexture = null;
+        }
+
+        // Create pooled projectiles
+        for (int i = 0; i < projectilePool.length; i++) {
+            projectilePool[i] = new Projectile(
+                    world,
+                    new Vector2(body.getPosition()),
+                    new Vector2(1, 0),
+                    PROJECTILE_SPEED,
+                    PROJECTILE_RANGE,
+                    stats.getDamage(),
+                    SHADOW_BALL_COLOR,
+                    this,
+                    shadowBallTexture
+            );
+            projectilePool[i].setActive(false);
         }
 
         this.currentState = State.IDLE;
@@ -234,8 +252,9 @@ public class GhostBoss {
     }
 
     private void updateProjectiles(float delta) {
-        for (int i = projectiles.size() - 1; i >= 0; i--) {
-            Projectile projectile = projectiles.get(i);
+        for (Projectile projectile : projectilePool) {
+            if (!projectile.isActive()) continue;
+
             projectile.update(delta);
 
             if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
@@ -245,13 +264,12 @@ public class GhostBoss {
                         player.getStats().takeDamage(projectile.getDamage());
                         player.onTakeDamage();
                     }
-                    projectile.markForRemoval();
+                    projectile.setActive(false);
                 }
             }
 
             if (projectile.isMarkedForRemoval()) {
-                projectile.dispose(world);
-                projectiles.remove(i);
+                projectile.setActive(false);
             }
         }
     }
@@ -313,22 +331,31 @@ public class GhostBoss {
     }
 
     private void fireProjectileFrom(Vector2 position) {
-        Vector2 playerPos = player.getPosition();
-        Vector2 direction = new Vector2(playerPos.x - position.x, playerPos.y - position.y).nor();
+        // Find next available projectile in pool
+        Projectile projectile = getNextAvailableProjectile();
+        if (projectile != null) {
+            Vector2 playerPos = player.getPosition();
+            Vector2 direction = new Vector2(playerPos.x - position.x, playerPos.y - position.y).nor();
+            projectile.reset(position, direction);
+        }
+    }
 
-        Projectile projectile = new Projectile(
-                world,
-                position,
-                direction,
-                PROJECTILE_SPEED,
-                PROJECTILE_RANGE,
-                stats.getDamage(),
-                SHADOW_BALL_COLOR,
-                this,
-                shadowBallTexture
-        );
+    private Projectile getNextAvailableProjectile() {
+        // Try to find an inactive projectile starting from next index
+        int startIndex = nextProjectileIndex;
+        do {
+            if (!projectilePool[nextProjectileIndex].isActive()) {
+                Projectile result = projectilePool[nextProjectileIndex];
+                nextProjectileIndex = (nextProjectileIndex + 1) % projectilePool.length;
+                return result;
+            }
+            nextProjectileIndex = (nextProjectileIndex + 1) % projectilePool.length;
+        } while (nextProjectileIndex != startIndex);
 
-        projectiles.add(projectile);
+        // If all projectiles are active, forcibly reuse the next one
+        Projectile result = projectilePool[nextProjectileIndex];
+        nextProjectileIndex = (nextProjectileIndex + 1) % projectilePool.length;
+        return result;
     }
 
     // =========================================================================
@@ -577,9 +604,11 @@ public class GhostBoss {
             ghost.render(batch);
         }
 
-        // Render projectiles
-        for (Projectile proj : projectiles) {
-            proj.render(batch);
+        // Render active projectiles
+        for (Projectile proj : projectilePool) {
+            if (proj.isActive()) {
+                proj.render(batch);
+            }
         }
 
         // Render duplicates
@@ -608,8 +637,6 @@ public class GhostBoss {
             batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);
             batch.setColor(1f, 1f, 1f, 1f);
         }
-
-        renderBossHealthBar(batch);
     }
 
     private void renderDuplicate(SpriteBatch batch, GhostBossDuplicate duplicate) {
@@ -629,37 +656,6 @@ public class GhostBoss {
                     duplicate.position.x - bounds.width / 2f,
                     duplicate.position.y - bounds.height / 2f,
                     bounds.width, bounds.height);
-        }
-
-        batch.setColor(1f, 1f, 1f, 1f);
-    }
-
-    private void renderBossHealthBar(SpriteBatch batch) {
-        float barWidth = bounds.width * 1.5f;
-        float barHeight = 5f;
-        float barX = bounds.x - (barWidth - bounds.width) / 2f;
-        float barY = bounds.y + bounds.height + 5f;
-
-        // Background (dark purple)
-        batch.setColor(0.2f, 0.0f, 0.3f, 1f);
-        batch.draw(healthBarTexture, barX, barY, barWidth, barHeight);
-
-        // Health (purple gradient)
-        float healthPercent = stats.getHealthPercentage();
-        float healthWidth = barWidth * healthPercent;
-
-        float red = 0.6f + (1f - healthPercent) * 0.4f;
-        float green = healthPercent * 0.3f;
-        float blue = 0.8f;
-        batch.setColor(red, green, blue, 1f);
-        batch.draw(healthBarTexture, barX, barY, healthWidth, barHeight);
-
-        // Summon cooldown indicator
-        if (summonCooldown > 0) {
-            float cooldownPercent = summonCooldown / SUMMON_COOLDOWN;
-            float cooldownWidth = barWidth * (1f - cooldownPercent);
-            batch.setColor(0.5f, 0.2f, 0.8f, 0.7f);
-            batch.draw(healthBarTexture, barX, barY - 3f, cooldownWidth, barHeight * 0.4f);
         }
 
         batch.setColor(1f, 1f, 1f, 1f);
@@ -709,11 +705,10 @@ public class GhostBoss {
     }
 
     public void dispose() {
-        // Dispose projectiles
-        for (Projectile proj : projectiles) {
-            proj.dispose(world);
+        // Projectile bodies are destroyed by World, just clear references
+        for (int i = 0; i < projectilePool.length; i++) {
+            projectilePool[i] = null;
         }
-        projectiles.clear();
 
         // Dispose ghostlings
         for (Ghost ghost : spawnedGhostlings) {
@@ -760,8 +755,8 @@ public class GhostBoss {
         return spawnedGhostlings;
     }
 
-    public List<Projectile> getProjectiles() {
-        return projectiles;
+    public Projectile[] getProjectilePool() {
+        return projectilePool;
     }
 
     public EnemyType getEnemyType() {

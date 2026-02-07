@@ -37,7 +37,6 @@ public class Herman {
     private State currentState = State.IDLE;
 
     private EnemyStats stats;
-    private Texture healthBarTexture;
     private Texture whitePixelTexture;
     private Texture acornTexture;
     private Texture groundAttackTexture;
@@ -72,7 +71,8 @@ public class Herman {
 
     private DuplicateSpawnCallback duplicateSpawnCallback;
 
-    private List<Projectile> projectiles = new ArrayList<>();
+    // Pooled projectile system - 3 projectiles for burst attack
+    private Projectile[] projectilePool = new Projectile[3];
     private World world;
 
     private boolean isJustHit = false;
@@ -126,7 +126,6 @@ public class Herman {
         PROJECTILE_RANGE = stats.getAttackRange();
         PROJECTILE_SPEED = stats.getProjectileSpeed();
 
-        this.healthBarTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.whitePixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
 
         try {
@@ -139,6 +138,22 @@ public class Herman {
             this.groundAttackTexture = Storage.assetManager.get("icons/effects/GroundAttack.png", Texture.class);
         } catch (Exception e) {
             this.groundAttackTexture = null;
+        }
+
+        // Create pooled projectiles for burst attack (3 acorns)
+        for (int i = 0; i < projectilePool.length; i++) {
+            projectilePool[i] = new Projectile(
+                    world,
+                    new Vector2(body.getPosition()),
+                    new Vector2(1, 0),
+                    PROJECTILE_SPEED,
+                    PROJECTILE_RANGE,
+                    stats.getDamage(),
+                    ACORN_COLOR,
+                    this,
+                    acornTexture
+            );
+            projectilePool[i].setActive(false);
         }
 
         this.currentState = State.IDLE;
@@ -158,8 +173,8 @@ public class Herman {
         this(bounds, body, player, animationManager, stats);
         this.isDuplicate = isDuplicate;
         this.originalBoss = original;
-        this.isActivated = true; // Duplicate is immediately active
-        this.hasDuplicated = true; // Prevent duplicate from duplicating
+        this.isActivated = true;
+        this.hasDuplicated = true;
     }
 
     public void setArenaCallback(ArenaCreationCallback callback) {
@@ -313,20 +328,10 @@ public class Herman {
         Vector2 baseDirection = new Vector2(playerPos.x - bossPos.x, playerPos.y - bossPos.y).nor();
 
         float[] angles = {-15f, 0f, 15f};
-        for (float angleOffset : angles) {
-            Vector2 direction = rotateVector(baseDirection, angleOffset);
-            Projectile projectile = new Projectile(
-                    world,
-                    bossPos,
-                    direction,
-                    PROJECTILE_SPEED,
-                    PROJECTILE_RANGE,
-                    stats.getDamage(),
-                    ACORN_COLOR,
-                    this,
-                    acornTexture
-            );
-            projectiles.add(projectile);
+
+        for (int i = 0; i < angles.length && i < projectilePool.length; i++) {
+            Vector2 direction = rotateVector(baseDirection, angles[i]);
+            projectilePool[i].reset(bossPos, direction);
         }
     }
 
@@ -461,8 +466,9 @@ public class Herman {
     }
 
     private void updateProjectiles(float delta) {
-        for (int i = projectiles.size() - 1; i >= 0; i--) {
-            Projectile projectile = projectiles.get(i);
+        for (Projectile projectile : projectilePool) {
+            if (!projectile.isActive()) continue;
+
             projectile.update(delta);
 
             if (!projectile.isMarkedForRemoval() && projectile.getPosition() != null) {
@@ -472,13 +478,12 @@ public class Herman {
                         player.getStats().takeDamage(projectile.getDamage());
                         player.onTakeDamage();
                     }
-                    projectile.markForRemoval();
+                    projectile.setActive(false);
                 }
             }
 
             if (projectile.isMarkedForRemoval()) {
-                projectile.dispose(world);
-                projectiles.remove(i);
+                projectile.setActive(false);
             }
         }
     }
@@ -488,8 +493,11 @@ public class Herman {
 
         renderGroundAttackMarkers(batch);
 
-        for (Projectile proj : projectiles) {
-            proj.render(batch);
+        // Render active projectiles
+        for (Projectile proj : projectilePool) {
+            if (proj.isActive()) {
+                proj.render(batch);
+            }
         }
 
         TextureRegion currentFrame = getCurrentFrame();
@@ -511,10 +519,6 @@ public class Herman {
 
             batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);
             batch.setColor(1f, 1f, 1f, 1f);
-        }
-
-        if (isActivated) {
-            renderBossHealthBar(batch);
         }
 
         if (!isActivated && getDistanceToPlayer() <= arenaRadius) {
@@ -604,34 +608,6 @@ public class Herman {
         }
     }
 
-    private void renderBossHealthBar(SpriteBatch batch) {
-        float barWidth = bounds.width * 2f;
-        float barHeight = 6f;
-        float barX = bounds.x - (barWidth - bounds.width) / 2f;
-        float barY = bounds.y + bounds.height + 8f;
-
-        batch.setColor(0.3f, 0.2f, 0.1f, 1f);
-        batch.draw(healthBarTexture, barX, barY, barWidth, barHeight);
-
-        float healthPercent = stats.getHealthPercentage();
-        float healthWidth = barWidth * healthPercent;
-
-        float red = 0.6f - healthPercent * 0.3f;
-        float green = 0.4f + healthPercent * 0.4f;
-        float blue = 0.2f;
-        batch.setColor(red, green, blue, 1f);
-        batch.draw(healthBarTexture, barX, barY, healthWidth, barHeight);
-
-        if (specialCooldown > 0) {
-            float cooldownPercent = specialCooldown / SPECIAL_ATTACK_COOLDOWN;
-            float cooldownWidth = barWidth * (1f - cooldownPercent);
-            batch.setColor(0.8f, 0.4f, 0.1f, 0.7f);
-            batch.draw(healthBarTexture, barX, barY - 4f, cooldownWidth, barHeight * 0.5f);
-        }
-
-        batch.setColor(1f, 1f, 1f, 1f);
-    }
-
     private float getDistanceToPlayer() {
         Vector2 playerPosition = player.getPosition();
         Vector2 bossPosition = new Vector2(body.getPosition());
@@ -662,11 +638,10 @@ public class Herman {
     }
 
     public void dispose() {
-        // Dispose projectiles
-        for (Projectile proj : projectiles) {
-            proj.dispose(world);
+        // Projectile bodies are destroyed by World, just clear references
+        for (int i = 0; i < projectilePool.length; i++) {
+            projectilePool[i] = null;
         }
-        projectiles.clear();
 
         groundAttackMarkers.clear();
     }
@@ -707,8 +682,8 @@ public class Herman {
         return hasDuplicated;
     }
 
-    public List<Projectile> getProjectiles() {
-        return projectiles;
+    public Projectile[] getProjectilePool() {
+        return projectilePool;
     }
 
     public EnemyType getEnemyType() {
