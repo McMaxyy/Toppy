@@ -473,8 +473,8 @@ public abstract class AbilityVisual {
         private Texture spearTexture;
         private Color color;
 
-        private static final float SHOW_PHASE = 0.33f;
-        private static final float STRETCH_PHASE = 0.66f;
+        private static final float SHOW_PHASE = 0.16f;
+        private static final float STRETCH_PHASE = 0.44f;
 
         private SpearJab(Player player, GameProj gameProj, float duration, float attackRange, float rotationOffset, Color color) {
             super(duration);

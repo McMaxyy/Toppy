@@ -258,7 +258,7 @@ public class StartScreen extends Game{
         }
 
         playButton = new TextButton("PLAY", skin);
-        playButton.getLabel().setFontScale(1.5f);
+        playButton.getLabel().setFontScale(1f);
         playButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -267,7 +267,7 @@ public class StartScreen extends Game{
         });
 
         settingsButton = new TextButton("SETTINGS", skin);
-        settingsButton.getLabel().setFontScale(1.5f);
+        settingsButton.getLabel().setFontScale(1f);
         settingsButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -276,7 +276,7 @@ public class StartScreen extends Game{
         });
 
         exitButton = new TextButton("EXIT", skin);
-        exitButton.getLabel().setFontScale(1.5f);
+        exitButton.getLabel().setFontScale(1f);
         exitButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -284,9 +284,9 @@ public class StartScreen extends Game{
             }
         });
 
-        mainTable.add(playButton).size(300, 80).padBottom(20).row();
-        mainTable.add(settingsButton).size(300, 80).padBottom(20).row();
-        mainTable.add(exitButton).size(300, 80).row();
+        mainTable.add(playButton).size(300, 100).padBottom(20).row();
+        mainTable.add(settingsButton).size(300, 100).padBottom(20).row();
+        mainTable.add(exitButton).size(300, 100).row();
 
         createClassSelectionUI();
 
@@ -301,12 +301,12 @@ public class StartScreen extends Game{
 
     private void createClassSelectionUI() {
         Label selectClassLabel = new Label("SELECT YOUR CLASS", skin);
-        selectClassLabel.setFontScale(1.2f);
+        selectClassLabel.setFontScale(1f);
         classSelectionTable.add(selectClassLabel).padBottom(30).colspan(2).row();
 
         // Mercenary button
         mercenaryButton = new TextButton("MERCENARY", skin);
-        mercenaryButton.getLabel().setFontScale(1.2f);
+        mercenaryButton.getLabel().setFontScale(1f);
         mercenaryButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -316,7 +316,7 @@ public class StartScreen extends Game{
 
         // Paladin button
         paladinButton = new TextButton("PALADIN", skin);
-        paladinButton.getLabel().setFontScale(1.2f);
+        paladinButton.getLabel().setFontScale(1f);
         paladinButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -325,25 +325,25 @@ public class StartScreen extends Game{
         });
 
         Table classButtonsTable = new Table();
-        classButtonsTable.add(mercenaryButton).size(200, 80).pad(10);
-        classButtonsTable.add(paladinButton).size(200, 80).pad(10);
+        classButtonsTable.add(mercenaryButton).size(300, 100).pad(10);
+        classButtonsTable.add(paladinButton).size(300, 100).pad(10);
         classSelectionTable.add(classButtonsTable).colspan(2).row();
 
         // Class description label
         classDescriptionLabel = new Label(PlayerClass.MERCENARY.getDescription(), skin);
-        classDescriptionLabel.setWrap(true);
+        classDescriptionLabel.setWrap(false);
         classSelectionTable.add(classDescriptionLabel).width(400).padTop(20).colspan(2).row();
 
         // Start game button
         startGameButton = new TextButton("START GAME", skin);
-        startGameButton.getLabel().setFontScale(1.2f);
+        startGameButton.getLabel().setFontScale(1f);
         startGameButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 startGame();
             }
         });
-        classSelectionTable.add(startGameButton).size(250, 70).padTop(20).colspan(2).row();
+        classSelectionTable.add(startGameButton).size(300, 100).padTop(20).colspan(2).row();
 
         backButton = new TextButton("BACK", skin);
         backButton.getLabel().setFontScale(1.0f);
@@ -353,14 +353,10 @@ public class StartScreen extends Game{
                 showMainMenu();
             }
         });
-        classSelectionTable.add(backButton).size(150, 50).padTop(10).colspan(2).row();
+        classSelectionTable.add(backButton).size(150, 60).padTop(10).colspan(2).row();
     }
 
     private void createSettingsUI() {
-        Label settingsLabel = new Label("SETTINGS", skin);
-        settingsLabel.setFontScale(1.5f);
-        settingsTable.add(settingsLabel).padBottom(30).colspan(2).row();
-
         Label windowModeLabel = new Label("WINDOW MODE:", skin);
         windowModeLabel.setFontScale(1.0f);
         settingsTable.add(windowModeLabel).left().padBottom(15).colspan(2).row();
@@ -469,7 +465,7 @@ public class StartScreen extends Game{
         settingsTable.add(resolutionTable).padBottom(40).colspan(2).row();
 
         TextButton applyButton = new TextButton("APPLY", skin);
-        applyButton.getLabel().setFontScale(1.0f);
+        applyButton.getLabel().setFontScale(0.8f);
         applyButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -478,7 +474,7 @@ public class StartScreen extends Game{
         });
 
         TextButton settingsBackButton = new TextButton("BACK", skin);
-        settingsBackButton.getLabel().setFontScale(1.0f);
+        settingsBackButton.getLabel().setFontScale(0.8f);
         settingsBackButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -487,8 +483,8 @@ public class StartScreen extends Game{
         });
 
         Table settingsButtonsTable = new Table();
-        settingsButtonsTable.add(applyButton).size(150, 50).padRight(20);
-        settingsButtonsTable.add(settingsBackButton).size(150, 50);
+        settingsButtonsTable.add(applyButton).size(150, 60).padRight(20);
+        settingsButtonsTable.add(settingsBackButton).size(150, 60);
         settingsTable.add(settingsButtonsTable).colspan(2).row();
     }
 
@@ -524,7 +520,6 @@ public class StartScreen extends Game{
     }
 
     private void updateClassSelection() {
-        // Update button colors to show selection
         if (selectedClass == PlayerClass.MERCENARY) {
             mercenaryButton.setColor(Color.GOLD);
             paladinButton.setColor(Color.WHITE);

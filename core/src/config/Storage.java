@@ -60,6 +60,18 @@ public class Storage {
         assetManager.load("tiles/hpBar.png", Texture.class);
         assetManager.load("tiles/Portal.png", Texture.class);
         assetManager.load("tiles/grass.png", Texture.class);
+        assetManager.load("tiles/grass1.png", Texture.class);
+        assetManager.load("tiles/grass2.png", Texture.class);
+        assetManager.load("tiles/grass3.png", Texture.class);
+        assetManager.load("tiles/grass4.png", Texture.class);
+        assetManager.load("tiles/grass5.png", Texture.class);
+        assetManager.load("tiles/flower1.png", Texture.class);
+        assetManager.load("tiles/flower2.png", Texture.class);
+        assetManager.load("tiles/flower3.png", Texture.class);
+        assetManager.load("tiles/flower4.png", Texture.class);
+        assetManager.load("tiles/bush1.png", Texture.class);
+        assetManager.load("tiles/bush2.png", Texture.class);
+        assetManager.load("tiles/bush3.png", Texture.class);
 
         assetManager.load("icons/items/Coin.png", Texture.class);
         assetManager.load("icons/items/PileOfCoins.png", Texture.class);
@@ -146,6 +158,10 @@ public class Storage {
         assetManager.load("character/Paladin/Dying.png", Texture.class);
         assetManager.load("character/Paladin/Gobbo.png", Texture.class);
 
+        assetManager.load("character/Mercenary/Walking.png", Texture.class);
+        assetManager.load("character/Mercenary/Idle.png", Texture.class);
+        assetManager.load("character/Mercenary/Dying.png", Texture.class);
+        assetManager.load("character/Mercenary/Mercenary.png", Texture.class);
 
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);

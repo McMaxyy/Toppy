@@ -11,6 +11,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
+import ui.ScreenShake;
 
 public class Ghost {
     public Rectangle bounds;
@@ -136,7 +137,7 @@ public class Ghost {
     private void updateMovement(float delta) {
         float distanceToPlayer = getDistanceToPlayer();
 
-        if (distanceToPlayer <= 10f) {
+        if (distanceToPlayer <= 20f) {
             startExplosion();
         } else if (isPlayerInRadius()) {
             moveTowardsPlayer();
@@ -258,6 +259,8 @@ public class Ghost {
             stats.takeDamage(damage);
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
+
+            ScreenShake.rumble(0.5f, 0.3f);
         }
 
         if (stats.isDead()) {

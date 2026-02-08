@@ -235,15 +235,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
         }
 
         inventory.update(delta, this, gameP);
-
-        if (inventory.isOpen() && !isPaused) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
-                Item droppedItem = inventory.dropItem(inventory.getSelectedSlot());
-                if (droppedItem != null && itemSpawner != null) {
-                    itemSpawner.dropItem(droppedItem, this.getPosition());
-                }
-            }
-        }
     }
 
     private boolean isPlayerInSmokeBomb() {
@@ -500,6 +491,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
 
     public void die() {
         gameStarted = false;
+        body.setLinearVelocity(0, 0);
 
         if (!dyingAnimationStarted) {
             getAnimationManager().setState(AnimationManager.State.DYING, "Player");

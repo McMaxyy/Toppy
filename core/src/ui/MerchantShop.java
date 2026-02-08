@@ -29,12 +29,10 @@ public class MerchantShop {
     private static final int ITEM_SLOTS = 3;
     private static final int TOTAL_SHOP_SLOTS = GEAR_SLOTS + ITEM_SLOTS;
 
-    // UI components
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
     private final Texture coinIconTexture;
 
-    // UI settings
     private final int SLOT_SIZE = 50;
     private final int SLOT_PADDING = 8;
     private final int UI_PADDING = 20;

@@ -17,6 +17,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import config.Storage;
+import entities.PlayerClass;
 import entities.PlayerStats;
 import game.GameProj;
 import items.Item;
@@ -133,6 +134,33 @@ public class Inventory {
         }
     }
 
+    public void removeItemByReference(Item item) {
+        // Find and remove one instance of this item
+        for (int i = 0; i < MAX_SLOTS; i++) {
+            if (items[i] != null && items[i].canStackWith(item)) {
+                int count = itemCounts.getOrDefault(i, 1);
+                if (count > 1) {
+                    itemCounts.put(i, count - 1);
+                } else {
+                    items[i] = null;
+                    itemCounts.remove(i);
+                }
+                return;
+            }
+        }
+    }
+
+    public int getItemCountForConsumable(Item consumable) {
+        if (consumable == null) return 0;
+
+        for (int i = 0; i < MAX_SLOTS; i++) {
+            if (items[i] != null && items[i].canStackWith(consumable)) {
+                return itemCounts.getOrDefault(i, 0);
+            }
+        }
+        return 0;
+    }
+
     public Item getItem(int slot) {
         if (slot >= 0 && slot < MAX_SLOTS) {
             return items[slot];
@@ -154,15 +182,42 @@ public class Inventory {
             return;
         }
 
-        Item previousItem = equipment.equipItem(item, player);
+        if (item.getType() == Item.ItemType.WEAPON) {
+            if (item.getName().endsWith("Spear") &&
+                    player.getPlayerClass().equals(PlayerClass.MERCENARY)) {
+                Item previousItem = equipment.equipItem(item, player);
 
-        removeItem(inventorySlot);
+                removeItem(inventorySlot);
 
-        if (previousItem != null) {
-            addItem(previousItem);
+                if (previousItem != null) {
+                    addItem(previousItem);
+                }
+
+                SoundManager.getInstance().playPickupSound();
+            } else if (item.getName().endsWith("Sword") &&
+                    player.getPlayerClass().equals(PlayerClass.PALADIN)) {
+                Item previousItem = equipment.equipItem(item, player);
+
+                removeItem(inventorySlot);
+
+                if (previousItem != null) {
+                    addItem(previousItem);
+                }
+
+                SoundManager.getInstance().playPickupSound();
+            }
+        } else {
+            Item previousItem = equipment.equipItem(item, player);
+
+            removeItem(inventorySlot);
+
+            if (previousItem != null) {
+                addItem(previousItem);
+            }
+
+            SoundManager.getInstance().playPickupSound();
         }
 
-        SoundManager.getInstance().playPickupSound();
     }
 
     public void unequipItemToInventory(EquipmentSlot slot, entities.Player player) {
@@ -265,7 +320,14 @@ public class Inventory {
                 selectingEquipmentSlot = false;
 
                 if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-                    useSelectedItem(player, gameP);
+                    Item item = items[selectedSlot];
+
+                    // Check if it's a consumable - start dragging it
+                    if (item != null && item.getType() == Item.ItemType.CONSUMABLE) {
+                        player.getAbilityManager().startDraggingConsumable(item);
+                    } else {
+                        useSelectedItem(player, gameP);
+                    }
                 }
             }
         }

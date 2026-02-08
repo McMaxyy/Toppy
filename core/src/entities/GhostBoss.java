@@ -94,8 +94,7 @@ public class GhostBoss {
     private int roomHeight;
     private int tileSize;
 
-    // Pooled projectile system - pool of 5 for boss + duplicates
-    private Projectile[] projectilePool = new Projectile[5];
+    private Projectile[] projectilePool = new Projectile[20];
     private int nextProjectileIndex = 0;
     private World world;
 
@@ -332,7 +331,6 @@ public class GhostBoss {
     }
 
     private void fireProjectileFrom(Vector2 position) {
-        // Find next available projectile in pool
         Projectile projectile = getNextAvailableProjectile();
         if (projectile != null) {
             Vector2 playerPos = player.getPosition();
@@ -342,7 +340,6 @@ public class GhostBoss {
     }
 
     private Projectile getNextAvailableProjectile() {
-        // Try to find an inactive projectile starting from next index
         int startIndex = nextProjectileIndex;
         do {
             if (!projectilePool[nextProjectileIndex].isActive()) {
@@ -353,7 +350,6 @@ public class GhostBoss {
             nextProjectileIndex = (nextProjectileIndex + 1) % projectilePool.length;
         } while (nextProjectileIndex != startIndex);
 
-        // If all projectiles are active, forcibly reuse the next one
         Projectile result = projectilePool[nextProjectileIndex];
         nextProjectileIndex = (nextProjectileIndex + 1) % projectilePool.length;
         return result;
@@ -576,10 +572,8 @@ public class GhostBoss {
     }
 
     private void teleportToCorners() {
-        // Boss goes to corner 0
         body.setTransform(roomCorners[0], 0f);
 
-        // Duplicates go to other corners
         for (int i = 0; i < duplicates.size() && i < 3; i++) {
             duplicates.get(i).position.set(roomCorners[i + 1]);
         }
@@ -600,24 +594,20 @@ public class GhostBoss {
     public void render(SpriteBatch batch) {
         if (markForRemoval) return;
 
-        // Render ghostlings
         for (Ghost ghost : spawnedGhostlings) {
             ghost.render(batch);
         }
 
-        // Render active projectiles
         for (Projectile proj : projectilePool) {
             if (proj.isActive()) {
                 proj.render(batch);
             }
         }
 
-        // Render duplicates
         for (GhostBossDuplicate duplicate : duplicates) {
             renderDuplicate(batch, duplicate);
         }
 
-        // Render main boss
         TextureRegion currentFrame = getCurrentFrame();
         if (currentFrame != null) {
             TextureRegion frame = new TextureRegion(currentFrame);
@@ -630,7 +620,6 @@ public class GhostBoss {
             if (isJustHit && !isInvulnerableDuringDuplication) {
                 batch.setColor(1f, 0.5f, 0.5f, 1f);
             } else if (isInvulnerableDuringDuplication) {
-                // Pulsing effect during duplication
                 float pulse = (float) Math.sin(duplicationTimer * 10f) * 0.2f + 0.8f;
                 batch.setColor(0.8f, 0.6f, 1f, pulse);
             }
@@ -641,7 +630,6 @@ public class GhostBoss {
     }
 
     private void renderDuplicate(SpriteBatch batch, GhostBossDuplicate duplicate) {
-        // Semi-transparent duplicate
         batch.setColor(0.7f, 0.5f, 0.9f, 0.7f);
 
         TextureRegion currentFrame = getCurrentFrame();
@@ -695,7 +683,7 @@ public class GhostBoss {
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
 
-            ScreenShake.rumble(3f, 0.3f);
+            ScreenShake.rumble(0.5f, 0.3f);
         }
 
         if (stats.isDead()) {
@@ -708,12 +696,10 @@ public class GhostBoss {
     }
 
     public void dispose() {
-        // Projectile bodies are destroyed by World, just clear references
         for (int i = 0; i < projectilePool.length; i++) {
             projectilePool[i] = null;
         }
 
-        // Dispose ghostlings
         for (Ghost ghost : spawnedGhostlings) {
             if (ghost.getBody() != null) {
                 world.destroyBody(ghost.getBody());

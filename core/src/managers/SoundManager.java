@@ -47,6 +47,7 @@ public class SoundManager implements Disposable {
     public static final String SFX_SMOKEBOMB_ABILITY = "smoke_sound";
     public static final String SFX_SPRINT_ABILITY = "sprint_sound";
     public static final String SFX_USE_POTION = "potion_sound";
+    public static final String SFX_LEMMY = "lemmy_sound";
 
 
     private Music grassRunningSound;
@@ -115,6 +116,9 @@ public class SoundManager implements Disposable {
 
             Sound potionSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Health.mp3"));
             soundEffects.put(SFX_USE_POTION, potionSound);
+
+            Sound lemmySound = Gdx.audio.newSound(Gdx.files.internal("sounds/Lemmy.mp3"));
+            soundEffects.put(SFX_LEMMY, lemmySound);
 
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
@@ -222,6 +226,12 @@ public class SoundManager implements Disposable {
                 }
                 break;
         }
+    }
+
+    public void playLemmyHitSound() {
+        if (!sfxEnabled) return;
+
+        playSound(SFX_LEMMY);
     }
 
     public void playPotionSound() {

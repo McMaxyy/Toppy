@@ -29,10 +29,85 @@ public class Chunk {
     private final List<BossKitty> bossKitty;
     private final List<Cyclops> cyclopsList;
     private final List<Lemmy> lemmys;
+    private final List<Decoration> decorations;
     private final World world;
     private final Player player;
     private final AnimationManager animationManager;
     private boolean bodiesAdded = false;
+
+    private static final List<DecorationType> DECORATION_TYPES = new ArrayList<>();
+
+    static {
+        initializeDecorationTypes();
+    }
+
+    private static void initializeDecorationTypes() {
+        DECORATION_TYPES.clear();
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/grass1.png", Texture.class),
+                16, 16, 50
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/grass2.png", Texture.class),
+                16, 16, 50
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/grass3.png", Texture.class),
+                16, 16, 50
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/grass4.png", Texture.class),
+                16, 16, 50
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/grass5.png", Texture.class),
+                16, 16, 50
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/flower1.png", Texture.class),
+                32, 32, 25
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/flower2.png", Texture.class),
+                32, 32, 25
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/flower3.png", Texture.class),
+                32, 32, 25
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/flower4.png", Texture.class),
+                32, 32, 25
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/bush1.png", Texture.class),
+                32, 32, 30
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/bush2.png", Texture.class),
+                32, 32, 20
+        ));
+
+        DECORATION_TYPES.add(new DecorationType(
+                Storage.assetManager.get("tiles/bush3.png", Texture.class),
+                32, 32, 30
+        ));
+    }
+
+    public static void reinitializeDecorationTypes() {
+        initializeDecorationTypes();
+    }
 
     public Chunk(int chunkX, int chunkY, int chunkSize, int tileSize, Random random, World world, Player player, AnimationManager animationManager) {
         this.animationManager = animationManager;
@@ -48,10 +123,47 @@ public class Chunk {
         this.bossKitty = new ArrayList<>();
         this.cyclopsList = new ArrayList<>();
         this.lemmys = new ArrayList<>();
+        this.decorations = new ArrayList<>();
         this.player = player;
 
+        generateDecorations(random);
         generateObstacles(random);
         generateEnemyClumps(random);
+    }
+
+    private void generateDecorations(Random random) {
+        for (DecorationType decorationType : DECORATION_TYPES) {
+            int count = decorationType.getDensity();
+
+            for (int i = 0; i < count; i++) {
+                int padding = (int) Math.max(decorationType.getWidth(), decorationType.getHeight());
+                int availableSpace = chunkSize * tileSize - (padding * 2);
+
+                if (availableSpace <= 0) {
+                    continue;
+                }
+
+                // Calculate bounds to keep decorations within chunk
+                float minX = chunkX * chunkSize * tileSize;
+                float minY = chunkY * chunkSize * tileSize;
+                float maxX = (chunkX + 1) * chunkSize * tileSize - decorationType.getWidth();
+                float maxY = (chunkY + 1) * chunkSize * tileSize - decorationType.getHeight();
+
+                // Generate position within safe bounds
+                float x = minX + random.nextFloat() * (maxX - minX);
+                float y = minY + random.nextFloat() * (maxY - minY);
+
+                Decoration decoration = new Decoration(
+                        decorationType.getTexture(),
+                        x,
+                        y,
+                        decorationType.getWidth(),
+                        decorationType.getHeight()
+                );
+
+                decorations.add(decoration);
+            }
+        }
     }
 
     private void generateObstacles(Random random) {
@@ -130,64 +242,6 @@ public class Chunk {
 
             clump += random.nextInt(2);
         }
-    }
-
-    public void spawnBossKitty(float playerRadius) {
-        Vector2 playerPosition = player.getPosition();
-        Vector2 spawnPosition = getRandomPositionWithinRadius(playerPosition, playerRadius);
-
-        Rectangle bossBounds = new Rectangle(spawnPosition.x, spawnPosition.y, 32, 32);
-
-        if (!isOverlapping(bossBounds) && !isOutOfBounds(bossBounds)) {
-            Body bossBody = createEnemyBody(world, spawnPosition.x, spawnPosition.y, 32, 32);
-            BossKitty boss = new BossKitty(bossBounds, bossBody, player, getAnimationManager(), 3);
-            bossBody.setUserData(boss);
-            bossKitty.add(boss);
-        } else {
-            Vector2 fallbackPosition = getFallbackPosition(playerPosition);
-            Body bossBody = createEnemyBody(world, fallbackPosition.x, fallbackPosition.y, 32, 32);
-            BossKitty boss = new BossKitty(new Rectangle(fallbackPosition.x, fallbackPosition.y, 32, 32),
-                    bossBody, player, getAnimationManager(), 3);
-            bossBody.setUserData(boss);
-            bossKitty.add(boss);
-        }
-    }
-
-    public void spawnCyclops(float playerRadius) {
-        Vector2 playerPosition = player.getPosition();
-        Vector2 spawnPosition = getRandomPositionWithinRadius(playerPosition, playerRadius);
-
-        Rectangle bossBounds = new Rectangle(spawnPosition.x, spawnPosition.y, 36, 36);
-
-        if (!isOverlapping(bossBounds) && !isOutOfBounds(bossBounds)) {
-            Body bossBody = createEnemyBody(world, spawnPosition.x, spawnPosition.y, 36, 36);
-            Cyclops cyclops = new Cyclops(bossBounds, bossBody, player, getAnimationManager(), 3);
-            bossBody.setUserData(cyclops);
-            cyclopsList.add(cyclops);
-        } else {
-            Vector2 fallbackPosition = getFallbackPosition(playerPosition);
-            Body bossBody = createEnemyBody(world, fallbackPosition.x, fallbackPosition.y, 36, 36);
-            Cyclops cyclops = new Cyclops(new Rectangle(fallbackPosition.x, fallbackPosition.y, 36, 36),
-                    bossBody, player, getAnimationManager(), 3);
-            bossBody.setUserData(cyclops);
-            cyclopsList.add(cyclops);
-        }
-    }
-
-    private Vector2 getFallbackPosition(Vector2 playerPosition) {
-        float fallbackOffset = 50f;
-        return new Vector2(playerPosition.x + fallbackOffset, playerPosition.y + fallbackOffset);
-    }
-
-    private Vector2 getRandomPositionWithinRadius(Vector2 center, float radius) {
-        Random random = new Random();
-        float angle = random.nextFloat() * 360f;
-        float distance = random.nextFloat() * radius;
-
-        float offsetX = (float) Math.cos(Math.toRadians(angle)) * distance;
-        float offsetY = (float) Math.sin(Math.toRadians(angle)) * distance;
-
-        return new Vector2(center.x + offsetX, center.y + offsetY);
     }
 
     private boolean isOutOfBounds(Rectangle bounds) {
@@ -311,7 +365,6 @@ public class Chunk {
             }
             pendingEnemies.clear();
         } else if (!Storage.isBossAlive()) {
-            // Boss stage
             for (EnemyInfo enemyInfo : pendingEnemies) {
                 Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
                 bossKitty.add(new BossKitty(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
@@ -473,6 +526,10 @@ public class Chunk {
                 batch.draw(groundTexture, drawX, drawY, tileSize, tileSize);
             }
         }
+
+        for (Decoration decoration : decorations) {
+            decoration.render(batch);
+        }
     }
 
     public void renderObstacles(SpriteBatch batch, float playerY, boolean renderBehind) {
@@ -525,6 +582,8 @@ public class Chunk {
             lemmy.dispose();
         }
         lemmys.clear();
+
+        decorations.clear();
     }
 
     public void updateEnemies() {

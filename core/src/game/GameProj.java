@@ -145,12 +145,14 @@ public class GameProj implements Screen, ContactListener {
 
         createComponents();
 
-        itemSpawner.spawnItem("valkyries_iron_helmet", player.getPosition());
+        itemSpawner.spawnItem("berserkers_iron_helmet", player.getPosition());
         itemSpawner.spawnItem("berserkers_iron_sword", player.getPosition());
-        itemSpawner.spawnItem("deceptors_iron_boots", player.getPosition());
-        itemSpawner.spawnItem("protectors_iron_armor", player.getPosition());
-        itemSpawner.spawnItem("barbarians_iron_shield", player.getPosition());
-        itemSpawner.spawnItem("deceptors_iron_gloves", player.getPosition());
+        itemSpawner.spawnItem("berserkers_iron_boots", player.getPosition());
+        itemSpawner.spawnItem("berserkers_iron_armor", player.getPosition());
+        itemSpawner.spawnItem("berserkers_iron_shield", player.getPosition());
+        itemSpawner.spawnItem("berserkers_iron_gloves", player.getPosition());
+        itemSpawner.spawnItem("health_potion", player.getPosition());
+        itemSpawner.spawnItem("small_health_potion", player.getPosition());
 
         setupCursorConfinement();
 //        spawnHerman();
@@ -596,6 +598,12 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        for (Lemmy lemmy : globalLemmys) {
+            if (lemmy.getBody() != null) {
+                lemmy.getBody().setActive(false);
+            }
+        }
+
         SoundManager.getInstance().stopGrassRunning();
         SoundManager.getInstance().playDungeonMusic();
 
@@ -698,6 +706,12 @@ public class GameProj implements Screen, ContactListener {
         inDungeon = false;
         itemSpawner.clear();
 
+        for (Lemmy lemmy : globalLemmys) {
+            if (lemmy.getBody() != null) {
+                lemmy.getBody().setActive(true);
+            }
+        }
+
         SoundManager.getInstance().stopStoneRunning();
         SoundManager.getInstance().playForestMusic();
 
@@ -732,6 +746,7 @@ public class GameProj implements Screen, ContactListener {
         }
 
         hudLabel.setText("Enemies killed: " + enemiesKilled);
+        spawnLemmys();
     }
 
     private void exitDungeon() {
@@ -772,6 +787,12 @@ public class GameProj implements Screen, ContactListener {
 
     private void enterEndlessRoom() {
         SoundManager.getInstance().playDungeonMusic();
+
+        for (Lemmy lemmy : globalLemmys) {
+            if (lemmy.getBody() != null) {
+                lemmy.getBody().setActive(false);
+            }
+        }
 
         inEndlessRoom = true;
         inDungeon = false;
@@ -1122,7 +1143,7 @@ public class GameProj implements Screen, ContactListener {
             merchant.render(batch);
 
             if (!isPaused && !merchantShopOpen && merchant.isPlayerNear(player.getPosition()) &&
-                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                    Gdx.input.isKeyJustPressed(Input.Keys.F)) {
                 merchantShop.open();
                 merchantShopOpen = true;
             }
@@ -1135,7 +1156,7 @@ public class GameProj implements Screen, ContactListener {
             portal.render(batch);
 
             if (!isPaused && !merchantShopOpen && portal.isPlayerNear(player.getPosition(), 20f) &&
-                    Gdx.input.isKeyJustPressed(Input.Keys.E) && !portal.getIsCleared()) {
+                    Gdx.input.isKeyJustPressed(Input.Keys.F) && !portal.getIsCleared()) {
                 enterDungeon();
                 break;
             }
@@ -1146,7 +1167,7 @@ public class GameProj implements Screen, ContactListener {
             endlessPortal.render(batch);
 
             if (endlessPortal.isPlayerNear(player.getPosition(), 20f) &&
-                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                    Gdx.input.isKeyJustPressed(Input.Keys.F)) {
                 enterEndlessRoom();
             }
         }
@@ -1274,7 +1295,7 @@ public class GameProj implements Screen, ContactListener {
             }
 
             if (!isPaused && currentDungeon.isPlayerAtBossPortal(player.getPosition()) &&
-                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                    Gdx.input.isKeyJustPressed(Input.Keys.F)) {
                 batch.end();
                 enterBossRoom();
                 return;
@@ -1361,7 +1382,7 @@ public class GameProj implements Screen, ContactListener {
             }
 
             if (!isPaused && currentBossRoom.isPlayerAtExit(player.getPosition()) &&
-                    Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                    Gdx.input.isKeyJustPressed(Input.Keys.F)) {
                 batch.end();
                 exitBossRoom();
                 return;
@@ -1889,7 +1910,10 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void spawnLemmys() {
-        int lemmyCount = 1 + random.nextInt(3);
+        if (random.nextInt(10) < 5)
+            return;
+
+        int lemmyCount = 1 + random.nextInt(2);
 
         int halfMapChunks = MAP_SIZE_CHUNKS / 2;
         int minChunk = -halfMapChunks;
@@ -2058,10 +2082,67 @@ public class GameProj implements Screen, ContactListener {
     @Override
     public void dispose() {
         try {
+            try {
+                Gdx.input.setCursorCatched(false);
+                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
+            } catch (Exception e) {
+                System.err.println("Error releasing cursor: " + e.getMessage());
+            }
+
             if (player != null) {
                 player.cleanupSpears();
                 player = null;
             }
+
+            for (Lemmy lemmy : new ArrayList<>(globalLemmys)) {
+                if (lemmy.getBody() != null && world != null && world.getWorld() != null) {
+                    try {
+                        world.getWorld().destroyBody(lemmy.getBody());
+                    } catch (Exception e) {
+                        System.err.println("Error destroying Lemmy body: " + e.getMessage());
+                    }
+                    lemmy.clearBody();
+                }
+                lemmy.dispose();
+            }
+            globalLemmys.clear();
+
+            if (herman != null) {
+                if (herman.getBody() != null && world != null && world.getWorld() != null) {
+                    try {
+                        world.getWorld().destroyBody(herman.getBody());
+                    } catch (Exception e) {
+                        System.err.println("Error destroying Herman body: " + e.getMessage());
+                    }
+                }
+                herman.dispose();
+                herman = null;
+            }
+
+            if (hermanDuplicate != null) {
+                if (hermanDuplicate.getBody() != null && world != null && world.getWorld() != null) {
+                    try {
+                        world.getWorld().destroyBody(hermanDuplicate.getBody());
+                    } catch (Exception e) {
+                        System.err.println("Error destroying Herman duplicate body: " + e.getMessage());
+                    }
+                }
+                hermanDuplicate.dispose();
+                hermanDuplicate = null;
+            }
+
+            if (world != null && world.getWorld() != null) {
+                for (Body barrier : hermanArenaBarriers) {
+                    if (barrier != null) {
+                        try {
+                            world.getWorld().destroyBody(barrier);
+                        } catch (Exception e) {
+                            System.err.println("Error destroying barrier: " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            hermanArenaBarriers.clear();
 
             if (chunkGenerator != null && !chunkGenerator.isShutdown()) {
                 chunkGenerator.shutdownNow();
@@ -2078,6 +2159,22 @@ public class GameProj implements Screen, ContactListener {
                 playerStatusUI.dispose();
             }
 
+            if (settings != null) {
+                settings.dispose();
+                settings = null;
+            }
+
+            if (merchantShop != null) {
+                merchantShop.dispose();
+                merchantShop = null;
+            }
+
+            if (merchant != null) {
+                merchant.dispose(world != null ? world.getWorld() : null);
+                merchant = null;
+            }
+
+            // 8. Clean up chunks
             if (pendingChunks != null) {
                 pendingChunks.clear();
             }
@@ -2091,21 +2188,7 @@ public class GameProj implements Screen, ContactListener {
                 chunks.clear();
             }
 
-            if (settings != null) {
-                settings.dispose();
-                settings = null;
-            }
-
-            if (merchantShop != null) {
-                merchantShop.dispose();
-                merchantShop = null;
-            }
-
-            if (merchant != null) {
-                merchant.dispose(world.getWorld());
-                merchant = null;
-            }
-
+            // 9. Clean up minimaps
             if (dungeonMinimap != null) {
                 dungeonMinimap.dispose();
                 dungeonMinimap = null;
@@ -2115,6 +2198,7 @@ public class GameProj implements Screen, ContactListener {
                 minimap = null;
             }
 
+            // 10. Clean up rooms/dungeons
             if (currentDungeon != null) {
                 currentDungeon.dispose();
                 currentDungeon = null;
@@ -2135,34 +2219,27 @@ public class GameProj implements Screen, ContactListener {
                 bossHealthUI = null;
             }
 
+            // 11. Clean up portals
             if (dungeonPortals != null) {
                 for (Portal portal : dungeonPortals) {
                     if (portal != null) {
-                        portal.dispose(world.getWorld());
+                        portal.dispose(world != null ? world.getWorld() : null);
                     }
                 }
                 dungeonPortals.clear();
             }
 
-            if (herman != null) {
-                if (herman.getBody() != null) {
-                    world.getWorld().destroyBody(herman.getBody());
-                }
-                herman.dispose();
-                herman = null;
+            if (endlessPortal != null && world != null) {
+                endlessPortal.dispose(world.getWorld());
+                endlessPortal = null;
             }
 
-            for (Body barrier : hermanArenaBarriers) {
-                if (barrier != null) {
-                    world.getWorld().destroyBody(barrier);
-                }
-            }
-            hermanArenaBarriers.clear();
-
+            // 12. Clean up status effects
             if (statusEffects != null) {
                 statusEffects.clear();
             }
 
+            // 13. Clean up stages
             if (hudStage != null) {
                 hudStage.dispose();
                 hudStage = null;
@@ -2172,56 +2249,25 @@ public class GameProj implements Screen, ContactListener {
                 stage = null;
             }
 
+            // 14. Clean up batch
             if (batch != null) {
                 batch.dispose();
                 batch = null;
             }
 
-            if (world != null) {
-                world.dispose();
-                world = null;
-            }
-
-            if (herman != null) {
-                if (herman.getBody() != null) {
-                    world.getWorld().destroyBody(herman.getBody());
-                }
-                herman.dispose();
-                herman = null;
-            }
-
-            if (hermanDuplicate != null && world != null) {
-                if (hermanDuplicate.getBody() != null) {
-                    world.getWorld().destroyBody(hermanDuplicate.getBody());
-                }
-                hermanDuplicate.dispose();
-                hermanDuplicate = null;
-            }
-
-            if (endlessPortal != null) {
-                if (world != null) {
-                    endlessPortal.dispose(world.getWorld());
-                    endlessPortal = null;
-                }
-            }
-
-            for (Lemmy lemmy : new ArrayList<>(globalLemmys)) {
-                if (lemmy.getBody() != null && world != null) {
-                    try {
-                        world.getWorld().destroyBody(lemmy.getBody());
-                    } catch (Exception e) {
-                    }
-                    lemmy.clearBody();
-                }
-                lemmy.dispose();
-            }
-            globalLemmys.clear();
-
+            // 15. Clean up player health popup
             if (playerHealthPopup != null) {
                 playerHealthPopup.clear();
                 playerHealthPopup = null;
             }
 
+            // 16. FINALLY dispose world - LAST!
+            if (world != null) {
+                world.dispose();
+                world = null;
+            }
+
+            // 17. Dispose sound manager
             SoundManager.getInstance().dispose();
 
             System.gc();
@@ -2425,52 +2471,6 @@ public class GameProj implements Screen, ContactListener {
             newFilter.maskBits = CollisionFilter.OBSTACLE | CollisionFilter.ENEMY;
             projectileFixture.setFilterData(newFilter);
         }
-
-        // ==== REFLECTED PROJECTILE HIT ENEMY ====
-        if ((categoryA == CollisionFilter.REFLECT && categoryB == CollisionFilter.ENEMY) ||
-                (categoryB == CollisionFilter.REFLECT && categoryA == CollisionFilter.ENEMY)) {
-
-            Body reflectBody = (categoryA == CollisionFilter.REFLECT) ? fixtureA.getBody() : fixtureB.getBody();
-            Body enemyBody = (categoryA == CollisionFilter.ENEMY) ? fixtureA.getBody() : fixtureB.getBody();
-
-            if (!inDungeon && !inBossRoom) {
-                for (Chunk chunk : chunks.values()) {
-                    for (Enemy enemy : chunk.getEnemies()) {
-                            if (enemy.getProjectile().getBody() == reflectBody) {
-                                for (Enemy targetEnemy : chunk.getEnemies()) {
-                                    if (targetEnemy.getBody() == enemyBody) {
-                                        targetEnemy.takeDamage(enemy.getProjectile().getDamage());
-                                        break;
-                                    }
-                                }
-                                for (BossKitty boss : chunk.getBossKitty()) {
-                                    if (boss.getBody() == enemyBody) {
-                                        boss.takeDamage(enemy.getProjectile().getDamage());
-                                        break;
-                                    }
-                                }
-                                break;
-                            }
-                    }
-                }
-            } else if (inDungeon && currentDungeon != null) {
-                for (DungeonEnemy enemy : currentDungeon.getEnemies()) {
-                    if (enemy.getProjectile().getBody() == reflectBody) {
-                        for (DungeonEnemy targetEnemy : currentDungeon.getEnemies()) {
-                            if (targetEnemy.getBody() == enemyBody) {
-                                targetEnemy.takeDamage(enemy.getProjectile().getDamage());
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                }
-            } else if (inBossRoom && currentBossRoom != null) {
-                BossKitty boss = currentBossRoom.getBoss();
-                Cyclops cyclops = currentBossRoom.getCyclops();
-            }
-        }
-
 
         if ((fixtureA.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0 &&
                 (fixtureB.getFilterData().categoryBits & CollisionFilter.ENEMY_ENEMY) != 0) {

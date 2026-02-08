@@ -472,7 +472,6 @@ public class Enemy {
     }
 
     public void dispose() {
-        // Projectile body is destroyed by World, just clear reference
         if (projectile != null) {
             projectile = null;
         }

@@ -23,6 +23,7 @@ import java.util.Map;
 
 public class AbilityManager {
     private static final int NUM_ABILITY_SLOTS = 5;
+    private static final int NUM_CONSUMABLE_SLOTS = 2;
 
     private Ability[] abilities;
     private Player player;
@@ -37,9 +38,14 @@ public class AbilityManager {
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
 
-    private static final int SLOT_SIZE = 45;
+    private static final int SLOT_SIZE = 55;
     private static final int SLOT_PADDING = 5;
     private static final int SEPARATOR_SPACE = 15;
+
+    // Consumable slots (E and Q keys)
+    private Item[] consumableSlots;
+    private Item draggingConsumable = null;
+    private int hoveredConsumableSlot = -1;
 
     private float offhandCooldown = 0f;
     private static final float BASE_OFFHAND_COOLDOWN_TIME = 2.0f;
@@ -61,6 +67,7 @@ public class AbilityManager {
         this.gameProj = gameProj;
         this.playerClass = playerClass;
         this.abilities = new Ability[NUM_ABILITY_SLOTS];
+        this.consumableSlots = new Item[NUM_CONSUMABLE_SLOTS];
         this.activeEffects = new HashMap<>();
         this.shapeRenderer = new ShapeRenderer();
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
@@ -168,7 +175,6 @@ public class AbilityManager {
         if (swordCooldown > 0) swordCooldown -= delta;
         if (spearCooldown > 0) spearCooldown -= delta;
 
-        // Update status effects
         for (Map.Entry<Object, List<StatusEffect>> entry : new HashMap<>(activeEffects).entrySet()) {
             List<StatusEffect> effects = entry.getValue();
             List<StatusEffect> toRemove = new ArrayList<>();
@@ -190,6 +196,8 @@ public class AbilityManager {
         skillTree.update(delta, gameProj);
         handleDragDrop();
         updateSlotBarHover();
+        handleConsumableDragDrop();
+        updateConsumableSlotHover();
     }
 
     private void handleDragDrop() {
@@ -212,16 +220,56 @@ public class AbilityManager {
         }
     }
 
+    private void handleConsumableDragDrop() {
+        if (draggingConsumable == null) return;
+
+        if (!Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+            int screenHeight = Gdx.graphics.getHeight();
+            float mouseX = Gdx.input.getX();
+            float mouseY = screenHeight - Gdx.input.getY();
+
+            int droppedSlot = getConsumableSlotAtPosition(mouseX, mouseY);
+            if (droppedSlot >= 0) {
+                consumableSlots[droppedSlot] = draggingConsumable;
+            }
+
+            draggingConsumable = null;
+        }
+    }
+
     private int getSlotAtPosition(float mouseX, float mouseY) {
         int screenWidth = Gdx.graphics.getWidth();
 
-        int totalSlots = 7;
-        int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (2 * SEPARATOR_SPACE);
+        int totalSlots = 9;
+        int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (4 * SEPARATOR_SPACE);
         float startX = (screenWidth - totalWidth) / 2f;
         float startY = 35f;
 
         for (int i = 0; i < NUM_ABILITY_SLOTS; i++) {
             float slotX = startX + i * (SLOT_SIZE + SLOT_PADDING);
+
+            if (mouseX >= slotX && mouseX <= slotX + SLOT_SIZE &&
+                    mouseY >= startY && mouseY <= startY + SLOT_SIZE) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private int getConsumableSlotAtPosition(float mouseX, float mouseY) {
+        int screenWidth = Gdx.graphics.getWidth();
+
+        int totalSlots = 9;
+        int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (4 * SEPARATOR_SPACE);
+        float startX = (screenWidth - totalWidth) / 2f;
+        float startY = 35f;
+
+        float consumableStartX = startX + (NUM_ABILITY_SLOTS * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE +
+                (2 * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
+
+        for (int i = 0; i < NUM_CONSUMABLE_SLOTS; i++) {
+            float slotX = consumableStartX + i * (SLOT_SIZE + SLOT_PADDING);
 
             if (mouseX >= slotX && mouseX <= slotX + SLOT_SIZE &&
                     mouseY >= startY && mouseY <= startY + SLOT_SIZE) {
@@ -254,6 +302,19 @@ public class AbilityManager {
         }
     }
 
+    private void updateConsumableSlotHover() {
+        if (draggingConsumable != null) {
+            hoveredConsumableSlot = -1;
+            return;
+        }
+
+        int screenHeight = Gdx.graphics.getHeight();
+        float mouseX = Gdx.input.getX();
+        float mouseY = screenHeight - Gdx.input.getY();
+
+        hoveredConsumableSlot = getConsumableSlotAtPosition(mouseX, mouseY);
+    }
+
     private void updateVisualEffects(float delta) {
         for (int i = activeVisuals.size() - 1; i >= 0; i--) {
             AbilityVisual visual = activeVisuals.get(i);
@@ -266,7 +327,7 @@ public class AbilityManager {
     }
 
     public void handleInput() {
-        if (skillTree.isOpen()) return;
+        if (skillTree.isOpen() || !Player.gameStarted) return;
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             useAbility(0);
@@ -278,6 +339,13 @@ public class AbilityManager {
             useAbility(3);
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) {
             useAbility(4);
+        }
+
+        // Consumable slots
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+            useConsumable(0);
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+            useConsumable(1);
         }
 
         if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
@@ -304,6 +372,41 @@ public class AbilityManager {
                 System.out.println(abilities[slot].getName() + " is on cooldown!");
             }
         }
+    }
+
+    private void useConsumable(int slot) {
+        if (slot >= 0 && slot < NUM_CONSUMABLE_SLOTS && consumableSlots[slot] != null) {
+            Item consumable = consumableSlots[slot];
+
+            int count = player.getInventory().getItemCountForConsumable(consumable);
+            if (count > 0) {
+                consumable.use(player);
+
+                if (consumable.getName().contains("Potion")) {
+                    SoundManager.getInstance().playPotionSound();
+                }
+
+                player.getInventory().removeItemByReference(consumable);
+            }
+        }
+    }
+
+    public void startDraggingConsumable(Item item) {
+        if (item != null && item.getType() == Item.ItemType.CONSUMABLE) {
+            draggingConsumable = item;
+        }
+    }
+
+    public void clearDraggingConsumable() {
+        draggingConsumable = null;
+    }
+
+    public boolean isDraggingConsumable() {
+        return draggingConsumable != null;
+    }
+
+    public Item getDraggingConsumable() {
+        return draggingConsumable;
     }
 
     private void useOffhandAttack() {
@@ -881,8 +984,8 @@ public class AbilityManager {
         int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
 
-        int totalSlots = 7;
-        int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (2 * SEPARATOR_SPACE);
+        int totalSlots = 9; // 5 abilities + 2 weapons + 2 consumables
+        int totalWidth = (totalSlots * SLOT_SIZE) + ((totalSlots - 1) * SLOT_PADDING) + (4 * SEPARATOR_SPACE);
 
         float startX = (screenWidth - totalWidth) / 2f;
         float startY = 35f;
@@ -891,26 +994,37 @@ public class AbilityManager {
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
+        // Render ability slots
         for (int i = 0; i < NUM_ABILITY_SLOTS; i++) {
             float slotX = startX + i * (SLOT_SIZE + SLOT_PADDING);
             renderAbilitySlot(slotX, startY, i);
         }
 
+        // Render weapon slots
         float attackStartX = startX + (NUM_ABILITY_SLOTS * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
 
         renderAttackSlot(attackStartX, startY, "LMB", player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.WEAPON));
         renderAttackSlot(attackStartX + SLOT_SIZE + SLOT_PADDING, startY, "RMB",
                 player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.OFFHAND));
 
+        // Render consumable slots
+        float consumableStartX = attackStartX + (2 * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
+        for (int i = 0; i < NUM_CONSUMABLE_SLOTS; i++) {
+            float slotX = consumableStartX + i * (SLOT_SIZE + SLOT_PADDING);
+            renderConsumableSlot(slotX, startY, i);
+        }
+
         shapeRenderer.end();
 
         batch.begin();
 
+        // Render ability icons
         for (int i = 0; i < NUM_ABILITY_SLOTS; i++) {
             float slotX = startX + i * (SLOT_SIZE + SLOT_PADDING);
             renderAbilityIcon(batch, slotX, startY, i);
         }
 
+        // Render weapon icons
         Item weapon = player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.WEAPON);
         if (weapon != null) {
             weapon.renderIcon(batch, attackStartX + 3, startY + 3, SLOT_SIZE - 6);
@@ -934,7 +1048,13 @@ public class AbilityManager {
             }
         }
 
-        // Render tooltip for hovered slot
+        // Render consumable icons and counts
+        for (int i = 0; i < NUM_CONSUMABLE_SLOTS; i++) {
+            float slotX = consumableStartX + i * (SLOT_SIZE + SLOT_PADDING);
+            renderConsumableIcon(batch, slotX, startY, i);
+        }
+
+        // Render tooltip for hovered ability slot
         if (hoveredSlotSkill != null && !skillTree.isDragging()) {
             float slotX = startX + hoveredSlotIndex * (SLOT_SIZE + SLOT_PADDING);
             float tooltipX = slotX;
@@ -942,7 +1062,7 @@ public class AbilityManager {
             skillTree.renderTooltipAt(batch, hoveredSlotSkill, tooltipX, tooltipY, screenWidth, screenHeight);
         }
 
-        // Highlight slot when dragging over it
+        // Highlight slot when dragging skill over it
         if (skillTree.isDragging()) {
             float mouseX = Gdx.input.getX();
             float mouseY = screenHeight - Gdx.input.getY();
@@ -959,6 +1079,30 @@ public class AbilityManager {
                 Gdx.gl.glLineWidth(1);
                 batch.begin();
             }
+        }
+
+        // Highlight consumable slot when dragging consumable over it
+        if (draggingConsumable != null) {
+            float mouseX = Gdx.input.getX();
+            float mouseY = screenHeight - Gdx.input.getY();
+            int targetSlot = getConsumableSlotAtPosition(mouseX, mouseY);
+
+            if (targetSlot >= 0) {
+                batch.end();
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+                Gdx.gl.glLineWidth(3);
+                shapeRenderer.setColor(Color.GREEN);
+                float slotX = consumableStartX + targetSlot * (SLOT_SIZE + SLOT_PADDING);
+                shapeRenderer.rect(slotX, startY, SLOT_SIZE, SLOT_SIZE);
+                shapeRenderer.end();
+                Gdx.gl.glLineWidth(1);
+                batch.begin();
+            }
+
+            // Draw the dragging consumable
+            batch.setColor(1f, 1f, 1f, 0.8f);
+            draggingConsumable.renderIcon(batch, mouseX - SLOT_SIZE / 2f, mouseY - SLOT_SIZE / 2f, SLOT_SIZE);
+            batch.setColor(1f, 1f, 1f, 1f);
         }
     }
 
@@ -1026,6 +1170,42 @@ public class AbilityManager {
         Gdx.gl.glLineWidth(1);
     }
 
+    private void renderConsumableSlot(float x, float y, int index) {
+        Item consumable = consumableSlots[index];
+        boolean isHovered = (index == hoveredConsumableSlot);
+        boolean isDragTarget = draggingConsumable != null && isHovered;
+
+        if (isDragTarget) {
+            shapeRenderer.setColor(0.4f, 0.6f, 0.4f, 0.9f);
+        } else if (consumable != null) {
+            int count = player.getInventory().getItemCountForConsumable(consumable);
+            if (count > 0) {
+                shapeRenderer.setColor(0.3f, 0.3f, 0.4f, 0.8f);
+            } else {
+                // Grayed out - no items left
+                shapeRenderer.setColor(0.2f, 0.2f, 0.25f, 0.6f);
+            }
+        } else {
+            shapeRenderer.setColor(0.2f, 0.2f, 0.25f, 0.6f);
+        }
+        shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE);
+
+        shapeRenderer.end();
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        Gdx.gl.glLineWidth(2);
+        if (isHovered && draggingConsumable != null) {
+            shapeRenderer.setColor(0.5f, 1f, 0.5f, 1f);
+        } else if (consumable != null) {
+            shapeRenderer.setColor(0.6f, 0.6f, 0.7f, 1f);
+        } else {
+            shapeRenderer.setColor(0.4f, 0.4f, 0.5f, 0.6f);
+        }
+        shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE);
+        shapeRenderer.end();
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        Gdx.gl.glLineWidth(1);
+    }
+
     private void renderAbilityIcon(SpriteBatch batch, float x, float y, int index) {
         Ability ability = abilities[index];
 
@@ -1063,6 +1243,50 @@ public class AbilityManager {
             font.draw(batch, cooldownText, x + (SLOT_SIZE - textWidth) / 2, y + SLOT_SIZE / 2 + 5);
             font.getData().setScale(1.0f);
         }
+    }
+
+    private void renderConsumableIcon(SpriteBatch batch, float x, float y, int index) {
+        Item consumable = consumableSlots[index];
+
+        // Draw key label
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.6f);
+        String keyLabel = index == 0 ? "E" : "Q";
+        font.draw(batch, keyLabel, x + 3, y + SLOT_SIZE - 3);
+        font.getData().setScale(1.0f);
+
+        if (consumable == null) {
+            font.setColor(0.5f, 0.5f, 0.5f, 0.5f);
+            font.getData().setScale(1.2f);
+            font.draw(batch, "+", x + SLOT_SIZE / 2f - 8, y + SLOT_SIZE / 2f + 10);
+            font.getData().setScale(1.0f);
+            return;
+        }
+
+        // Get count from inventory
+        int count = player.getInventory().getItemCountForConsumable(consumable);
+
+        // Draw icon (grayed out if count is 0)
+        if (count > 0) {
+            batch.setColor(1f, 1f, 1f, 1f);
+        } else {
+            batch.setColor(0.4f, 0.4f, 0.4f, 0.6f);
+        }
+        consumable.renderIcon(batch, x + 3, y + 3, SLOT_SIZE - 6);
+        batch.setColor(1f, 1f, 1f, 1f);
+
+        // Draw count in top-right corner
+        if (count > 0) {
+            font.setColor(Color.YELLOW);
+        } else {
+            font.setColor(Color.GRAY);
+        }
+        font.getData().setScale(0.6f);
+        String countText = String.valueOf(count);
+        float textWidth = font.getSpaceXadvance() * countText.length() * 0.6f;
+        font.draw(batch, countText, x + SLOT_SIZE - textWidth - 5, y + SLOT_SIZE - 3);
+        font.getData().setScale(1.0f);
+        font.setColor(Color.WHITE);
     }
 
     private void renderCooldownOverlay(SpriteBatch batch, float x, float y, float percentage) {

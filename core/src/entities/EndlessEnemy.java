@@ -259,7 +259,6 @@ public class EndlessEnemy {
         Vector2 playerPos = player.getPosition();
         Vector2 direction = new Vector2(playerPos.x - enemyPos.x, playerPos.y - enemyPos.y).nor();
 
-        // Reset and reuse the pooled projectile
         projectile.reset(enemyPos, direction);
     }
 
@@ -289,7 +288,7 @@ public class EndlessEnemy {
 
     private void aoeDamagePlayer() {
         float dist = getDistanceToPlayer();
-        if (dist <= stats.getAoeRadius()) {
+        if (dist <= stats.getAoeRadius() / 3) {
             damagePlayer();
         }
     }
@@ -432,7 +431,6 @@ public class EndlessEnemy {
     }
 
     public void dispose() {
-        // Projectile body is destroyed by World, just clear reference
         if (projectile != null) {
             projectile = null;
         }
