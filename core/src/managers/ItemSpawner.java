@@ -23,7 +23,6 @@ public class ItemSpawner {
     private final Random random;
     private final float PICKUP_RADIUS = 25f;
 
-    // Queue for items to spawn (to avoid Box2D world lock issues)
     private List<PendingItem> pendingItems;
 
     public static class WorldItem {
@@ -39,7 +38,6 @@ public class ItemSpawner {
 
         public void update(float delta) {
             if (item != null && body != null) {
-                // Update item position from physics body
                 item.getBounds().setPosition(
                         body.getPosition().x - item.getBounds().width / 2f,
                         body.getPosition().y - item.getBounds().height / 2f
@@ -83,8 +81,64 @@ public class ItemSpawner {
     }
 
     public WorldItem spawnItem(String itemId, Vector2 position) {
-        pendingItems.add(new PendingItem(itemId, new Vector2(position)));
+        // Check if this is a coin and if we should combine it with nearby pending coins
+        if (itemId.equals("coin")) {
+            combinePendingCoins(position);
+        } else {
+            pendingItems.add(new PendingItem(itemId, new Vector2(position)));
+        }
         return null;
+    }
+
+    private void combinePendingCoins(Vector2 position) {
+        final float COMBINE_RADIUS = 50f; // Coins within this radius get combined
+        final int COINS_PER_PILE = 5; // Each pile represents 5 coins
+
+        // Count coins within radius
+        int nearbyCoins = 1; // Including this coin
+        Vector2 centerPosition = new Vector2(position);
+
+        // Check pending items
+        List<PendingItem> toRemove = new ArrayList<>();
+
+        for (PendingItem pending : pendingItems) {
+            if (pending.itemId.equals("coin")) {
+                float dist = pending.position.dst(position);
+                if (dist < COMBINE_RADIUS) {
+                    nearbyCoins++;
+                    // Average the position for the pile
+                    centerPosition.add(pending.position);
+                    toRemove.add(pending);
+                }
+            }
+        }
+
+        // Remove the coins we're combining
+        pendingItems.removeAll(toRemove);
+
+        // Calculate how many piles and remainder coins
+        int numPiles = nearbyCoins / COINS_PER_PILE;
+        int remainderCoins = nearbyCoins % COINS_PER_PILE;
+
+        // Calculate center position
+        centerPosition.scl(1f / nearbyCoins);
+
+        // Spawn piles
+        for (int i = 0; i < numPiles; i++) {
+            // Add slight random offset so piles don't stack perfectly
+            float offsetX = (random.nextFloat() - 0.5f) * 10f;
+            float offsetY = (random.nextFloat() - 0.5f) * 10f;
+            Vector2 pilePos = new Vector2(centerPosition.x + offsetX, centerPosition.y + offsetY);
+            pendingItems.add(new PendingItem("coin_pile", pilePos));
+        }
+
+        // Spawn remainder coins
+        for (int i = 0; i < remainderCoins; i++) {
+            float offsetX = (random.nextFloat() - 0.5f) * 15f;
+            float offsetY = (random.nextFloat() - 0.5f) * 15f;
+            Vector2 coinPos = new Vector2(centerPosition.x + offsetX, centerPosition.y + offsetY);
+            pendingItems.add(new PendingItem("coin", coinPos));
+        }
     }
 
     private WorldItem spawnItemNow(String itemId, Vector2 position, Vector2 velocity) {
@@ -119,7 +173,6 @@ public class ItemSpawner {
             return null;
         }
 
-        // Calculate drop position
         float dropDistance = 30f;
         Vector2 dropPosition = new Vector2(
                 playerPosition.x + dropDistance,
@@ -129,14 +182,13 @@ public class ItemSpawner {
         pendingItems.add(new PendingItem(item.getName().toLowerCase().replace(" ", "_"),
                 dropPosition));
 
-        return null; // Will be created in update()
+        return null;
     }
 
     public List<Item> checkPickups(Player player, Inventory inventory) {
         List<Item> pickedUpItems = new ArrayList<>();
         Vector2 playerPos = player.getPosition();
 
-        // Get coin multiplier from player's stats (Lucky Clover buff)
         float coinMultiplier = player.getStats().getCoinMultiplier();
 
         Iterator<WorldItem> iterator = worldItems.iterator();
@@ -173,7 +225,6 @@ public class ItemSpawner {
         int baseValue = coinItem.getBuyValue();
         int multipliedValue = (int)(baseValue * multiplier);
 
-        // Add the multiplied coin value directly
         inventory.addCoins(multipliedValue);
         return true;
     }
@@ -226,7 +277,6 @@ public class ItemSpawner {
             pendingItems.clear();
         }
 
-        // Update existing items
         for (WorldItem worldItem : worldItems) {
             worldItem.update(delta);
         }

@@ -17,6 +17,7 @@ import java.util.List;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
+import ui.ScreenShake;
 
 public class Herman {
     public Rectangle bounds;
@@ -626,6 +627,8 @@ public class Herman {
             stats.takeDamage(damage);
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
+
+            ScreenShake.rumble(0.5f, 0.15f);
         }
 
         if (stats.isDead()) {
@@ -638,7 +641,6 @@ public class Herman {
     }
 
     public void dispose() {
-        // Projectile bodies are destroyed by World, just clear references
         for (int i = 0; i < projectilePool.length; i++) {
             projectilePool[i] = null;
         }

@@ -524,7 +524,6 @@ public class StartScreen extends Game{
     }
 
     private void updateClassSelection() {
-        // Update button colors to show selection
         if (selectedClass == PlayerClass.MERCENARY) {
             mercenaryButton.setColor(Color.GOLD);
             paladinButton.setColor(Color.WHITE);

@@ -500,6 +500,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
 
     public void die() {
         gameStarted = false;
+        body.setLinearVelocity(0, 0);
 
         if (!dyingAnimationStarted) {
             getAnimationManager().setState(AnimationManager.State.DYING, "Player");

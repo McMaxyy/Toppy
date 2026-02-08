@@ -768,7 +768,7 @@ public class DungeonEnemy {
             hitFlashTimer = HIT_FLASH_DURATION;
 
             applyKnockback();
-            ScreenShake.rumble(3f, 0.3f);
+            ScreenShake.rumble(0.5f, 0.3f);
         }
 
         combatTimer = COMBAT_TIMER;

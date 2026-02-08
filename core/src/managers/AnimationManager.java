@@ -112,7 +112,7 @@ public class AnimationManager {
 	}
 
 	private void loadMercenaryAnimations() {
-		Texture playerWalkingTexture = Storage.assetManager.get("character/Walking.png", Texture.class);
+		Texture playerWalkingTexture = Storage.assetManager.get("character/Mercenary/Walking.png", Texture.class);
 		playerWalkingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 		TextureRegion[][] playerWalkFrames = TextureRegion.split(playerWalkingTexture, playerWalkingTexture.getWidth() / 4, playerWalkingTexture.getHeight());
 		Array<TextureRegion> playerWalkingFrames = new Array<>();
@@ -121,7 +121,7 @@ public class AnimationManager {
 		}
 		playerRunningAnimation = new Animation<>(0.5f, playerWalkingFrames, Animation.PlayMode.LOOP);
 
-		Texture playerIdleTexture = Storage.assetManager.get("character/Idle2.png", Texture.class);
+		Texture playerIdleTexture = Storage.assetManager.get("character/Mercenary/Idle.png", Texture.class);
 		playerIdleTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 		TextureRegion[][] playerIdleFrames = TextureRegion.split(playerIdleTexture, playerIdleTexture.getWidth() / 4, playerIdleTexture.getHeight());
 		Array<TextureRegion> playerIdleFrame = new Array<>();
@@ -130,14 +130,14 @@ public class AnimationManager {
 		}
 		playerIdleAnimation = new Animation<>(0.4f, playerIdleFrame, Animation.PlayMode.LOOP);
 
-		Texture playerDyingTexture = Storage.assetManager.get("character/Dying.png", Texture.class);
+		Texture playerDyingTexture = Storage.assetManager.get("character/Mercenary/Dying.png", Texture.class);
 		playerDyingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 		TextureRegion[][] playerDyingFrames = TextureRegion.split(playerDyingTexture, playerDyingTexture.getWidth() / 4, playerDyingTexture.getHeight());
 		Array<TextureRegion> playerDyingFrame = new Array<>();
 		for (int i = 0; i < 4; i++) {
 			playerDyingFrame.add(playerDyingFrames[0][i]);
 		}
-		playerDyingAnimation = new Animation<>(0.6f, playerDyingFrame, Animation.PlayMode.NORMAL);
+		playerDyingAnimation = new Animation<>(0.5f, playerDyingFrame, Animation.PlayMode.NORMAL);
 	}
 
 	private void loadPaladinAnimations() {
@@ -160,14 +160,14 @@ public class AnimationManager {
 			}
 			paladinIdleAnimation = new Animation<>(0.4f, paladinIdleFrame, Animation.PlayMode.LOOP);
 
-			Texture paladinDyingTexture = Storage.assetManager.get("character/Paladin/Dying.png", Texture.class);
+			Texture paladinDyingTexture = Storage.assetManager.get("character/Mercenary/Dying.png", Texture.class);
 			paladinDyingTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 			TextureRegion[][] paladinDyingFrames = TextureRegion.split(paladinDyingTexture, paladinDyingTexture.getWidth() / 4, paladinDyingTexture.getHeight());
 			Array<TextureRegion> paladinDyingFrame = new Array<>();
 			for (int i = 0; i < 4; i++) {
 				paladinDyingFrame.add(paladinDyingFrames[0][i]);
 			}
-			paladinDyingAnimation = new Animation<>(0.6f, paladinDyingFrame, Animation.PlayMode.NORMAL);
+			paladinDyingAnimation = new Animation<>(0.5f, paladinDyingFrame, Animation.PlayMode.NORMAL);
 		} catch (Exception e) {
 			System.err.println("Failed to load Paladin animations, using Mercenary as fallback: " + e.getMessage());
 			paladinIdleAnimation = playerIdleAnimation;

@@ -146,6 +146,10 @@ public class Storage {
         assetManager.load("character/Paladin/Dying.png", Texture.class);
         assetManager.load("character/Paladin/Gobbo.png", Texture.class);
 
+        assetManager.load("character/Mercenary/Walking.png", Texture.class);
+        assetManager.load("character/Mercenary/Idle.png", Texture.class);
+        assetManager.load("character/Mercenary/Dying.png", Texture.class);
+        assetManager.load("character/Mercenary/Mercenary.png", Texture.class);
 
         assetManager.load("enemies/Mushie/Walking.png", Texture.class);
         assetManager.load("enemies/Mushie/Idle.png", Texture.class);

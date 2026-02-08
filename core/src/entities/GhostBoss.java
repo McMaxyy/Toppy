@@ -695,7 +695,7 @@ public class GhostBoss {
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
 
-            ScreenShake.rumble(3f, 0.3f);
+            ScreenShake.rumble(0.5f, 0.3f);
         }
 
         if (stats.isDead()) {
@@ -708,12 +708,10 @@ public class GhostBoss {
     }
 
     public void dispose() {
-        // Projectile bodies are destroyed by World, just clear references
         for (int i = 0; i < projectilePool.length; i++) {
             projectilePool[i] = null;
         }
 
-        // Dispose ghostlings
         for (Ghost ghost : spawnedGhostlings) {
             if (ghost.getBody() != null) {
                 world.destroyBody(ghost.getBody());

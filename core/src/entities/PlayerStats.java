@@ -12,7 +12,7 @@ public class PlayerStats {
 
     private static final int BASE_VIT = 30;
     private static final int BASE_DEX = 45;
-    private static final int BASE_DAMAGE = 20;
+    private static final int BASE_DAMAGE = 300;
     private static final int BASE_DEFENSE = 1;
 
     private static final int HEALTH_PER_VIT = 10;

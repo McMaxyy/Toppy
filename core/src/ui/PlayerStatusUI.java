@@ -73,7 +73,7 @@ public class PlayerStatusUI {
 
         // Load character portraits
         try {
-            mercenaryPortraitTexture = Storage.assetManager.get("character/Sprite-0002.png", Texture.class);
+            mercenaryPortraitTexture = Storage.assetManager.get("character/Mercenary/Mercenary.png", Texture.class);
         } catch (Exception e) {
             System.err.println("Failed to load mercenary portrait: " + e.getMessage());
         }
@@ -84,10 +84,8 @@ public class PlayerStatusUI {
             System.err.println("Failed to load paladin portrait: " + e.getMessage());
         }
 
-        // Load white pixel for drawing filled shapes
         whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
 
-        // Load font
         font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
     }
 
