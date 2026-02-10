@@ -1248,7 +1248,6 @@ public class AbilityManager {
     private void renderConsumableIcon(SpriteBatch batch, float x, float y, int index) {
         Item consumable = consumableSlots[index];
 
-        // Draw key label
         font.setColor(Color.WHITE);
         font.getData().setScale(0.6f);
         String keyLabel = index == 0 ? "E" : "Q";

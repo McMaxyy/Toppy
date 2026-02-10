@@ -9,10 +9,6 @@ import com.badlogic.gdx.physics.box2d.*;
 import managers.AnimationManager;
 import managers.CollisionFilter;
 
-/**
- * Merchant NPC that the player can interact with to buy and sell items.
- * Position changes every time the player enters a dungeon.
- */
 public class Merchant {
     private Rectangle bounds;
     private Body body;

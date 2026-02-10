@@ -145,18 +145,62 @@ public class GameProj implements Screen, ContactListener {
 
         createComponents();
 
-        itemSpawner.spawnItem("berserkers_iron_helmet", player.getPosition());
-        itemSpawner.spawnItem("berserkers_iron_sword", player.getPosition());
-        itemSpawner.spawnItem("berserkers_iron_boots", player.getPosition());
-        itemSpawner.spawnItem("berserkers_iron_armor", player.getPosition());
-        itemSpawner.spawnItem("berserkers_iron_shield", player.getPosition());
-        itemSpawner.spawnItem("berserkers_iron_gloves", player.getPosition());
-        itemSpawner.spawnItem("health_potion", player.getPosition());
-        itemSpawner.spawnItem("small_health_potion", player.getPosition());
+        if (gameScreen.getGameMode() == 0) {
+            player.getStats().setStatPointsEndless();
+
+            startEndlessMode();
+
+            itemSpawner.spawnItem("berserkers_iron_helmet", player.getPosition());
+            itemSpawner.spawnItem("berserkers_iron_sword", player.getPosition());
+            itemSpawner.spawnItem("berserkers_iron_boots", player.getPosition());
+            itemSpawner.spawnItem("berserkers_iron_armor", player.getPosition());
+            itemSpawner.spawnItem("berserkers_iron_shield", player.getPosition());
+            itemSpawner.spawnItem("berserkers_iron_gloves", player.getPosition());
+            itemSpawner.spawnItem("health_potion", player.getPosition());
+            itemSpawner.spawnItem("small_health_potion", player.getPosition());
+        } else {
+            spawnLemmys();
+//            spawnHerman();
+        }
 
         setupCursorConfinement();
-//        spawnHerman();
-        spawnLemmys();
+    }
+
+    private void startEndlessMode() {
+        SoundManager.getInstance().playDungeonMusic();
+
+        inEndlessRoom = true;
+        inDungeon = false;
+        inBossRoom = false;
+        endlessTimeSurvived = 0f;
+
+        for (Chunk chunk : chunks.values()) {
+            chunk.disableObstacles();
+            chunk.disableEnemies();
+        }
+
+        if (mapBoundary != null) {
+            mapBoundary.disable();
+        }
+
+        if (merchant != null) {
+            merchant.disable();
+        }
+
+        for (Portal portal : dungeonPortals) {
+            if (portal != null) {
+                portal.dispose(world.getWorld());
+            }
+        }
+        dungeonPortals.clear();
+
+        int endlessRoomTileSize = (int) (TILE_SIZE / 1.2f);
+        currentEndlessRoom = new EndlessRoom(endlessRoomTileSize, world.getWorld(), player, animationManager);
+
+        Vector2 spawnPoint = currentEndlessRoom.getSpawnPoint();
+        player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
+
+        hudLabel.setText("Endless Mode - Survive as long as you can!");
     }
 
     private void setupCursorConfinement() {
@@ -277,8 +321,10 @@ public class GameProj implements Screen, ContactListener {
         bossHealthUI = new BossHealthUI(hudViewport);
 
         setRandomPlayerSpawn();
-        spawnAllDungeonPortals();
-        spawnMerchant();
+        if (gameScreen.getGameMode() == 1) {
+            spawnAllDungeonPortals();
+            spawnMerchant();
+        }
         SoundManager.getInstance().playForestMusic();
     }
 
@@ -621,7 +667,6 @@ public class GameProj implements Screen, ContactListener {
             mapBoundary.disable();
         }
 
-        // Disable merchant while in dungeon
         if (merchant != null) {
             merchant.disable();
         }
@@ -635,7 +680,6 @@ public class GameProj implements Screen, ContactListener {
 
         hudLabel.setText("Find the boss portal!");
 
-        // Randomize merchant position and shop inventory for when player returns
         relocateMerchant();
         merchantShop.randomizeShopInventory();
     }
@@ -855,6 +899,12 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        if (Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT))
+            if (Gdx.input.isKeyPressed(Input.Keys.F4)){
+                safeExit();
+                return;
+            }
+
         SoundManager.getInstance().update(delta);
 
         if (Gdx.input.isKeyPressed(Input.Keys.F5) && !isPaused) {
@@ -984,7 +1034,25 @@ public class GameProj implements Screen, ContactListener {
     private void renderEndlessRoom(float delta) {
         if (batch == null) return;
 
-        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+        int roomWidth = 42;
+        int roomHeight = 32;
+        int endlessRoomTileSize = (int) (TILE_SIZE / 1.2f);
+
+        float endlessRoomMinX = 0;
+        float endlessRoomMinY = 0;
+        float endlessRoomMaxX = roomWidth * endlessRoomTileSize;
+        float endlessRoomMaxY = roomHeight * endlessRoomTileSize;
+
+        float cameraHalfWidth = camera.viewportWidth / 2f;
+        float cameraHalfHeight = camera.viewportHeight / 2f;
+
+        float targetX = player.getPosition().x;
+        float targetY = player.getPosition().y;
+
+        float clampedX = Math.max(endlessRoomMinX + cameraHalfWidth, Math.min(targetX, endlessRoomMaxX - cameraHalfWidth));
+        float clampedY = Math.max(endlessRoomMinY + cameraHalfHeight, Math.min(targetY, endlessRoomMaxY - cameraHalfHeight));
+
+        camera.position.set(clampedX, clampedY, 0);
 
         Vector3 shakeOffset = ScreenShake.getPos();
         camera.position.add(shakeOffset.x, shakeOffset.y, 0);
@@ -1034,10 +1102,6 @@ public class GameProj implements Screen, ContactListener {
 
             batch.setProjectionMatrix(hudCamera.combined);
 
-            if (player.getInventory().isOpen()) {
-                player.getInventory().render(batch, false, player);
-            }
-
             batch.begin();
             playerStatusUI.render(batch);
             player.renderSkillBar(batch);
@@ -1049,7 +1113,14 @@ public class GameProj implements Screen, ContactListener {
             if (playerHealthPopup != null) {
                 playerHealthPopup.render(batch);
             }
+            if (currentEndlessRoom != null) {
+                currentEndlessRoom.renderHUD(batch);
+            }
             batch.end();
+
+            if (player.getInventory().isOpen()) {
+                player.getInventory().render(batch, false, player);
+            }
         }
     }
 
@@ -1353,7 +1424,25 @@ public class GameProj implements Screen, ContactListener {
     private void renderBossRoom(float delta) {
         if (batch == null) return;
 
-        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+        int roomWidth = 22;
+        int roomHeight = 17;
+        int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
+
+        float bossRoomMinX = 0;
+        float bossRoomMinY = 0;
+        float bossRoomMaxX = roomWidth * bossRoomTileSize;
+        float bossRoomMaxY = roomHeight * bossRoomTileSize;
+
+        float cameraHalfWidth = camera.viewportWidth / 2f;
+        float cameraHalfHeight = camera.viewportHeight / 2f;
+
+        float targetX = player.getPosition().x;
+        float targetY = player.getPosition().y;
+
+        float clampedX = Math.max(bossRoomMinX + cameraHalfWidth, Math.min(targetX, bossRoomMaxX - cameraHalfWidth));
+        float clampedY = Math.max(bossRoomMinY + cameraHalfHeight, Math.min(targetY, bossRoomMaxY - cameraHalfHeight));
+
+        camera.position.set(clampedX, clampedY, 0);
 
         Vector3 shakeOffset = ScreenShake.getPos();
         camera.position.add(shakeOffset.x, shakeOffset.y, 0);

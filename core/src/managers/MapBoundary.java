@@ -42,13 +42,13 @@ public class MapBoundary {
         int wallThickness = tileSize * 2;
 
         // North wall
-        createWallSegment(world, minBound, maxBound - wallThickness, worldSize, wallThickness);
+        createWallSegment(world, minBound, maxBound, worldSize, wallThickness);
 
         // South wall
         createWallSegment(world, minBound, minBound - wallThickness, worldSize, wallThickness);
 
         // East wall
-        createWallSegment(world, maxBound - wallThickness, minBound, wallThickness, worldSize);
+        createWallSegment(world, maxBound, minBound, wallThickness, worldSize);
 
         // West wall
         createWallSegment(world, minBound - wallThickness, minBound, wallThickness, worldSize);

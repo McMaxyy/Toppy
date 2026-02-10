@@ -45,12 +45,10 @@ public class BossRoom {
     private static final int WALL = 0;
     private static final int EXIT = 2;
 
-    // Room dimensions
     private static final int ROOM_WIDTH = 20;
     private static final int ROOM_HEIGHT = 15;
     private static final int WALL_THICKNESS = 1;
 
-    // Boss type enum
     public enum BossType {
         BOSS_KITTY,
         CYCLOPS,
@@ -58,12 +56,10 @@ public class BossRoom {
     }
     private BossType currentBossType;
 
-    // Textures
     private Texture wallTexture;
     private Texture floorTexture;
     private Texture exitTexture;
 
-    // Wall segment textures
     private TextureRegion wallSingleTexture;
     private TextureRegion wallHorizontalTexture;
     private TextureRegion wallVerticalTexture;
@@ -80,12 +76,6 @@ public class BossRoom {
     private TextureRegion wallEndLTexture;
     private TextureRegion wallEndRTexture;
 
-    // Constructor with default boss (BossKitty)
-    public BossRoom(int tileSize, World world, Player player, AnimationManager animationManager) {
-        this(tileSize, world, player, animationManager, BossType.BOSS_KITTY);
-    }
-
-    // Constructor with specified boss type
     public BossRoom(int tileSize, World world, Player player, AnimationManager animationManager, BossType bossType) {
         this.width = ROOM_WIDTH + (WALL_THICKNESS * 2);
         this.height = ROOM_HEIGHT + (WALL_THICKNESS * 2);
@@ -104,17 +94,14 @@ public class BossRoom {
     }
 
     private void loadTextures() {
-        // Load wall sprite sheet
         wallTexture = Storage.assetManager.get("tiles/wallSprite2.png", Texture.class);
         wallTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
-        // Split the sprite sheet - 15 tiles horizontally
         int tileWidth = wallTexture.getWidth() / 15;
         int tileHeight = wallTexture.getHeight();
 
         TextureRegion[][] wallFrames = TextureRegion.split(wallTexture, tileWidth, tileHeight);
 
-        // Extract each wall type from the sprite sheet
         wallSingleTexture = wallFrames[0][0];
         wallHorizontalTexture = wallFrames[0][1];
         wallVerticalTexture = wallFrames[0][2];
@@ -127,7 +114,6 @@ public class BossRoom {
         wallEndLTexture = wallFrames[0][9];
         wallEndRTexture = wallFrames[0][10];
 
-        // T-junction textures
         wallTJunctionTTexture = wallFrames[0][11];
         wallTJunctionRTexture = wallFrames[0][12];
         wallTJunctionBTexture = wallFrames[0][13];
@@ -138,26 +124,22 @@ public class BossRoom {
     }
 
     private void generateRoom() {
-        // Initialize all tiles as walls
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 tiles[x][y] = WALL;
             }
         }
 
-        // Carve out the floor area (leave walls around edges)
         for (int x = WALL_THICKNESS; x < width - WALL_THICKNESS; x++) {
             for (int y = WALL_THICKNESS; y < height - WALL_THICKNESS; y++) {
                 tiles[x][y] = FLOOR;
             }
         }
 
-        // Set spawn point at bottom center of room
         int spawnX = width / 2;
         int spawnY = WALL_THICKNESS + 1;
         spawnPoint = new Vector2(spawnX * tileSize, spawnY * tileSize);
 
-        // Exit point will be at center of room (spawns after boss defeat)
         exitPoint = new Vector2((width / 2) * tileSize, (height / 2) * tileSize);
     }
 
@@ -186,7 +168,6 @@ public class BossRoom {
         int edgeWallCount = (hasWallUp ? 1 : 0) + (hasWallDown ? 1 : 0) +
                 (hasWallLeft ? 1 : 0) + (hasWallRight ? 1 : 0);
 
-        // T-JUNCTIONS
         if (edgeWallCount == 3) {
             if (hasWallLeft && hasWallRight && hasWallDown) return wallTJunctionTTexture;
             if (hasWallUp && hasWallDown && hasWallLeft) return wallTJunctionRTexture;
@@ -194,23 +175,19 @@ public class BossRoom {
             if (hasWallUp && hasWallDown && hasWallRight) return wallTJunctionLTexture;
         }
 
-        // CORNERS
         if (hasWallDown && hasWallRight) return wallCornerTLTexture;
         if (hasWallDown && hasWallLeft) return wallCornerTRTexture;
         if (hasWallUp && hasWallRight) return wallCornerBLTexture;
         if (hasWallUp && hasWallLeft) return wallCornerBRTexture;
 
-        // STRAIGHT WALLS
         if (hasWallLeft && hasWallRight) return wallHorizontalTexture;
         if (hasWallUp && hasWallDown) return wallVerticalTexture;
 
-        // DEAD ENDS
         if (hasWallRight) return wallEndLTexture;
         if (hasWallLeft) return wallEndRTexture;
         if (hasWallDown) return wallEndTTexture;
         if (hasWallUp) return wallEndBTexture;
 
-        // SINGLE WALL
         return wallSingleTexture;
     }
 
@@ -266,7 +243,6 @@ public class BossRoom {
     }
 
     private void spawnBoss() {
-        // Spawn boss at center of room
         float bossX = (width / 2) * tileSize;
         float bossY = (height / 2 + 2) * tileSize;
 
@@ -294,7 +270,6 @@ public class BossRoom {
                         animationManager,
                         ghostBossStats
                 );
-                // Set room dimensions for corner positioning
                 ghostBoss.setRoomDimensions(width, height, tileSize);
                 bossBody.setUserData(ghostBoss);
                 break;
@@ -490,16 +465,6 @@ public class BossRoom {
 
     public Portal getExitPortal() {
         return exitPortal;
-    }
-
-    /**
-     * Get spawned ghostlings from the GhostBoss (for collision handling)
-     */
-    public java.util.List<Ghost> getGhostlings() {
-        if (ghostBoss != null) {
-            return ghostBoss.getSpawnedGhostlings();
-        }
-        return null;
     }
 
     public void dispose() {

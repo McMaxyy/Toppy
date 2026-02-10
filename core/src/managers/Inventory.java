@@ -7,15 +7,12 @@ import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 import config.Storage;
 import entities.PlayerClass;
 import entities.PlayerStats;
@@ -37,6 +34,13 @@ public class Inventory {
     private EquipmentSlot selectedEquipmentSlot = null;
     private boolean selectingEquipmentSlot = false;
 
+    // Drag and drop system
+    private boolean isDragging = false;
+    private int dragSourceSlot = -1;
+    private Item draggedItem = null;
+    private float dragOffsetX = 0;
+    private float dragOffsetY = 0;
+
     // UI components
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
@@ -56,6 +60,17 @@ public class Inventory {
     private final Color SLOT_BORDER_COLOR = new Color(0.6f, 0.6f, 0.7f, 1f);
     private final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.15f, 0.95f);
 
+    // Sort button settings
+    private final int SORT_BUTTON_WIDTH = 80;
+    private final int SORT_BUTTON_HEIGHT = 25;
+    private final Color SORT_BUTTON_COLOR = new Color(0.3f, 0.4f, 0.5f, 0.9f);
+    private final Color SORT_BUTTON_HOVER_COLOR = new Color(0.4f, 0.5f, 0.6f, 0.9f);
+
+    // Trash area settings
+    private final int TRASH_SIZE = 100; // 2x slot size
+    private final Color TRASH_COLOR = new Color(0.4f, 0.2f, 0.2f, 0.8f);
+    private final Color TRASH_HOVER_COLOR = new Color(0.6f, 0.3f, 0.3f, 0.9f);
+
     // Stats panel settings
     private final int STAT_BUTTON_SIZE = 24;
     private final int RESET_BUTTON_WIDTH = 100;
@@ -65,6 +80,12 @@ public class Inventory {
     private final Color RESET_BUTTON_COLOR = new Color(0.4f, 0.2f, 0.2f, 0.9f);
 
     private Map<Integer, Integer> itemCounts;
+
+    // Cached panel positions for drag detection
+    private float cachedPanelX, cachedPanelY, cachedPanelWidth, cachedPanelHeight;
+    private float cachedInvStartX, cachedInvStartY;
+    private float cachedEquipmentX, cachedEquipmentY, cachedEquipmentWidth, cachedEquipmentHeight;
+    private float cachedTrashX, cachedTrashY;
 
     public Inventory() {
         this.items = new Item[MAX_SLOTS];
@@ -83,6 +104,7 @@ public class Inventory {
         if (!inventoryOpen) {
             selectingEquipmentSlot = false;
             selectedEquipmentSlot = null;
+            cancelDrag();
         }
     }
 
@@ -100,7 +122,8 @@ public class Inventory {
             coins += coinValue;
             return true;
         } else {
-            SoundManager.getInstance().playPickupSound();
+            if (!isFull())
+                SoundManager.getInstance().playPickupSound();
         }
 
         for (int i = 0; i < MAX_SLOTS; i++) {
@@ -134,8 +157,14 @@ public class Inventory {
         }
     }
 
+    public void removeItemCompletely(int slot) {
+        if (slot >= 0 && slot < MAX_SLOTS) {
+            items[slot] = null;
+            itemCounts.remove(slot);
+        }
+    }
+
     public void removeItemByReference(Item item) {
-        // Find and remove one instance of this item
         for (int i = 0; i < MAX_SLOTS; i++) {
             if (items[i] != null && items[i].canStackWith(item)) {
                 int count = itemCounts.getOrDefault(i, 1);
@@ -172,6 +201,180 @@ public class Inventory {
         return itemCounts.getOrDefault(slot, 0);
     }
 
+    // Sort inventory by item type: WEAPON -> OFFHAND -> ARMOR -> CONSUMABLE
+    public void sortInventory() {
+        List<ItemWithCount> allItems = new ArrayList<>();
+
+        // Collect all items with their counts
+        for (int i = 0; i < MAX_SLOTS; i++) {
+            if (items[i] != null) {
+                allItems.add(new ItemWithCount(items[i], itemCounts.getOrDefault(i, 1)));
+            }
+        }
+
+        // Sort by type priority
+        allItems.sort((a, b) -> {
+            int priorityA = getTypePriority(a.item);
+            int priorityB = getTypePriority(b.item);
+            return Integer.compare(priorityA, priorityB);
+        });
+
+        // Clear inventory
+        for (int i = 0; i < MAX_SLOTS; i++) {
+            items[i] = null;
+        }
+        itemCounts.clear();
+
+        // Refill in sorted order
+        int slotIndex = 0;
+        for (ItemWithCount iwc : allItems) {
+            if (slotIndex < MAX_SLOTS) {
+                items[slotIndex] = iwc.item;
+                itemCounts.put(slotIndex, iwc.count);
+                slotIndex++;
+            }
+        }
+    }
+
+    private int getTypePriority(Item item) {
+        if (item == null) return 999;
+
+        switch (item.getType()) {
+            case WEAPON:
+                return 0;
+            case OFFHAND:
+                return 1;
+            case ARMOR:
+                return 2;
+            case CONSUMABLE:
+                return 3;
+            default:
+                return 4;
+        }
+    }
+
+    private static class ItemWithCount {
+        Item item;
+        int count;
+
+        ItemWithCount(Item item, int count) {
+            this.item = item;
+            this.count = count;
+        }
+    }
+
+    // Drag and drop methods
+    private void startDrag(int slot, float mouseX, float mouseY) {
+        if (slot >= 0 && slot < MAX_SLOTS && items[slot] != null) {
+            isDragging = true;
+            dragSourceSlot = slot;
+            draggedItem = items[slot];
+        }
+    }
+
+    private void cancelDrag() {
+        isDragging = false;
+        dragSourceSlot = -1;
+        draggedItem = null;
+    }
+
+    private void completeDrag(float mouseX, float mouseY, entities.Player player) {
+        if (!isDragging || draggedItem == null) {
+            cancelDrag();
+            return;
+        }
+
+        // Check if dropped on another inventory slot
+        int targetSlot = getSlotAtPosition(mouseX, mouseY);
+        if (targetSlot >= 0 && targetSlot != dragSourceSlot) {
+            // Swap or move items
+            swapItems(dragSourceSlot, targetSlot);
+            cancelDrag();
+            return;
+        }
+
+        // Check if dropped on trash area
+        if (isInTrashArea(mouseX, mouseY)) {
+            removeItemCompletely(dragSourceSlot);
+            cancelDrag();
+            return;
+        }
+
+        // Check if equipment item dropped on character panel
+        if (isEquippableItem(draggedItem) && isInEquipmentPanel(mouseX, mouseY)) {
+            equipItemFromInventory(dragSourceSlot, player);
+            cancelDrag();
+            return;
+        }
+
+        // Check if consumable dragged outside inventory bounds
+        if (draggedItem.getType() == Item.ItemType.CONSUMABLE && !isInInventoryBounds(mouseX, mouseY)) {
+            // Hand off to AbilityManager
+            if (player.getAbilityManager() != null) {
+                player.getAbilityManager().startDraggingConsumable(draggedItem);
+            }
+            cancelDrag();
+            return;
+        }
+
+        // Invalid drop location - item stays in place
+        cancelDrag();
+    }
+
+    private void swapItems(int slot1, int slot2) {
+        Item temp = items[slot1];
+        int count1 = itemCounts.getOrDefault(slot1, 1);
+        int count2 = itemCounts.getOrDefault(slot2, 1);
+
+        items[slot1] = items[slot2];
+        items[slot2] = temp;
+
+        itemCounts.remove(slot1);
+        itemCounts.remove(slot2);
+
+        if (items[slot1] != null) {
+            itemCounts.put(slot1, count2);
+        }
+        if (items[slot2] != null) {
+            itemCounts.put(slot2, count1);
+        }
+    }
+
+    private int getSlotAtPosition(float mouseX, float mouseY) {
+        for (int i = 0; i < MAX_SLOTS; i++) {
+            int row = i / ITEMS_PER_ROW;
+            int col = i % ITEMS_PER_ROW;
+            float x = cachedInvStartX + col * (SLOT_SIZE + SLOT_PADDING);
+            float y = cachedInvStartY - row * (SLOT_SIZE + SLOT_PADDING);
+
+            if (mouseX >= x && mouseX <= x + SLOT_SIZE && mouseY >= y && mouseY <= y + SLOT_SIZE) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isInTrashArea(float mouseX, float mouseY) {
+        return mouseX >= cachedTrashX && mouseX <= cachedTrashX + TRASH_SIZE &&
+                mouseY >= cachedTrashY && mouseY <= cachedTrashY + TRASH_SIZE;
+    }
+
+    private boolean isInEquipmentPanel(float mouseX, float mouseY) {
+        return mouseX >= cachedEquipmentX && mouseX <= cachedEquipmentX + cachedEquipmentWidth &&
+                mouseY >= cachedEquipmentY && mouseY <= cachedEquipmentY + cachedEquipmentHeight;
+    }
+
+    private boolean isInInventoryBounds(float mouseX, float mouseY) {
+        return mouseX >= cachedPanelX && mouseX <= cachedPanelX + cachedPanelWidth &&
+                mouseY >= cachedPanelY && mouseY <= cachedPanelY + cachedPanelHeight;
+    }
+
+    private boolean isEquippableItem(Item item) {
+        return item != null && (item.getType() == Item.ItemType.WEAPON ||
+                item.getType() == Item.ItemType.ARMOR ||
+                item.getType() == Item.ItemType.OFFHAND);
+    }
+
     public void equipItemFromInventory(int inventorySlot, entities.Player player) {
         Item item = items[inventorySlot];
         if (item == null) return;
@@ -186,38 +389,28 @@ public class Inventory {
             if (item.getName().endsWith("Spear") &&
                     player.getPlayerClass().equals(PlayerClass.MERCENARY)) {
                 Item previousItem = equipment.equipItem(item, player);
-
-                removeItem(inventorySlot);
-
+                removeItemCompletely(inventorySlot);
                 if (previousItem != null) {
                     addItem(previousItem);
                 }
-
                 SoundManager.getInstance().playPickupSound();
             } else if (item.getName().endsWith("Sword") &&
                     player.getPlayerClass().equals(PlayerClass.PALADIN)) {
                 Item previousItem = equipment.equipItem(item, player);
-
-                removeItem(inventorySlot);
-
+                removeItemCompletely(inventorySlot);
                 if (previousItem != null) {
                     addItem(previousItem);
                 }
-
                 SoundManager.getInstance().playPickupSound();
             }
         } else {
             Item previousItem = equipment.equipItem(item, player);
-
-            removeItem(inventorySlot);
-
+            removeItemCompletely(inventorySlot);
             if (previousItem != null) {
                 addItem(previousItem);
             }
-
             SoundManager.getInstance().playPickupSound();
         }
-
     }
 
     public void unequipItemToInventory(EquipmentSlot slot, entities.Player player) {
@@ -303,29 +496,58 @@ public class Inventory {
         float panelX = (screenWidth - panelWidth) / 2f;
         float panelY = (screenHeight - panelHeight) / 2f;
 
+        // Cache positions for drag detection
+        cachedPanelX = panelX;
+        cachedPanelY = panelY;
+        cachedPanelWidth = panelWidth;
+        cachedPanelHeight = panelHeight;
+        cachedInvStartX = panelX + 280;
+        cachedInvStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
+        cachedEquipmentX = panelX + UI_PADDING;
+        cachedEquipmentY = panelY + UI_PADDING + 40;
+        cachedEquipmentWidth = 250;
+        cachedEquipmentHeight = panelHeight - 100;
+        cachedTrashX = panelX + panelWidth - UI_PADDING - TRASH_SIZE;
+        cachedTrashY = panelY + UI_PADDING;
+
         float mouseX = Gdx.input.getX();
         float mouseY = screenHeight - Gdx.input.getY();
 
-        float invStartX = panelX + 280;
-        float invStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
+        // Handle drag and drop
+        if (isDragging) {
+            if (!Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+                completeDrag(mouseX, mouseY, player);
+            }
+        } else {
+            // Check for drag start on inventory slots
+            if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                int clickedSlot = getSlotAtPosition(mouseX, mouseY);
+                if (clickedSlot >= 0 && items[clickedSlot] != null) {
+                    startDrag(clickedSlot, mouseX, mouseY);
+                }
 
-        for (int i = 0; i < MAX_SLOTS; i++) {
-            int row = i / ITEMS_PER_ROW;
-            int col = i % ITEMS_PER_ROW;
-            float x = invStartX + col * (SLOT_SIZE + SLOT_PADDING);
-            float y = invStartY - row * (SLOT_SIZE + SLOT_PADDING);
+                // Check sort button click
+                float sortButtonX = cachedInvStartX;
+                float sortButtonY = cachedInvStartY + SLOT_SIZE + 10;
+                if (isPointInRect(mouseX, mouseY, sortButtonX, sortButtonY, SORT_BUTTON_WIDTH, SORT_BUTTON_HEIGHT)) {
+                    sortInventory();
+                }
+            }
+        }
 
-            if (mouseX >= x && mouseX <= x + SLOT_SIZE && mouseY >= y && mouseY <= y + SLOT_SIZE) {
-                selectedSlot = i;
-                selectingEquipmentSlot = false;
+        // Update selected slot (for hover highlighting, but not for right-click when dragging)
+        if (!isDragging) {
+            for (int i = 0; i < MAX_SLOTS; i++) {
+                int row = i / ITEMS_PER_ROW;
+                int col = i % ITEMS_PER_ROW;
+                float x = cachedInvStartX + col * (SLOT_SIZE + SLOT_PADDING);
+                float y = cachedInvStartY - row * (SLOT_SIZE + SLOT_PADDING);
 
-                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-                    Item item = items[selectedSlot];
+                if (mouseX >= x && mouseX <= x + SLOT_SIZE && mouseY >= y && mouseY <= y + SLOT_SIZE) {
+                    selectedSlot = i;
+                    selectingEquipmentSlot = false;
 
-                    // Check if it's a consumable - start dragging it
-                    if (item != null && item.getType() == Item.ItemType.CONSUMABLE) {
-                        player.getAbilityManager().startDraggingConsumable(item);
-                    } else {
+                    if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
                         useSelectedItem(player, gameP);
                     }
                 }
@@ -333,7 +555,6 @@ public class Inventory {
         }
 
         checkEquipmentMouseHover(mouseX, mouseY, panelX, panelY, panelHeight, player, gameP);
-
         checkStatButtonClicks(mouseX, mouseY, panelX, panelY, panelHeight, player);
     }
 
@@ -344,38 +565,32 @@ public class Inventory {
         float equipmentX = px + UI_PADDING;
         float statsStartY = py + UI_PADDING + 180;
 
-        // Button X position (right side of stats text area)
         float buttonX = equipmentX + 180;
 
-        // Check VIT + button
         float vitY = statsStartY - 25;
         if (isPointInRect(mx, my, buttonX, vitY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
             stats.allocateHealthPoint();
             return;
         }
 
-        // Check AP + button
         float apY = statsStartY - 55;
         if (isPointInRect(mx, my, buttonX, apY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
             stats.allocateAttackPoint();
             return;
         }
 
-        // Check DP + button
         float dpY = statsStartY - 85;
         if (isPointInRect(mx, my, buttonX, dpY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
             stats.allocateDefensePoint();
             return;
         }
 
-        // Check DEX + button
         float dexY = statsStartY - 115;
         if (isPointInRect(mx, my, buttonX, dexY, STAT_BUTTON_SIZE, STAT_BUTTON_SIZE)) {
             stats.allocateDexPoint();
             return;
         }
 
-        // Check Reset button
         float resetX = equipmentX + 10;
         float resetY = py + UI_PADDING;
         if (isPointInRect(mx, my, resetX, resetY, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT)) {
@@ -401,7 +616,7 @@ public class Inventory {
             if (mx >= leftX && mx <= leftX + EQUIPMENT_SLOT_SIZE && my >= slotY && my <= slotY + EQUIPMENT_SLOT_SIZE) {
                 selectedEquipmentSlot = leftSlots[i];
                 selectingEquipmentSlot = true;
-                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) useSelectedItem(player, gameP);
+                if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) useSelectedItem(player, gameP);
             }
         }
 
@@ -414,7 +629,7 @@ public class Inventory {
             if (mx >= rightX && mx <= rightX + EQUIPMENT_SLOT_SIZE && my >= slotY && my <= slotY + EQUIPMENT_SLOT_SIZE) {
                 selectedEquipmentSlot = rightSlots[i];
                 selectingEquipmentSlot = true;
-                if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) useSelectedItem(player, gameP);
+                if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) useSelectedItem(player, gameP);
             }
         }
     }
@@ -448,8 +663,9 @@ public class Inventory {
         Gdx.gl.glLineWidth(1);
 
         renderEquipmentPanel(batch, panelX, panelY, panelHeight);
-
         renderInventorySlots(batch, panelX, panelY, panelWidth, panelHeight);
+        renderTrashArea(batch, panelX, panelY, panelWidth, panelHeight);
+        renderSortButton(batch, panelX, panelY, panelWidth, panelHeight);
 
         batch.begin();
 
@@ -465,16 +681,22 @@ public class Inventory {
                 panelY + panelHeight - UI_PADDING);
 
         renderEquippedItems(batch, panelX, panelY, panelHeight);
-
         renderInventoryItems(batch, panelX, panelY, panelWidth, panelHeight);
-
         renderItemInfo(batch, panelX, panelY, panelWidth);
+
+        // Render dragged item
+        if (isDragging && draggedItem != null) {
+            float mouseX = Gdx.input.getX();
+            float mouseY = screenHeight - Gdx.input.getY();
+            draggedItem.renderIcon(batch, mouseX - SLOT_SIZE / 2f, mouseY - SLOT_SIZE / 2f, SLOT_SIZE);
+        }
 
         font.setColor(Color.WHITE);
         font.getData().setScale(1.0f);
 
         batch.end();
     }
+
     public void render(SpriteBatch batch, boolean batchIsActive, entities.Player player) {
         if (!inventoryOpen) return;
 
@@ -491,13 +713,11 @@ public class Inventory {
             batch.end();
         }
 
-        // Draw background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(BACKGROUND_COLOR);
         shapeRenderer.rect(panelX, panelY, panelWidth, panelHeight);
         shapeRenderer.end();
 
-        // Draw border
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         Gdx.gl.glLineWidth(2);
         shapeRenderer.setColor(SLOT_BORDER_COLOR);
@@ -505,43 +725,107 @@ public class Inventory {
         shapeRenderer.end();
         Gdx.gl.glLineWidth(1);
 
-        // Render equipment slots and character
         renderEquipmentPanel(batch, panelX, panelY, panelHeight);
-
-        // Render inventory slots
         renderInventorySlots(batch, panelX, panelY, panelWidth, panelHeight);
+        renderTrashArea(batch, panelX, panelY, panelWidth, panelHeight);
+        renderSortButton(batch, panelX, panelY, panelWidth, panelHeight);
 
-        // Draw UI text and items
         batch.begin();
 
-        // Title
         font.setColor(Color.WHITE);
         font.getData().setScale(1f);
         font.draw(batch, "Inventory", panelX + UI_PADDING,
                 panelY + panelHeight - UI_PADDING / 2);
 
-        // Coin count
         batch.draw(coinIconTexture, panelX + panelWidth - UI_PADDING - 120,
                 panelY + panelHeight - UI_PADDING - 30, 40, 40);
         font.getData().setScale(1.0f);
         font.draw(batch, "" + coins, panelX + panelWidth - UI_PADDING - 70,
                 panelY + panelHeight - UI_PADDING);
 
-        // Draw equipped items in equipment slots
         renderEquippedItems(batch, panelX, panelY, panelHeight);
-
-        // Draw items in inventory slots
         renderInventoryItems(batch, panelX, panelY, panelWidth, panelHeight);
-
-        // Draw selected item info
         renderItemInfo(batch, panelX, panelY, panelWidth);
 
         font.setColor(Color.WHITE);
         font.getData().setScale(1.0f);
 
-        // Render stats panel (this handles its own batch begin/end)
         renderStatsPanel(batch, panelX, panelY, panelHeight, player);
 
+        // Render dragged item
+        if (isDragging && draggedItem != null) {
+            float mouseX = Gdx.input.getX();
+            float mouseY = screenHeight - Gdx.input.getY();
+            draggedItem.renderIcon(batch, mouseX - SLOT_SIZE / 2f, mouseY - SLOT_SIZE / 2f, SLOT_SIZE);
+        }
+
+        batch.end();
+    }
+
+    private void renderSortButton(SpriteBatch batch, float panelX, float panelY, float panelWidth, float panelHeight) {
+        float invStartX = panelX + 280;
+        float invStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
+
+        float sortButtonX = invStartX;
+        float sortButtonY = invStartY + SLOT_SIZE + 10;
+
+        int screenHeight = Gdx.graphics.getHeight();
+        float mouseX = Gdx.input.getX();
+        float mouseY = screenHeight - Gdx.input.getY();
+        boolean isHovered = isPointInRect(mouseX, mouseY, sortButtonX, sortButtonY, SORT_BUTTON_WIDTH, SORT_BUTTON_HEIGHT);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        if (isHovered) {
+            shapeRenderer.setColor(SORT_BUTTON_HOVER_COLOR);
+        } else {
+            shapeRenderer.setColor(SORT_BUTTON_COLOR);
+        }
+        shapeRenderer.rect(sortButtonX, sortButtonY, SORT_BUTTON_WIDTH, SORT_BUTTON_HEIGHT);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(SLOT_BORDER_COLOR);
+        shapeRenderer.rect(sortButtonX, sortButtonY, SORT_BUTTON_WIDTH, SORT_BUTTON_HEIGHT);
+        shapeRenderer.end();
+
+        batch.begin();
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.6f);
+        font.draw(batch, "Sort", sortButtonX + 22, sortButtonY + 18);
+        font.getData().setScale(1.0f);
+        batch.end();
+    }
+
+    private void renderTrashArea(SpriteBatch batch, float panelX, float panelY, float panelWidth, float panelHeight) {
+        float trashX = panelX + panelWidth - UI_PADDING - TRASH_SIZE;
+        float trashY = panelY + UI_PADDING;
+
+        int screenHeight = Gdx.graphics.getHeight();
+        float mouseX = Gdx.input.getX();
+        float mouseY = screenHeight - Gdx.input.getY();
+        boolean isHovered = isDragging && isPointInRect(mouseX, mouseY, trashX, trashY, TRASH_SIZE, TRASH_SIZE);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        if (isHovered) {
+            shapeRenderer.setColor(TRASH_HOVER_COLOR);
+        } else {
+            shapeRenderer.setColor(TRASH_COLOR);
+        }
+        shapeRenderer.rect(trashX, trashY, TRASH_SIZE, TRASH_SIZE);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        Gdx.gl.glLineWidth(2);
+        shapeRenderer.setColor(new Color(0.6f, 0.3f, 0.3f, 1f));
+        shapeRenderer.rect(trashX, trashY, TRASH_SIZE, TRASH_SIZE);
+        shapeRenderer.end();
+        Gdx.gl.glLineWidth(1);
+
+        batch.begin();
+        font.setColor(isHovered ? Color.RED : Color.GRAY);
+        font.getData().setScale(0.7f);
+        font.draw(batch, "Trash", trashX + 25, trashY + TRASH_SIZE / 2f + 8);
+        font.getData().setScale(1.0f);
         batch.end();
     }
 
@@ -550,13 +834,11 @@ public class Inventory {
         float equipmentX = panelX + UI_PADDING;
         float equipmentY = panelY + UI_PADDING + 40;
 
-        // Draw equipment slots background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(0.15f, 0.15f, 0.2f, 0.9f);
         shapeRenderer.rect(equipmentX, equipmentY, equipmentPanelWidth, panelHeight - 100);
         shapeRenderer.end();
 
-        // Draw character sprite in center
         float charSize = 100;
         float charX = equipmentX + (equipmentPanelWidth - charSize) / 2f;
         float charY = equipmentY + (panelHeight) / 2f + 20;
@@ -565,7 +847,6 @@ public class Inventory {
         batch.draw(characterSprite, charX, charY, charSize, charSize);
         batch.end();
 
-        // Draw armor slots (left side of character)
         float leftSlotStartX = equipmentX + 10;
         float leftSlotStartY = equipmentY + panelHeight - 150;
 
@@ -576,7 +857,6 @@ public class Inventory {
                 EquipmentSlot.BOOTS
         };
 
-        // Draw weapon slots (right side of character)
         float rightSlotStartX = equipmentX + equipmentPanelWidth - EQUIPMENT_SLOT_SIZE - 10;
         float rightSlotStartY = equipmentY + panelHeight - 150;
 
@@ -587,7 +867,6 @@ public class Inventory {
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Draw left slots (armor)
         for (int i = 0; i < leftSlots.length; i++) {
             EquipmentSlot slot = leftSlots[i];
             float slotY = leftSlotStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
@@ -603,7 +882,6 @@ public class Inventory {
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
-            // Get border color from equipped item
             Color borderColor = SLOT_BORDER_COLOR;
             Item equippedItem = equipment.getEquippedItem(slot);
             if (equippedItem != null && equippedItem.getGearType() != null) {
@@ -618,7 +896,6 @@ public class Inventory {
             Gdx.gl.glLineWidth(1);
         }
 
-        // Draw right slots (weapons)
         for (int i = 0; i < rightSlots.length; i++) {
             EquipmentSlot slot = rightSlots[i];
             float slotY = rightSlotStartY - i * (EQUIPMENT_SLOT_SIZE + 8);
@@ -634,7 +911,6 @@ public class Inventory {
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
-            // Get border color from equipped item
             Color borderColor = SLOT_BORDER_COLOR;
             Item equippedItem = equipment.getEquippedItem(slot);
             if (equippedItem != null && equippedItem.getGearType() != null) {
@@ -729,7 +1005,6 @@ public class Inventory {
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.rect(resetX, resetY, RESET_BUTTON_WIDTH, RESET_BUTTON_HEIGHT);
             shapeRenderer.end();
-
         }
 
         batch.begin();
@@ -739,7 +1014,6 @@ public class Inventory {
 
         font.draw(batch, "Level " + stats.getLevel(), equipmentX + 85, statsStartY + 250);
 
-        // Available points
         font.draw(batch, "Available points: " + stats.getAvailableStatPoints(), equipmentX + 10, statsStartY + 30);
 
         int totalVit = stats.getDisplayVit();
@@ -822,15 +1096,15 @@ public class Inventory {
 
         switch (gearType) {
             case ItemRegistry.VALKYRIE:
-                return new Color(1f, 0.85f, 0f, 1f); // Yellow
+                return new Color(1f, 0.85f, 0f, 1f);
             case ItemRegistry.PROTECTOR:
-                return new Color(1f, 1f, 1f, 1f); // White
+                return new Color(1f, 1f, 1f, 1f);
             case ItemRegistry.BARBARIAN:
-                return new Color(0.6f, 0.4f, 0.2f, 1f); // Brown
+                return new Color(0.6f, 0.4f, 0.2f, 1f);
             case ItemRegistry.BERSERKER:
-                return new Color(0.9f, 0.2f, 0.2f, 1f); // Red
+                return new Color(0.9f, 0.2f, 0.2f, 1f);
             case ItemRegistry.DECEPTOR:
-                return new Color(0.7f, 0.3f, 0.9f, 1f); // Purple
+                return new Color(0.7f, 0.3f, 0.9f, 1f);
             default:
                 return SLOT_BORDER_COLOR;
         }
@@ -839,6 +1113,10 @@ public class Inventory {
     private void renderInventorySlots(SpriteBatch batch, float panelX, float panelY, float panelWidth, float panelHeight) {
         float inventoryStartX = panelX + 280;
         float inventoryStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
+
+        int screenHeight = Gdx.graphics.getHeight();
+        float mouseX = Gdx.input.getX();
+        float mouseY = screenHeight - Gdx.input.getY();
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
@@ -849,7 +1127,15 @@ public class Inventory {
             float slotX = inventoryStartX + col * (SLOT_SIZE + SLOT_PADDING);
             float slotY = inventoryStartY - row * (SLOT_SIZE + SLOT_PADDING);
 
-            if (!selectingEquipmentSlot && i == selectedSlot) {
+            boolean isHovered = isPointInRect(mouseX, mouseY, slotX, slotY, SLOT_SIZE, SLOT_SIZE);
+            boolean isDragTarget = isDragging && isHovered && i != dragSourceSlot;
+            boolean isDragSource = isDragging && i == dragSourceSlot;
+
+            if (isDragTarget) {
+                shapeRenderer.setColor(new Color(0.4f, 0.6f, 0.4f, 0.9f));
+            } else if (isDragSource) {
+                shapeRenderer.setColor(new Color(0.2f, 0.2f, 0.3f, 0.6f));
+            } else if (!selectingEquipmentSlot && i == selectedSlot) {
                 shapeRenderer.setColor(SELECTED_COLOR);
             } else {
                 shapeRenderer.setColor(SLOT_COLOR);
@@ -860,7 +1146,6 @@ public class Inventory {
             shapeRenderer.end();
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
-            // Get border color based on item's gear type
             Color borderColor = SLOT_BORDER_COLOR;
             if (items[i] != null && items[i].getGearType() != null) {
                 borderColor = getGearTypeColor(items[i].getGearType());
@@ -882,6 +1167,9 @@ public class Inventory {
         float inventoryStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
 
         for (int i = 0; i < MAX_SLOTS; i++) {
+            // Don't render item in source slot if dragging
+            if (isDragging && i == dragSourceSlot) continue;
+
             if (items[i] != null) {
                 int row = i / ITEMS_PER_ROW;
                 int col = i % ITEMS_PER_ROW;
@@ -951,7 +1239,6 @@ public class Inventory {
                 lineOffset++;
             }
 
-            // Reset font color
             font.setColor(Color.WHITE);
         }
     }
@@ -1003,11 +1290,15 @@ public class Inventory {
         return selectedEquipmentSlot;
     }
 
+    public boolean isDragging() {
+        return isDragging;
+    }
+
     public void dispose() {
         shapeRenderer.dispose();
     }
 
-    public boolean isInventoryOpen () {
+    public boolean isInventoryOpen() {
         return inventoryOpen;
     }
 }

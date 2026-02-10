@@ -18,6 +18,7 @@ public class GameScreen implements Screen {
 	private GameProj gameP;
 	private StartScreen startScreen;
 	private PostGame postGameScreen;
+	private static int gameMode = 0;
 
 	private static final int MIN_WIDTH = 1280;
 	private static final int MIN_HEIGHT = 720;
@@ -111,6 +112,14 @@ public class GameScreen implements Screen {
 				game.setScreen(this);
 			}
 		}
+	}
+
+	public static int getGameMode() {
+		return gameMode;
+	}
+
+	public static void setGameMode(int mode) {
+		gameMode = mode;
 	}
 
 	@Override

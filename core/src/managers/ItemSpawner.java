@@ -81,7 +81,6 @@ public class ItemSpawner {
     }
 
     public WorldItem spawnItem(String itemId, Vector2 position) {
-        // Check if this is a coin and if we should combine it with nearby pending coins
         if (itemId.equals("coin")) {
             combinePendingCoins(position);
         } else {
@@ -91,14 +90,12 @@ public class ItemSpawner {
     }
 
     private void combinePendingCoins(Vector2 position) {
-        final float COMBINE_RADIUS = 50f; // Coins within this radius get combined
-        final int COINS_PER_PILE = 5; // Each pile represents 5 coins
+        final float COMBINE_RADIUS = 50f;
+        final int COINS_PER_PILE = 5;
 
-        // Count coins within radius
-        int nearbyCoins = 1; // Including this coin
+        int nearbyCoins = 1;
         Vector2 centerPosition = new Vector2(position);
 
-        // Check pending items
         List<PendingItem> toRemove = new ArrayList<>();
 
         for (PendingItem pending : pendingItems) {
@@ -106,33 +103,26 @@ public class ItemSpawner {
                 float dist = pending.position.dst(position);
                 if (dist < COMBINE_RADIUS) {
                     nearbyCoins++;
-                    // Average the position for the pile
                     centerPosition.add(pending.position);
                     toRemove.add(pending);
                 }
             }
         }
 
-        // Remove the coins we're combining
         pendingItems.removeAll(toRemove);
 
-        // Calculate how many piles and remainder coins
         int numPiles = nearbyCoins / COINS_PER_PILE;
         int remainderCoins = nearbyCoins % COINS_PER_PILE;
 
-        // Calculate center position
         centerPosition.scl(1f / nearbyCoins);
 
-        // Spawn piles
         for (int i = 0; i < numPiles; i++) {
-            // Add slight random offset so piles don't stack perfectly
             float offsetX = (random.nextFloat() - 0.5f) * 10f;
             float offsetY = (random.nextFloat() - 0.5f) * 10f;
             Vector2 pilePos = new Vector2(centerPosition.x + offsetX, centerPosition.y + offsetY);
             pendingItems.add(new PendingItem("coin_pile", pilePos));
         }
 
-        // Spawn remainder coins
         for (int i = 0; i < remainderCoins; i++) {
             float offsetX = (random.nextFloat() - 0.5f) * 15f;
             float offsetY = (random.nextFloat() - 0.5f) * 15f;

@@ -37,7 +37,6 @@ public class Dungeon {
     private final World world;
     private Vector2 spawnPoint;
 
-    // Boss room portal (leads to boss room, not the exit)
     private Portal bossRoomPortal;
     private Vector2 bossPortalPoint;
     private Room bossPortalRoom;

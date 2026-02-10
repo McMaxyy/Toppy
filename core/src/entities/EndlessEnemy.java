@@ -418,7 +418,7 @@ public class EndlessEnemy {
             hitFlashTimer = HIT_FLASH_DURATION;
 
             applyKnockback();
-            ScreenShake.rumble(3f, 0.3f);
+            ScreenShake.rumble(0.6f, 0.3f);
         }
 
         if (stats.isDead()) {

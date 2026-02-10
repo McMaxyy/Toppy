@@ -1,4 +1,4 @@
-package ui;
+package managers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -342,12 +342,10 @@ public class MerchantShop {
 
         batch.begin();
 
-        // Title
         font.setColor(Color.WHITE);
         font.getData().setScale(1f);
         font.draw(batch, "Merchant Shop", panelX + panelWidth / 2f - 80, panelY + panelHeight - UI_PADDING / 2f);
 
-        // Tab labels
         font.getData().setScale(0.7f);
         font.draw(batch, "Buy", buyTabX + 35, tabY + 22);
         font.draw(batch, "Sell", sellTabX + 35, tabY + 22);
@@ -371,6 +369,15 @@ public class MerchantShop {
 
         font.setColor(Color.WHITE);
         font.getData().setScale(1.0f);
+
+        font.getData().setScale(0.5f);
+        font.setColor(Color.GRAY);
+        font.draw(batch, "LMB: Buy | RMB: Sell | B: Close the shop", panelX + UI_PADDING, panelY + 15);
+
+
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1.0f);
+
         batch.end();
     }
 
@@ -588,15 +595,6 @@ public class MerchantShop {
             font.setColor(Color.GREEN);
             font.draw(batch, "Dexterity: " + displayItem.getBonusDex(), infoX, infoY - 25 - (lineOffset * lineSpacing));
             lineOffset++;
-        }
-
-        // Instructions
-        font.setColor(Color.GRAY);
-        font.getData().setScale(0.5f);
-        if (isBuying) {
-            font.draw(batch, "Left-click to buy", infoX, infoY - 25 - (lineOffset * lineSpacing) - 20);
-        } else {
-            font.draw(batch, "Right-click to sell", infoX, infoY - 25 - (lineOffset * lineSpacing) - 20);
         }
     }
 

@@ -1410,7 +1410,6 @@ public abstract class AbilityVisual {
         private void renderTexturedSmoke(SpriteBatch batch, float currentRadius, float alpha) {
             float size = currentRadius * 2f;
 
-            // Main smoke layer - slow rotation
             batch.setColor(1f, 1f, 1f, alpha);
             batch.draw(smokeTexture,
                     position.x - size / 2f,
@@ -1435,6 +1434,8 @@ public abstract class AbilityVisual {
                     0, 0,
                     smokeTexture.getWidth(), smokeTexture.getHeight(),
                     false, false);
+
+            batch.setColor(1f, 1f, 1f, 1f);
         }
     }
 

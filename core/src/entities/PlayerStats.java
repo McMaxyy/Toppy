@@ -1,5 +1,7 @@
 package entities;
 
+import config.GameScreen;
+
 public class PlayerStats {
     private int maxHealth;
     private int currentHealth;
@@ -12,7 +14,7 @@ public class PlayerStats {
 
     private static final int BASE_VIT = 30;
     private static final int BASE_DEX = 45;
-    private static final int BASE_DAMAGE = 300;
+    private static final int BASE_DAMAGE = 20;
     private static final int BASE_DEFENSE = 1;
 
     private static final int HEALTH_PER_VIT = 10;
@@ -26,7 +28,7 @@ public class PlayerStats {
 
     private int availableSkillPoints;
     private int totalSkillPointsEarned;
-    private static final int STAT_POINTS_PER_LEVEL = 5;
+    private static int STAT_POINTS_PER_LEVEL = 5;
     private static final int ATTACK_PER_POINT = 1;
     private static final int DEFENSE_PER_POINT = 1;
 
@@ -54,7 +56,7 @@ public class PlayerStats {
     }
 
     public PlayerStats() {
-        this.level = 3;
+        this.level = 1;
         this.baseDamage = BASE_DAMAGE;
         this.defense = BASE_DEFENSE;
         this.gearDamage = 0;
@@ -65,20 +67,23 @@ public class PlayerStats {
         this.experienceToNextLevel = 1000;
         this.healthRegenRate = 1f;
         this.regenTimer = 0f;
-        this.availableSkillPoints = 5;
-        this.totalSkillPointsEarned = 5;
+        this.availableSkillPoints = 1;
+        this.totalSkillPointsEarned = 1;
         this.allocatedAttackSpeed = 0f;
         this.gearAttackSpeed = 0f;
 
-        this.allocatedDexPoints = 5;
-        this.allocatedHealthPoints = 5;
-        this.allocatedAttackPoints = 5;
-        this.allocatedDefensePoints = 5;
+        this.allocatedDexPoints = 0;
+        this.allocatedHealthPoints = 0;
+        this.allocatedAttackPoints = 0;
+        this.allocatedDefensePoints = 0;
         this.availableStatPoints = 0;
 
         this.maxHealth = getTotalVit() * HEALTH_PER_VIT;
         this.currentHealth = maxHealth;
         this.baseSpeed = getTotalDex() * SPEED_PER_DEX;
+
+        if (GameScreen.getGameMode() == 0)
+            STAT_POINTS_PER_LEVEL = 10;
     }
 
     public void setSpeedChangeListener(SpeedChangeListener listener) {
@@ -399,5 +404,10 @@ public class PlayerStats {
     public void setMaxHealth(int maxHealth) {
         this.maxHealth = maxHealth;
         this.currentHealth = Math.min(currentHealth, maxHealth);
+    }
+
+    public void setStatPointsEndless() {
+        this.availableSkillPoints = 5;
+        this.totalSkillPointsEarned = 5;
     }
 }

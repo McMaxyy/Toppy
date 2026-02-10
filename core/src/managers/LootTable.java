@@ -20,7 +20,7 @@ public class LootTable {
 
     public static class LootEntry {
         public String itemId;
-        public Item.ItemType itemType; // Can be null for non-randomized items
+        public Item.ItemType itemType;
         public float dropChance;
         public int minQuantity;
         public int maxQuantity;

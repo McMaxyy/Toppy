@@ -4,9 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -43,13 +49,31 @@ public class EndlessRoom {
     private static final int MIN_ENEMIES_PER_CLUMP = 7;
     private static final int MAX_ENEMIES_PER_CLUMP = 10;
     private static final int CLUMPS_PER_WAVE = 10;
+    private static final int GRACE_PERIOD_INTERVAL = 2;
 
     private float spawnTimer = 0f;
     private int clumpsSpawned = 0;
     private int currentWave = 1;
     private int totalEnemiesKilled = 0;
+    private boolean waveInProgress = true;
+    private boolean waveSpawningComplete = false;
 
-    // Corner spawn positions
+    private boolean inGracePeriod = false;
+
+    private ShapeRenderer shapeRenderer;
+    private BitmapFont buttonFont;
+    private Rectangle nextWaveButtonBounds;
+    private boolean buttonHovered = false;
+    private Texture woodTexture;
+
+    // Button styling
+    private static final float BUTTON_WIDTH = 200f;
+    private static final float BUTTON_HEIGHT = 50f;
+    private static final Color BUTTON_COLOR = new Color(0.55f, 0.35f, 0.15f, 1f); // Wood brown
+    private static final Color BUTTON_BORDER_COLOR = new Color(0.35f, 0.2f, 0.1f, 1f); // Dark wood
+    private static final Color BUTTON_HOVER_COLOR = new Color(0.65f, 0.45f, 0.2f, 1f); // Lighter wood
+    private static final Color BUTTON_TEXT_COLOR = new Color(1f, 0.95f, 0.8f, 1f); // Parchment text
+
     private Vector2[] cornerPositions;
 
     private Texture wallTexture;
@@ -72,7 +96,7 @@ public class EndlessRoom {
     private TextureRegion wallEndRTexture;
 
     private enum SpawnableEnemyType {
-        WOLFIE, MUSHIE, SKELETON, SKELETON_MAGE, SKELETON_ROGUE, GHOST
+        WOLFIE, MUSHIE, SKELETON, SKELETON_MAGE, SKELETON_ROGUE, GHOST, HEDGEHOG
     }
 
     public EndlessRoom(int tileSize, World world, Player player, AnimationManager animationManager) {
@@ -86,6 +110,10 @@ public class EndlessRoom {
         this.walls = new ArrayList<>();
         this.enemies = new ArrayList<>();
         this.random = new Random();
+
+        this.shapeRenderer = new ShapeRenderer();
+        this.buttonFont = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.nextWaveButtonBounds = new Rectangle();
 
         loadTextures();
         generateRoom();
@@ -257,17 +285,27 @@ public class EndlessRoom {
     }
 
     public void update(float delta) {
-        spawnTimer += delta;
+        if (inGracePeriod) {
+            updateGracePeriod(delta);
+            return;
+        }
 
-        if (spawnTimer >= SPAWN_INTERVAL) {
-            spawnEnemyClump();
-            spawnTimer = 0f;
-            clumpsSpawned++;
+        if (waveInProgress && !waveSpawningComplete) {
+            spawnTimer += delta;
 
-            if (clumpsSpawned >= CLUMPS_PER_WAVE) {
-                clumpsSpawned = 0;
-                currentWave++;
+            if (spawnTimer >= SPAWN_INTERVAL) {
+                spawnEnemyClump();
+                spawnTimer = 0f;
+                clumpsSpawned++;
+
+                if (clumpsSpawned >= CLUMPS_PER_WAVE) {
+                    waveSpawningComplete = true;
+                }
             }
+        }
+
+        if (waveSpawningComplete && enemies.isEmpty()) {
+            onWaveComplete();
         }
 
         for (EndlessEnemy enemy : new ArrayList<>(enemies)) {
@@ -275,6 +313,47 @@ public class EndlessRoom {
                 enemy.update(delta);
             }
         }
+    }
+
+    private void onWaveComplete() {
+        if (currentWave % GRACE_PERIOD_INTERVAL == 0) {
+            startGracePeriod();
+        } else {
+            startNextWave();
+        }
+    }
+
+    private void startGracePeriod() {
+        inGracePeriod = true;
+    }
+
+    private void updateGracePeriod(float delta) {
+        if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            float mouseX = Gdx.input.getX();
+            float mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
+
+            if (nextWaveButtonBounds.contains(mouseX, mouseY)) {
+                endGracePeriod();
+                return;
+            }
+        }
+
+        float mouseX = Gdx.input.getX();
+        float mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
+        buttonHovered = nextWaveButtonBounds.contains(mouseX, mouseY);
+    }
+
+    private void endGracePeriod() {
+        inGracePeriod = false;
+        startNextWave();
+    }
+
+    private void startNextWave() {
+        currentWave++;
+        clumpsSpawned = 0;
+        spawnTimer = 0f;
+        waveSpawningComplete = false;
+        waveInProgress = true;
     }
 
     private void spawnEnemyClump() {
@@ -320,6 +399,10 @@ public class EndlessRoom {
             case GHOST:
                 stats = EnemyStats.Factory.createGhost(currentWave);
                 type = EnemyType.GHOST;
+                break;
+            case HEDGEHOG:
+                stats = EnemyStats.Factory.createHedgehogEnemy(currentWave);
+                type = EnemyType.HEDGEHOG;
                 break;
             case WOLFIE:
             default:
@@ -378,7 +461,6 @@ public class EndlessRoom {
     }
 
     public void render(SpriteBatch batch) {
-        // Render floor
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (tiles[x][y] == FLOOR) {
@@ -403,6 +485,86 @@ public class EndlessRoom {
                 enemy.render(batch);
             }
         }
+    }
+
+    public void renderHUD(SpriteBatch batch) {
+        if (inGracePeriod) {
+            renderNextWaveButton(batch);
+        }
+    }
+
+    private void renderNextWaveButton(SpriteBatch batch) {
+        int screenWidth = Gdx.graphics.getWidth();
+        int screenHeight = Gdx.graphics.getHeight();
+
+        float buttonX = (screenWidth - BUTTON_WIDTH) / 2f;
+        float buttonY = screenHeight - BUTTON_HEIGHT - 30f;
+
+        nextWaveButtonBounds.set(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+
+        batch.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        if (buttonHovered) {
+            shapeRenderer.setColor(BUTTON_HOVER_COLOR);
+        } else {
+            shapeRenderer.setColor(BUTTON_COLOR);
+        }
+        shapeRenderer.rect(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+
+        shapeRenderer.setColor(new Color(0.7f, 0.5f, 0.25f, 1f));
+        shapeRenderer.rect(buttonX + 3, buttonY + BUTTON_HEIGHT - 6, BUTTON_WIDTH - 6, 3);
+
+        shapeRenderer.setColor(new Color(0.3f, 0.18f, 0.08f, 1f));
+        shapeRenderer.rect(buttonX + 3, buttonY + 3, BUTTON_WIDTH - 6, 3);
+
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        Gdx.gl.glLineWidth(3);
+        shapeRenderer.setColor(BUTTON_BORDER_COLOR);
+        shapeRenderer.rect(buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+
+        shapeRenderer.setColor(new Color(0.25f, 0.15f, 0.05f, 1f));
+        shapeRenderer.rect(buttonX - 2, buttonY - 2, BUTTON_WIDTH + 4, BUTTON_HEIGHT + 4);
+        shapeRenderer.end();
+        Gdx.gl.glLineWidth(1);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(new Color(0.8f, 0.6f, 0.2f, 1f)); // Gold-ish
+        float cornerSize = 8f;
+
+        shapeRenderer.rect(buttonX - 2, buttonY + BUTTON_HEIGHT - cornerSize + 2, cornerSize, cornerSize);
+        shapeRenderer.rect(buttonX + BUTTON_WIDTH - cornerSize + 2, buttonY + BUTTON_HEIGHT - cornerSize + 2, cornerSize, cornerSize);
+        shapeRenderer.rect(buttonX - 2, buttonY - 2, cornerSize, cornerSize);
+        shapeRenderer.rect(buttonX + BUTTON_WIDTH - cornerSize + 2, buttonY - 2, cornerSize, cornerSize);
+        shapeRenderer.end();
+
+        batch.begin();
+
+        buttonFont.setColor(BUTTON_TEXT_COLOR);
+        buttonFont.getData().setScale(0.8f);
+
+        String buttonText = "Next Wave";
+        GlyphLayout layout = new GlyphLayout(buttonFont, buttonText);
+        float textX = buttonX + (BUTTON_WIDTH - layout.width) / 2f;
+        float textY = buttonY + (BUTTON_HEIGHT + layout.height) / 2f;
+
+        buttonFont.setColor(new Color(0.2f, 0.1f, 0.05f, 0.8f));
+        buttonFont.draw(batch, buttonText, textX + 2, textY - 2);
+
+        buttonFont.setColor(BUTTON_TEXT_COLOR);
+        buttonFont.draw(batch, buttonText, textX, textY);
+
+        buttonFont.getData().setScale(0.5f);
+        buttonFont.setColor(Color.WHITE);
+        String waveInfo = "Wave " + currentWave + " Complete!";
+        GlyphLayout waveLayout = new GlyphLayout(buttonFont, waveInfo);
+        buttonFont.draw(batch, waveInfo, (screenWidth - waveLayout.width) / 2f, buttonY - 10f);
+
+        buttonFont.setColor(Color.WHITE);
+        buttonFont.getData().setScale(1f);
     }
 
     public Vector2 getSpawnPoint() {
@@ -447,6 +609,11 @@ public class EndlessRoom {
             enemy.dispose();
         }
         enemies.clear();
+
+        if (shapeRenderer != null) {
+            shapeRenderer.dispose();
+            shapeRenderer = null;
+        }
     }
 
     private static class Wall {

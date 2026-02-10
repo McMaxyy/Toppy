@@ -44,6 +44,10 @@ public class StartScreen extends Game{
     private Table mainTable;
     private Table classSelectionTable;
     private Table settingsTable;
+    private Table gameModeTable;
+    private TextButton endlessButton;
+    private TextButton normalButton;
+    private TextButton gameModeBackButton;
     private TextButton playButton;
     private TextButton exitButton;
     private TextButton settingsButton;
@@ -61,12 +65,12 @@ public class StartScreen extends Game{
     private float cursorY = 0;
     private boolean useVirtualCursor = true;
 
-    // Selected player class
     private PlayerClass selectedClass = PlayerClass.MERCENARY;
 
     // Screen states
     private enum ScreenState {
         MAIN_MENU,
+        GAME_MODE_SELECTION,
         CLASS_SELECTION,
         SETTINGS
     }
@@ -83,7 +87,6 @@ public class StartScreen extends Game{
     private int selectedWidth = 1920;
     private int selectedHeight = 1080;
 
-    // Track if already disposed
     private boolean isDisposed = false;
 
     public StartScreen(Viewport gameViewport, Game game, GameScreen gameScreen) {
@@ -234,6 +237,11 @@ public class StartScreen extends Game{
         settingsTable.center();
         settingsTable.setVisible(false);
 
+        gameModeTable = new Table();
+        gameModeTable.setFillParent(true);
+        gameModeTable.center();
+        gameModeTable.setVisible(false);
+
         try {
             Texture bgTexture = Storage.assetManager.get("MainMenu.png", Texture.class);
             if (bgTexture != null) {
@@ -262,7 +270,7 @@ public class StartScreen extends Game{
         playButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                showClassSelection();
+                showGameModeSelection();
             }
         });
 
@@ -295,8 +303,67 @@ public class StartScreen extends Game{
         stage.addActor(mainTable);
         stage.addActor(classSelectionTable);
         stage.addActor(settingsTable);
+        stage.addActor(gameModeTable);
 
         updateClassSelection();
+        createGameModeUI();
+    }
+
+    private void showGameModeSelection() {
+        currentState = ScreenState.GAME_MODE_SELECTION;
+        mainTable.setVisible(false);
+        gameModeTable.setVisible(true);
+        classSelectionTable.setVisible(false);
+        settingsTable.setVisible(false);
+    }
+
+    private void createGameModeUI() {
+        Label selectModeLabel = new Label("SELECT GAME MODE", skin);
+        selectModeLabel.setFontScale(1f);
+        gameModeTable.add(selectModeLabel).padBottom(50).colspan(2).row();
+
+        endlessButton = new TextButton("ENDLESS", skin);
+        endlessButton.getLabel().setFontScale(1f);
+        endlessButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                GameScreen.setGameMode(0);
+                showClassSelection();
+            }
+        });
+
+        normalButton = new TextButton("NORMAL", skin);
+        normalButton.getLabel().setFontScale(1f);
+        normalButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                GameScreen.setGameMode(1);
+                showClassSelection();
+            }
+        });
+
+        Table modeButtonsTable = new Table();
+        modeButtonsTable.add(endlessButton).size(300, 100).pad(10);
+        modeButtonsTable.add(normalButton).size(300, 100).pad(10);
+        gameModeTable.add(modeButtonsTable).colspan(2).row();
+
+        Label endlessDesc = new Label("Survive endless waves of enemies", skin);
+        endlessDesc.setFontScale(0.7f);
+        gameModeTable.add(endlessDesc).padTop(20).colspan(2).row();
+
+        Label normalDesc = new Label("Explore the world, defeat bosses, complete the game", skin);
+        normalDesc.setFontScale(0.7f);
+        gameModeTable.add(normalDesc).padTop(10).colspan(2).row();
+
+        gameModeBackButton = new TextButton("BACK", skin);
+        gameModeBackButton.getLabel().setFontScale(1.0f);
+        gameModeBackButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                showMainMenu();
+            }
+        });
+        gameModeTable.add(gameModeBackButton).size(150, 60).padTop(40).colspan(2).row();
     }
 
     private void createClassSelectionUI() {
@@ -304,7 +371,6 @@ public class StartScreen extends Game{
         selectClassLabel.setFontScale(1f);
         classSelectionTable.add(selectClassLabel).padBottom(30).colspan(2).row();
 
-        // Mercenary button
         mercenaryButton = new TextButton("MERCENARY", skin);
         mercenaryButton.getLabel().setFontScale(1f);
         mercenaryButton.addListener(new ClickListener() {
@@ -314,7 +380,6 @@ public class StartScreen extends Game{
             }
         });
 
-        // Paladin button
         paladinButton = new TextButton("PALADIN", skin);
         paladinButton.getLabel().setFontScale(1f);
         paladinButton.addListener(new ClickListener() {
@@ -329,12 +394,10 @@ public class StartScreen extends Game{
         classButtonsTable.add(paladinButton).size(300, 100).pad(10);
         classSelectionTable.add(classButtonsTable).colspan(2).row();
 
-        // Class description label
         classDescriptionLabel = new Label(PlayerClass.MERCENARY.getDescription(), skin);
         classDescriptionLabel.setWrap(false);
         classSelectionTable.add(classDescriptionLabel).width(400).padTop(20).colspan(2).row();
 
-        // Start game button
         startGameButton = new TextButton("START GAME", skin);
         startGameButton.getLabel().setFontScale(1f);
         startGameButton.addListener(new ClickListener() {
@@ -350,7 +413,7 @@ public class StartScreen extends Game{
         backButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                showMainMenu();
+                showGameModeSelection();
             }
         });
         classSelectionTable.add(backButton).size(150, 60).padTop(10).colspan(2).row();
@@ -431,7 +494,6 @@ public class StartScreen extends Game{
                     selectedWidth = 1600;
                     selectedHeight = 900;
                 } else {
-                    // Ensure at least one is checked
                     if (!size1280x720Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
                         size1600x900Checkbox.setChecked(true);
                     }
@@ -450,7 +512,6 @@ public class StartScreen extends Game{
                     selectedWidth = 1920;
                     selectedHeight = 1080;
                 } else {
-                    // Ensure at least one is checked
                     if (!size1280x720Checkbox.isChecked() && !size1600x900Checkbox.isChecked()) {
                         size1920x1080Checkbox.setChecked(true);
                     }
@@ -495,6 +556,7 @@ public class StartScreen extends Game{
     private void showClassSelection() {
         currentState = ScreenState.CLASS_SELECTION;
         mainTable.setVisible(false);
+        gameModeTable.setVisible(false);
         classSelectionTable.setVisible(true);
         settingsTable.setVisible(false);
     }
@@ -509,6 +571,7 @@ public class StartScreen extends Game{
     private void showMainMenu() {
         currentState = ScreenState.MAIN_MENU;
         mainTable.setVisible(true);
+        gameModeTable.setVisible(false);
         classSelectionTable.setVisible(false);
         settingsTable.setVisible(false);
     }
@@ -590,7 +653,6 @@ public class StartScreen extends Game{
             settingsTable.invalidateHierarchy();
         }
 
-        // Update background image size if it exists
         if (backgroundImage != null) {
             backgroundImage.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
         }
@@ -643,6 +705,10 @@ public class StartScreen extends Game{
         size1280x720Checkbox = null;
         size1600x900Checkbox = null;
         size1920x1080Checkbox = null;
+        gameModeTable = null;
+        endlessButton = null;
+        normalButton = null;
+        gameModeBackButton = null;
 
         try {
             Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
