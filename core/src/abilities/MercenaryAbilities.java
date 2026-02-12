@@ -35,6 +35,7 @@ class DoubleSwingAbility extends Ability {
     protected void execute(Player player, GameProj gameProj) {
         int playerDamage = player.getStats().getTotalDamage();
         int swingDamage = (int)(playerDamage * 0.9f);
+        SoundManager.getInstance().playAbilitySound("DoubleSwing");
 
         // First swing - rotated 25 degrees up
         AbilityVisual.SpearJab firstSwing = AbilityVisual.SpearJab.createWhite(player, gameProj, 0.15f, distance, 25f);
@@ -198,6 +199,7 @@ class RendAbility extends Ability {
     @Override
     protected void execute(Player player, GameProj gameProj) {
         Vector2 playerPos = player.getPosition();
+        SoundManager.getInstance().playHitSound("Spear");
 
         // Red spear jab visual
         AbilityVisual.SpearJab indicator = AbilityVisual.SpearJab.createRed(player, gameProj, 0.3f, distance, 0f);
@@ -381,7 +383,7 @@ class GroundSlamAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        SoundManager.getInstance().playAbilitySound("Smite");
+        SoundManager.getInstance().playAbilitySound("GroundSlam");
 
         Vector2 playerPos = player.getPosition();
 
@@ -528,6 +530,8 @@ class WhirlwindAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Whirlwind");
+
         whirlwindPlayer = player;
         currentGameProj = gameProj;
         whirlwindTimer = 0f;
@@ -676,7 +680,7 @@ class ExecuteAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        SoundManager.getInstance().playHitSound("Sword");
+        SoundManager.getInstance().playHitSound("Spear");
 
         Vector2 playerPos = player.getPosition();
         int actualDamage = player.getStats().getActualDamage();
@@ -874,7 +878,7 @@ class BlazingFuryAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        SoundManager.getInstance().playAbilitySound("Smite");
+        SoundManager.getInstance().playAbilitySound("BlazingFury");
 
         BlazingFuryEffect furyEffect = new BlazingFuryEffect(
                 player, FURY_DURATION, ATTACK_BONUS, DEX_BONUS

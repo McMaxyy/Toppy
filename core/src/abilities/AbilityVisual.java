@@ -1774,7 +1774,6 @@ public abstract class AbilityVisual {
             Vector2 pos = player.getPosition();
             float progress = timer / duration;
 
-            // Flash in quickly, then fade out
             float alpha;
             if (progress < 0.2f) {
                 alpha = 0.9f * (progress / 0.2f);
@@ -1800,7 +1799,7 @@ public abstract class AbilityVisual {
         private float radius;
         private float rotationAngle = 0f;
 
-        private static final float ROTATIONS_PER_SECOND = 3f;
+        private static final float ROTATIONS_PER_SECOND = 2f;
         private static final float SPEAR_DISTANCE = 20f;
 
         public Whirlwind(Player player, float radius, float duration) {
@@ -1818,7 +1817,6 @@ public abstract class AbilityVisual {
 
         @Override
         protected void onUpdate(float delta) {
-            // Rotate spear - 3 full rotations per second = 1080 degrees per second
             rotationAngle += 360f * ROTATIONS_PER_SECOND * delta;
             if (rotationAngle >= 360f) {
                 rotationAngle -= 360f;
@@ -1833,7 +1831,6 @@ public abstract class AbilityVisual {
 
             Vector2 playerPos = player.getPosition();
 
-            // Calculate spear position in circular orbit
             float angleRad = (float) Math.toRadians(rotationAngle);
             float spearX = playerPos.x + (float) Math.cos(angleRad) * SPEAR_DISTANCE;
             float spearY = playerPos.y + (float) Math.sin(angleRad) * SPEAR_DISTANCE;
@@ -1841,13 +1838,12 @@ public abstract class AbilityVisual {
             float width = spearTexture.getWidth();
             float height = spearTexture.getHeight();
 
-            float scaleX = 0.8f; // Normal size spear
-            float scaleY = 0.6f; // Keep it thinner
+            float scaleX = 0.8f;
+            float scaleY = 0.6f;
 
             float originX = 0f;
             float originY = height / 2f;
 
-            // Fade in and out
             float progress = timer / duration;
             float alpha;
             if (progress < 0.2f) {
@@ -1872,7 +1868,7 @@ public abstract class AbilityVisual {
                     height,
                     scaleX,
                     scaleY,
-                    rotationAngle // The spear points in the direction it's traveling
+                    rotationAngle
             );
 
             batch.setColor(originalColor);
@@ -1886,8 +1882,8 @@ public abstract class AbilityVisual {
         private Player player;
         private float pulseTimer = 0f;
 
-        private static final Color FURY_COLOR = new Color(1f, 0.2f, 0.1f, 1f); // Bright red
-        private static final float PULSE_SPEED = 8f; // Fast pulsing
+        private static final Color FURY_COLOR = new Color(1f, 0.2f, 0.1f, 1f);
+        private static final float PULSE_SPEED = 8f;
 
         public BlazingFuryAura(Player player, float duration) {
             super(duration);
@@ -1905,14 +1901,12 @@ public abstract class AbilityVisual {
 
             Vector2 pos = player.getPosition();
 
-            // Fast flashing pulse between 0.3 and 0.5 alpha
             float pulse = 0.4f + 0.2f * (float) Math.sin(pulseTimer);
             float size = 22f;
 
             TextureRegion currentFrame = player.getAnimationManager().getCurrentFrame();
             TextureRegion frame = new TextureRegion(currentFrame);
 
-            // Handle sprite flipping
             if (player.isPlayerFlipped()) {
                 if (!frame.isFlipX()) {
                     frame.flip(true, false);

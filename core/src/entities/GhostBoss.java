@@ -21,6 +21,7 @@ import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.CollisionFilter;
+import managers.SoundManager;
 import ui.ScreenShake;
 
 public class GhostBoss {
@@ -88,7 +89,6 @@ public class GhostBoss {
     private List<GhostBossDuplicate> duplicates = new ArrayList<>();
     private boolean isInvulnerableDuringDuplication = false;
 
-    // Room corners (will be set by BossRoom)
     private Vector2[] roomCorners = new Vector2[4];
     private int roomWidth;
     private int roomHeight;
@@ -675,7 +675,7 @@ public class GhostBoss {
 
     public void takeDamage(int damage) {
         if (isInvulnerableDuringDuplication) {
-            return; // Boss is invulnerable during duplication
+            return;
         }
 
         if (damage > 0) {
@@ -683,7 +683,8 @@ public class GhostBoss {
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
 
-            ScreenShake.rumble(0.5f, 0.3f);
+            ScreenShake.rumble(0.6f, 0.3f);
+            SoundManager.getInstance().playEnemyHitSound();
         }
 
         if (stats.isDead()) {

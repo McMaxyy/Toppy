@@ -17,6 +17,10 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 
 import config.Storage;
 import entities.DungeonEnemy;
@@ -24,6 +28,7 @@ import entities.EnemyStats;
 import entities.EnemyType;
 import entities.Player;
 import entities.Portal;
+import entities.DestructibleObject;
 
 public class Dungeon {
     private final int width;
@@ -46,12 +51,12 @@ public class Dungeon {
     private static final int BOSS_PORTAL = 2;
 
     private List<Room> generatedRooms;
+    private final List<DestructibleObject> destructables = new ArrayList<>();
 
     private Texture wallTexture;
     private Texture floorTexture;
     private Texture exitTexture;
 
-    // Wall segment textures
     private TextureRegion wallSingleTexture;
     private TextureRegion wallHorizontalTexture;
     private TextureRegion wallVerticalTexture;
@@ -68,6 +73,25 @@ public class Dungeon {
     private TextureRegion wallEndLTexture;
     private TextureRegion wallEndRTexture;
 
+    private Texture pixel;
+    private Texture radialLightTex;
+    private final ArrayList<LightSource> torchLights = new ArrayList<>();
+
+    private float ambientDarkness = 0.65f; // 0 = no dark, 1 = fully black
+
+    private static class LightSource {
+        float x, y;
+        float radius;
+        float intensity; // 0..1
+
+        LightSource(float x, float y, float radius, float intensity) {
+            this.x = x;
+            this.y = y;
+            this.radius = radius;
+            this.intensity = intensity;
+        }
+    }
+
     public Dungeon(int width, int height, int tileSize, Random random, World world, Player player, AnimationManager animationManager) {
         this.width = width;
         this.height = height;
@@ -83,11 +107,16 @@ public class Dungeon {
         generateDungeon(random);
         createWalls();
         spawnEnemies(random, generatedRooms);
+        spawnDestructibles(random, generatedRooms);
     }
 
     private void loadTextures() {
         wallTexture = Storage.assetManager.get("tiles/wallSprite2.png", Texture.class);
         wallTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+        pixel = Storage.assetManager.get("white_pixel.png", Texture.class);
+        radialLightTex = createRadialLightTexture(256);
+
 
         int tileWidth = wallTexture.getWidth() / 15;
         int tileHeight = wallTexture.getHeight();
@@ -112,6 +141,44 @@ public class Dungeon {
 
         floorTexture = Storage.assetManager.get("tiles/stoneFloor4.png", Texture.class);
         exitTexture = Storage.assetManager.get("tiles/Portal.png", Texture.class);
+    }
+
+    private Texture createRadialLightTexture(int sizePx) {
+        Pixmap pm = new Pixmap(sizePx, sizePx, Pixmap.Format.RGBA8888);
+        pm.setBlending(Pixmap.Blending.None);
+
+        float cx = (sizePx - 1) * 0.5f;
+        float cy = (sizePx - 1) * 0.5f;
+        float max = sizePx * 0.5f;
+
+        for (int y = 0; y < sizePx; y++) {
+            for (int x = 0; x < sizePx; x++) {
+                float dx = x - cx;
+                float dy = y - cy;
+
+                float d = (float)Math.sqrt(dx * dx + dy * dy);
+
+                float nd = d / max;
+
+                if (nd >= 1f) {
+                    pm.drawPixel(x, y, 0x00000000);
+                    continue;
+                }
+
+                float t = 1f - nd;
+
+                t = (float)Math.pow(t, 4.0);
+
+                int a = (int)(255 * t);
+                int rgba = (255 << 24) | (255 << 16) | (255 << 8) | (a);
+                pm.drawPixel(x, y, rgba);
+            }
+        }
+
+        Texture tex = new Texture(pm);
+        tex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        pm.dispose();
+        return tex;
     }
 
     private void generateDungeon(Random random) {
@@ -168,7 +235,6 @@ public class Dungeon {
             placeBossPortal(furthestRoom);
         }
 
-        // Store rooms for enemy spawning
         this.generatedRooms = rooms;
     }
 
@@ -360,10 +426,6 @@ public class Dungeon {
         return body;
     }
 
-    private void spawnEnemies(Random random) {
-        spawnEnemies(random, null);
-    }
-
     private void spawnEnemies(Random random, List<Room> rooms) {
         int clumpCount = 24 + random.nextInt(6);
 
@@ -405,11 +467,9 @@ public class Dungeon {
             }
         }
 
-        // Check for empty rooms and spawn additional clumps
         if (rooms != null) {
             for (Room room : rooms) {
                 if (!roomsWithEnemies.contains(room)) {
-                    // Skip spawn room and boss portal room
                     float roomCenterWorldX = room.centerX() * tileSize;
                     float roomCenterWorldY = room.centerY() * tileSize;
 
@@ -418,10 +478,8 @@ public class Dungeon {
                         continue;
                     }
 
-                    // Spawn 1-2 clumps in this empty room
                     int clumpsToSpawn = 1 + random.nextInt(2);
                     for (int c = 0; c < clumpsToSpawn; c++) {
-                        // Find a valid position within the room
                         int spawnAttempts = 0;
                         boolean spawned = false;
 
@@ -468,10 +526,8 @@ public class Dungeon {
 
                     Body body = createEnemyBody(worldX, worldY);
 
-                    // 20% chance Skeleton Mage, 30% chance Skeleton Rogue, 50% regular Skeleton
                     float roll = random.nextFloat();
                     if (roll < 0.2f) {
-                        // Skeleton Mage
                         EnemyStats stats = EnemyStats.Factory.createSkeletonMageEnemy(2);
                         enemies.add(new DungeonEnemy(
                                 new Rectangle(worldX, worldY, 16, 16),
@@ -483,7 +539,6 @@ public class Dungeon {
                                 EnemyType.SKELETON_MAGE
                         ));
                     } else if (roll < 0.5f) {
-                        // Skeleton Rogue
                         EnemyStats stats = EnemyStats.Factory.createSkeletonRogueEnemy(2);
                         enemies.add(new DungeonEnemy(
                                 new Rectangle(worldX, worldY, 16, 16),
@@ -495,7 +550,6 @@ public class Dungeon {
                                 EnemyType.SKELETON_ROGUE
                         ));
                     } else {
-                        // Regular Skeleton
                         EnemyStats stats = EnemyStats.Factory.createSkeletonEnemy(2);
                         enemies.add(new DungeonEnemy(
                                 new Rectangle(worldX, worldY, 16, 16),
@@ -514,6 +568,159 @@ public class Dungeon {
         }
     }
 
+    private void spawnDestructibles(Random random, List<Room> rooms) {
+        if (rooms == null || rooms.isEmpty()) return;
+
+        final int OBJ_SIZE = 32;
+        final int MIN_PADDING_TILES = 1;
+
+        final int MAX_CENTER_ATTEMPTS = 20;
+        final int MAX_OBJECT_ATTEMPTS = 20;
+
+        final int CLUMPS_PER_ROOM_MIN = 3;
+        final int CLUMPS_PER_ROOM_MAX = 6;
+
+        final int OBJECTS_PER_CLUMP_MIN = 2;
+        final int OBJECTS_PER_CLUMP_MAX = 5;
+
+        final float CLUMP_RADIUS_PX = tileSize * 1.5f;
+
+        Texture barrel = Storage.assetManager.get("tiles/destruct2.png", Texture.class);
+        Texture crate  = Storage.assetManager.get("tiles/destruct1.png", Texture.class);
+        Texture urn  = Storage.assetManager.get("tiles/destruct3.png", Texture.class);
+        Texture all1  = Storage.assetManager.get("tiles/destruct4.png", Texture.class);
+        Texture all2  = Storage.assetManager.get("tiles/destruct5.png", Texture.class);
+
+        for (Room room : rooms) {
+            float roomCenterWorldX = room.centerX() * tileSize;
+            float roomCenterWorldY = room.centerY() * tileSize;
+
+            if (isNearSpawn(roomCenterWorldX, roomCenterWorldY, 100f) ||
+                    isNearBossPortal(roomCenterWorldX, roomCenterWorldY, 80f)) {
+                continue;
+            }
+
+            int clumpsThisRoom = CLUMPS_PER_ROOM_MIN + random.nextInt(CLUMPS_PER_ROOM_MAX - CLUMPS_PER_ROOM_MIN + 1);
+
+            for (int c = 0; c < clumpsThisRoom; c++) {
+
+                boolean centerFound = false;
+                float centerWorldX = 0f;
+                float centerWorldY = 0f;
+
+                for (int attempt = 0; attempt < MAX_CENTER_ATTEMPTS; attempt++) {
+                    int centerTileX = room.x + MIN_PADDING_TILES + random.nextInt(Math.max(1, room.width - (MIN_PADDING_TILES * 2)));
+                    int centerTileY = room.y + MIN_PADDING_TILES + random.nextInt(Math.max(1, room.height - (MIN_PADDING_TILES * 2)));
+
+                    if (centerTileX < 0 || centerTileX >= width || centerTileY < 0 || centerTileY >= height) continue;
+                    if (tiles[centerTileX][centerTileY] != FLOOR) continue;
+
+                    centerWorldX = centerTileX * tileSize;
+                    centerWorldY = centerTileY * tileSize;
+
+                    Rectangle centerBounds = new Rectangle(centerWorldX, centerWorldY, OBJ_SIZE, OBJ_SIZE);
+                    if (isOverlappingEnemyOrDestructable(centerBounds)) continue;
+
+                    centerFound = true;
+                    break;
+                }
+
+                if (!centerFound) continue;
+
+                int objectsInClump = OBJECTS_PER_CLUMP_MIN + random.nextInt(OBJECTS_PER_CLUMP_MAX - OBJECTS_PER_CLUMP_MIN + 1);
+
+                for (int i = 0; i < objectsInClump; i++) {
+
+                    for (int attempt = 0; attempt < MAX_OBJECT_ATTEMPTS; attempt++) {
+
+                        float angle = random.nextFloat() * 6.2831855f; // 2π
+                        float radius = random.nextFloat() * CLUMP_RADIUS_PX;
+
+                        float worldX = centerWorldX + (float)Math.cos(angle) * radius;
+                        float worldY = centerWorldY + (float)Math.sin(angle) * radius;
+
+                        int tileX = (int)(worldX / tileSize);
+                        int tileY = (int)(worldY / tileSize);
+
+                        tileX = Math.max(room.x + MIN_PADDING_TILES, Math.min(tileX, room.x + room.width - 1 - MIN_PADDING_TILES));
+                        tileY = Math.max(room.y + MIN_PADDING_TILES, Math.min(tileY, room.y + room.height - 1 - MIN_PADDING_TILES));
+
+                        if (tileX < 0 || tileX >= width || tileY < 0 || tileY >= height) continue;
+                        if (tiles[tileX][tileY] != FLOOR) continue;
+
+                        worldX = tileX * tileSize;
+                        worldY = tileY * tileSize;
+
+                        Rectangle objBounds = new Rectangle(worldX, worldY, OBJ_SIZE, OBJ_SIZE);
+                        if (isOverlappingEnemyOrDestructable(objBounds)) continue;
+
+                        Texture tex;
+                        switch (random.nextInt(5)) {
+                            case 0:
+                                tex = crate;
+                                break;
+                            case 1:
+                                tex = barrel;
+                                break;
+                            case 2:
+                                tex = urn;
+                                break;
+                            case 3:
+                                tex = all2;
+                                break;
+                            case 4:
+                            default:
+                                tex = all1;
+                                break;
+                        }
+
+                        Body body = createDestructableBody(worldX, worldY, OBJ_SIZE, OBJ_SIZE);
+                        EnemyStats stats = EnemyStats.Factory.createDestructible();
+
+                        DestructibleObject obj = new DestructibleObject(objBounds, tex, body, stats);
+                        destructables.add(obj);
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isOverlappingEnemyOrDestructable(Rectangle bounds) {
+        // Check dungeon enemies (already spawned)
+        for (DungeonEnemy e : enemies) {
+            if (e != null && e.getBounds() != null && e.getBounds().overlaps(bounds)) return true;
+        }
+
+        for (DestructibleObject d : destructables) {
+            if (d != null && d.getBounds() != null && d.getBounds().overlaps(bounds)) return true;
+        }
+
+        return false;
+    }
+
+    private Body createDestructableBody(float x, float y, float w, float h) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.StaticBody;
+        bodyDef.position.set(x + w / 2f, y + h / 2f);
+
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(w / 2f, h / 2f);
+
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+        fixtureDef.isSensor = true;
+        fixtureDef.filter.categoryBits = CollisionFilter.DESTRUCTIBLE;
+        fixtureDef.filter.maskBits = 0;
+
+        Body body = world.createBody(bodyDef);
+        body.createFixture(fixtureDef);
+
+        shape.dispose();
+        return body;
+    }
+
     private boolean isNearSpawn(float x, float y, float minDistance) {
         float dx = x - spawnPoint.x;
         float dy = y - spawnPoint.y;
@@ -526,6 +733,8 @@ public class Dungeon {
         float dy = y - bossPortalPoint.y;
         return Math.sqrt(dx * dx + dy * dy) < minDistance;
     }
+
+
 
     private Body createEnemyBody(float x, float y) {
         BodyDef bodyDef = new BodyDef();
@@ -685,6 +894,10 @@ public class Dungeon {
                 batch.draw(wall.textureRegion, wall.bounds.x, wall.bounds.y, wall.bounds.width, wall.bounds.height);
             }
         }
+
+        for (DestructibleObject obj : destructables) {
+            obj.render(batch);
+        }
     }
 
     public void renderPortal(SpriteBatch batch, float delta) {
@@ -699,6 +912,28 @@ public class Dungeon {
             enemy.update(delta);
             enemy.render(batch);
         }
+    }
+
+    public void renderLighting(SpriteBatch batch) {
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        batch.setColor(0f, 0f, 0f, ambientDarkness);
+        batch.draw(pixel, 0, 0, width * tileSize, height * tileSize);
+        batch.setColor(1f, 1f, 1f, 1f);
+
+        batch.setBlendFunction(GL20.GL_DST_COLOR, GL20.GL_ONE);
+
+        Vector2 p = player.getPosition();
+        drawRadialLight(batch, p.x, p.y, (tileSize * 6.0f) * 0.5f, 1.0f);
+
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    private void drawRadialLight(SpriteBatch batch, float x, float y, float radius, float intensity) {
+        float size = radius * 2f;
+
+        batch.setColor(intensity, intensity, intensity, 1f);
+        batch.draw(radialLightTex, x - radius, y - radius, size, size);
+        batch.setColor(1f, 1f, 1f, 1f);
     }
 
     public void updateEnemies() {
@@ -757,6 +992,16 @@ public class Dungeon {
             bossRoomPortal.dispose(world);
             bossRoomPortal = null;
         }
+
+        for (DestructibleObject obj : destructables) {
+            if (obj.getBody() != null) {
+                world.destroyBody(obj.getBody());
+                obj.clearBody();
+            }
+            obj.dispose();
+        }
+        destructables.clear();
+
     }
 
     private static class Wall {
@@ -794,6 +1039,10 @@ public class Dungeon {
                     y < other.y + other.height + 2 &&
                     y + height + 2 > other.y;
         }
+    }
+
+    public List<DestructibleObject> getDestructables() {
+        return destructables;
     }
 
     public int getWidth() { return width; }

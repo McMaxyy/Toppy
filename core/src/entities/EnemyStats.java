@@ -427,5 +427,19 @@ public class EnemyStats {
                     0f
             );
         }
+
+        public static EnemyStats createDestructible() {
+            return new EnemyStats(
+                    "Destructible",
+                    1,
+                    0,
+                    0,
+                    0,
+                    1,
+                    AttackType.MELEE,
+                    "destructible",
+                    0f, 0f, 0f, 0f, 0f, 0f, 0f
+            );
+        }
     }
 }

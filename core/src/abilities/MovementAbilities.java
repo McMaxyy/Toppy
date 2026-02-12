@@ -85,6 +85,8 @@ class ChargeAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Blink");
+
         player.setInvulnerable(true);
         Vector2 movementDirection = getPlayerMovementDirection();
 

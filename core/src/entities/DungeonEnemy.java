@@ -16,6 +16,7 @@ import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
 import managers.Dungeon;
+import managers.SoundManager;
 import ui.ScreenShake;
 
 public class DungeonEnemy {
@@ -31,7 +32,7 @@ public class DungeonEnemy {
     private boolean isMoving = false;
     private final AnimationManager animationManager;
     private boolean isFlipped = false;
-    private Projectile projectile; // Single pooled projectile
+    private Projectile projectile;
     private boolean isKnockedBack = false;
     private float knockbackTimer = 0f;
     private Vector2 knockbackVelocity = new Vector2();
@@ -768,7 +769,9 @@ public class DungeonEnemy {
             hitFlashTimer = HIT_FLASH_DURATION;
 
             applyKnockback();
-            ScreenShake.rumble(0.5f, 0.3f);
+            ScreenShake.rumble(0.6f, 0.3f);
+            SoundManager.getInstance().playEnemyHitSound();
+
         }
 
         combatTimer = COMBAT_TIMER;
@@ -845,4 +848,8 @@ public class DungeonEnemy {
     }
 
     public boolean isStunned() { return isStunned; }
+
+    public Rectangle getBounds() {
+        return bounds;
+    }
 }

@@ -56,6 +56,7 @@ public class GameProj implements Screen, ContactListener {
     private PlayerHealthPopup playerHealthPopup;
     private Texture groundTexture;
     private Player player;
+    private Vector2 initialSpawnPos;
     private final ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
     private final ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
     private final Random random;
@@ -356,6 +357,9 @@ public class GameProj implements Screen, ContactListener {
             attempts++;
         }
 
+        initialSpawnPos = new Vector2(spawnPosition);
+        player.getBody().setTransform(spawnPosition.x, spawnPosition.y, 0);
+
         if (spawnPosition == null) {
             int spawnChunkX = minChunk + random.nextInt((maxChunk - minChunk) + 1);
             int spawnChunkY = minChunk + random.nextInt((maxChunk - minChunk) + 1);
@@ -575,6 +579,9 @@ public class GameProj implements Screen, ContactListener {
 
                 portalX = portalChunkX * CHUNK_SIZE * TILE_SIZE + offsetX;
                 portalY = portalChunkY * CHUNK_SIZE * TILE_SIZE + offsetY;
+
+//                portalX = player.getPosition().x;
+//                portalY = player.getPosition().y;
 
                 float distanceFromSpawn = (float) Math.sqrt(
                         Math.pow(portalX - playerSpawn.x, 2) +
@@ -1365,6 +1372,8 @@ public class GameProj implements Screen, ContactListener {
                 currentDungeon.renderEnemies(batch, 0);
             }
 
+            currentDungeon.renderLighting(batch);
+
             if (!isPaused && currentDungeon.isPlayerAtBossPortal(player.getPosition()) &&
                     Gdx.input.isKeyJustPressed(Input.Keys.F)) {
                 batch.end();
@@ -1675,28 +1684,25 @@ public class GameProj implements Screen, ContactListener {
             lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
 
             player.getStats().addExperience(dungeonEnemy.getStats().getExpReward());
+        }
 
-            if (!endlessPortalSpawned && hermanDefeated) {
-                spawnEndlessPortal(enemyPosition);
-            }
+        else if (enemy instanceof DestructibleObject) {
+            DestructibleObject dungeonEnemy = (DestructibleObject) enemy;
+
+            String lootTable = dungeonEnemy.getStats().getLootTableType();
+            lootTableRegistry.spawnLoot(lootTable, itemSpawner, enemyPosition);
         }
     }
 
     private void spawnEndlessPortal(Vector2 position) {
         endlessPortalSpawned = true;
 
-        // Spawn portal slightly offset from Herman's death position
         float portalX = position.x + 50f;
         float portalY = position.y;
 
         endlessPortal = new Portal(portalX, portalY, 32, world.getWorld(), false);
 
         hudLabel.setText("A mysterious portal has appeared...");
-
-        // Add to minimap
-        if (minimap != null) {
-//            minimap.setEndlessPortal(endlessPortal);
-        }
     }
 
     public void checkForDeadEnemies() {
@@ -1762,6 +1768,15 @@ public class GameProj implements Screen, ContactListener {
                     bodiesToDestroy.add(enemy.getBody());
                     enemy.clearBody();
                     currentDungeon.getEnemies().remove(enemy);
+                }
+            }
+
+            for (DestructibleObject object : new ArrayList<>(currentDungeon.getDestructables())) {
+                if (object.isMarkedForRemoval() && object.getBody() != null) {
+                    handleEnemyDeath(object, object.getBody().getPosition(), false);
+                    bodiesToDestroy.add(object.getBody());
+                    object.clearBody();
+                    currentDungeon.getEnemies().remove(object);
                 }
             }
         }
@@ -1934,7 +1949,7 @@ public class GameProj implements Screen, ContactListener {
 
     private Body createHermanBody(float x, float y) {
         BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyDef.BodyType.StaticBody; // Herman is stationary
+        bodyDef.type = BodyDef.BodyType.StaticBody;
         bodyDef.position.set(x, y);
 
         PolygonShape shape = new PolygonShape();

@@ -5,6 +5,8 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.utils.Disposable;
 
+import config.SaveManager;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,29 +14,26 @@ public class SoundManager implements Disposable {
 
     private static SoundManager instance;
 
-    // Music tracks
     private Map<String, Music> musicTracks;
     private Music currentMusic;
     private String currentMusicKey;
 
-    // Sound effects
     private Map<String, Sound> soundEffects;
 
-    // Volume settings
     private float musicVolume = 0.0f;
     private float sfxVolume = 0.3f;
     private boolean musicEnabled = true;
     private boolean sfxEnabled = true;
 
+    private float sfxCooldown = 0f;
+    private static final float SFX_SOUND_COOLDOWN_TIME = 0.05f;
     private float hitSoundCooldown = 0f;
-    private static final float HIT_SOUND_COOLDOWN_TIME = 0.05f;
+    private static final float HIT_SOUND_COOLDOWN_TIME = 0.1f;
 
-    // Music keys
     public static final String MUSIC_FOREST = "forest";
     public static final String MUSIC_DUNGEON = "dungeon";
     public static final String MUSIC_BOSS = "boss";
 
-    // SFX keys
     public static final String SFX_ENTITY_HIT = "entity_hit";
     public static final String SFX_CONSECRATE = "consecrated_ground";
     public static final String SFX_PICKUP_ITEM = "pickup_item";
@@ -48,16 +47,29 @@ public class SoundManager implements Disposable {
     public static final String SFX_SPRINT_ABILITY = "sprint_sound";
     public static final String SFX_USE_POTION = "potion_sound";
     public static final String SFX_LEMMY = "lemmy_sound";
-
+    public static final String SFX_SPEAR = "spear_sound";
+    public static final String SFX_WHIRLWIND_ABILITY = "whirlwind_sound";
+    public static final String SFX_DOUBLE_SWING_ABILITY= "doubleSwing_sound";
+    public static final String SFX_GROUND_SLAM_ABILITY = "groundSlam_sound";
+    public static final String SFX_BLAZING_FURY_ABILITY = "blazingFury_sound";
+    public static final String SFX_BUBBLE_ABILITY= "bubble_sound";
+    public static final String SFX_LIFE_LEECH_ABILITY = "lifeLeech_sound";
+    public static final String SFX_HOLY_AURA_ABILITY= "holyAura_sound";
+    public static final String SFX_HOLY_BLESSING_ABILITY = "holyBlessing_sound";
+    public static final String SFX_BUTTON = "button_sound";
+    public static final String SFX_ENEMY_HIT = "enemyHit_sound";
 
     private Music grassRunningSound;
     private boolean isGrassRunningPlaying = false;
     private Music stoneRunningSound;
     private boolean isStoneRunningPlaying = false;
+
     private SoundManager() {
         musicTracks = new HashMap<>();
         soundEffects = new HashMap<>();
         loadAudio();
+
+        syncWithSaveData();
     }
 
     public static SoundManager getInstance() {
@@ -65,6 +77,24 @@ public class SoundManager implements Disposable {
             instance = new SoundManager();
         }
         return instance;
+    }
+
+    public void syncWithSaveData() {
+        this.musicVolume = SaveManager.getMusicVolume();
+        this.sfxVolume = SaveManager.getSfxVolume();
+        this.musicEnabled = SaveManager.isMusicEnabled();
+        this.sfxEnabled = SaveManager.isSfxEnabled();
+
+        if (currentMusic != null) {
+            currentMusic.setVolume(musicVolume);
+        }
+
+        if (grassRunningSound != null) {
+            grassRunningSound.setVolume(sfxVolume * 0.6f);
+        }
+        if (stoneRunningSound != null) {
+            stoneRunningSound.setVolume(sfxVolume * 0.4f);
+        }
     }
 
     private void loadAudio() {
@@ -120,6 +150,39 @@ public class SoundManager implements Disposable {
             Sound lemmySound = Gdx.audio.newSound(Gdx.files.internal("sounds/Lemmy.mp3"));
             soundEffects.put(SFX_LEMMY, lemmySound);
 
+            Sound spearSound = Gdx.audio.newSound(Gdx.files.internal("sounds/SpearAttack.mp3"));
+            soundEffects.put(SFX_SPEAR, spearSound);
+
+            Sound whirlwindSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Whirlwind.mp3"));
+            soundEffects.put(SFX_WHIRLWIND_ABILITY, whirlwindSound);
+
+            Sound doubleSwingSound = Gdx.audio.newSound(Gdx.files.internal("sounds/DoubleSwing.mp3"));
+            soundEffects.put(SFX_DOUBLE_SWING_ABILITY, doubleSwingSound);
+
+            Sound groundSlamSound = Gdx.audio.newSound(Gdx.files.internal("sounds/GroundSlam.mp3"));
+            soundEffects.put(SFX_GROUND_SLAM_ABILITY, groundSlamSound);
+
+            Sound blazingFurySound = Gdx.audio.newSound(Gdx.files.internal("sounds/BlazingFury.mp3"));
+            soundEffects.put(SFX_BLAZING_FURY_ABILITY, blazingFurySound);
+
+            Sound bubbleSound = Gdx.audio.newSound(Gdx.files.internal("sounds/Bubble.mp3"));
+            soundEffects.put(SFX_BUBBLE_ABILITY, bubbleSound);
+
+            Sound lifeLeechSound = Gdx.audio.newSound(Gdx.files.internal("sounds/LifeLeech.mp3"));
+            soundEffects.put(SFX_LIFE_LEECH_ABILITY, lifeLeechSound);
+
+            Sound holyAuraSound = Gdx.audio.newSound(Gdx.files.internal("sounds/HolyAura.mp3"));
+            soundEffects.put(SFX_HOLY_AURA_ABILITY, holyAuraSound);
+
+            Sound holyBlessingSound = Gdx.audio.newSound(Gdx.files.internal("sounds/HolyBlessing.mp3"));
+            soundEffects.put(SFX_HOLY_BLESSING_ABILITY, holyBlessingSound);
+
+            Sound buttonSound = Gdx.audio.newSound(Gdx.files.internal("sounds/ButtonPress.mp3"));
+            soundEffects.put(SFX_BUTTON, buttonSound);
+
+            Sound enemyHitSound = Gdx.audio.newSound(Gdx.files.internal("sounds/EnemyHit.mp3"));
+            soundEffects.put(SFX_ENEMY_HIT, enemyHitSound);
+
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
 
@@ -133,6 +196,10 @@ public class SoundManager implements Disposable {
     }
 
     public void update(float delta) {
+        if (sfxCooldown > 0) {
+            sfxCooldown -= delta;
+        }
+
         if (hitSoundCooldown > 0) {
             hitSoundCooldown -= delta;
         }
@@ -214,50 +281,71 @@ public class SoundManager implements Disposable {
 
         switch (weapon) {
             case "Sword":
-                if (hitSoundCooldown <= 0) {
+                if (sfxCooldown <= 0) {
                     playSound(SFX_ENTITY_HIT);
-                    hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+                    sfxCooldown = SFX_SOUND_COOLDOWN_TIME;
                 }
                 break;
             case "Shield":
-                if (hitSoundCooldown <= 0) {
+                if (sfxCooldown <= 0) {
                     playSound(SFX_SHIELD_BASH, 1.4f);
-                    hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+                    sfxCooldown = SFX_SOUND_COOLDOWN_TIME;
+                }
+                break;
+            case "Spear":
+                if (sfxCooldown <= 0) {
+                    playSound(SFX_SPEAR, 0.6f);
+                    sfxCooldown = SFX_SOUND_COOLDOWN_TIME;
                 }
                 break;
         }
     }
 
+    public void playEnemyHitSound() {
+        if (!sfxEnabled) return;
+
+        if (hitSoundCooldown <= 0) {
+            playSound(SFX_ENEMY_HIT, 0.3f);
+            hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+        }
+    }
+
+    public void playButtonSound() {
+        if (!sfxEnabled) return;
+
+        playSound(SFX_BUTTON);
+    }
+
     public void playLemmyHitSound() {
         if (!sfxEnabled) return;
 
-        playSound(SFX_LEMMY);
+        playSound(SFX_LEMMY, 1.5f);
     }
 
     public void playPotionSound() {
         if (!sfxEnabled) return;
 
-        if (hitSoundCooldown <= 0) {
+        if (sfxCooldown <= 0) {
             playSound(SFX_USE_POTION);
-            hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+            sfxCooldown = SFX_SOUND_COOLDOWN_TIME;
         }
     }
 
     public void playPickupSound() {
         if (!sfxEnabled) return;
 
-        if (hitSoundCooldown <= 0) {
+        if (sfxCooldown <= 0) {
             playSound(SFX_PICKUP_ITEM);
-            hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+            sfxCooldown = SFX_SOUND_COOLDOWN_TIME;
         }
     }
 
     public void playPickupCoinSound() {
         if (!sfxEnabled) return;
 
-        if (hitSoundCooldown <= 0) {
+        if (sfxCooldown <= 0) {
             playSound(SFX_PICKUP_COIN);
-            hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+            sfxCooldown = SFX_SOUND_COOLDOWN_TIME;
         }
     }
 
@@ -278,9 +366,9 @@ public class SoundManager implements Disposable {
                 playSound(SFX_PRAYER_ABILITY);
                 break;
             case "Consecrate":
-                if (hitSoundCooldown <= 0) {
+                if (sfxCooldown <= 0) {
                     playSound(SFX_CONSECRATE, 1.5f);
-                    hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
+                    sfxCooldown = SFX_SOUND_COOLDOWN_TIME;
                 }
                 break;
             case "SmokeBomb":
@@ -288,6 +376,30 @@ public class SoundManager implements Disposable {
                 break;
             case "Sprint":
                 playSound(SFX_SPRINT_ABILITY);
+                break;
+            case "Whirlwind":
+                playSound(SFX_WHIRLWIND_ABILITY);
+                break;
+            case "DoubleSwing":
+                playSound(SFX_DOUBLE_SWING_ABILITY, 0.6f);
+                break;
+            case "GroundSlam":
+                playSound(SFX_GROUND_SLAM_ABILITY);
+                break;
+            case "BlazingFury":
+                playSound(SFX_BLAZING_FURY_ABILITY);
+                break;
+            case "Bubble":
+                playSound(SFX_BUBBLE_ABILITY);
+                break;
+            case "LifeLeech":
+                playSound(SFX_LIFE_LEECH_ABILITY);
+                break;
+            case "HolyAura":
+                playSound(SFX_HOLY_AURA_ABILITY);
+                break;
+            case "HolyBlessing":
+                playSound(SFX_HOLY_BLESSING_ABILITY);
                 break;
         }
     }
@@ -331,6 +443,7 @@ public class SoundManager implements Disposable {
         if (currentMusic != null) {
             currentMusic.setVolume(musicVolume);
         }
+        SaveManager.setMusicVolume(this.musicVolume);
     }
 
     public float getMusicVolume() {
@@ -347,6 +460,8 @@ public class SoundManager implements Disposable {
         if (stoneRunningSound != null) {
             stoneRunningSound.setVolume(sfxVolume * 0.6f);
         }
+
+        SaveManager.setSfxVolume(this.sfxVolume);
     }
 
     public float getSfxVolume() {
@@ -358,6 +473,7 @@ public class SoundManager implements Disposable {
         if (!enabled) {
             stopMusic();
         }
+        SaveManager.setMusicEnabled(enabled);
     }
 
     public boolean isMusicEnabled() {
@@ -366,6 +482,7 @@ public class SoundManager implements Disposable {
 
     public void setSfxEnabled(boolean enabled) {
         this.sfxEnabled = enabled;
+        SaveManager.setSfxEnabled(enabled);
     }
 
     public boolean isSfxEnabled() {

@@ -17,6 +17,7 @@ import java.util.List;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
+import managers.SoundManager;
 import ui.ScreenShake;
 
 public class Herman {
@@ -628,7 +629,8 @@ public class Herman {
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
 
-            ScreenShake.rumble(0.5f, 0.15f);
+            ScreenShake.rumble(0.6f, 0.15f);
+            SoundManager.getInstance().playEnemyHitSound();
         }
 
         if (stats.isDead()) {

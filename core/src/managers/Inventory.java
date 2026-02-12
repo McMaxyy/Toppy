@@ -29,26 +29,24 @@ public class Inventory {
     private boolean inventoryOpen = false;
     private int selectedSlot = 0;
 
-    // Equipment system
     private Equipment equipment;
     private EquipmentSlot selectedEquipmentSlot = null;
     private boolean selectingEquipmentSlot = false;
 
-    // Drag and drop system
     private boolean isDragging = false;
     private int dragSourceSlot = -1;
     private Item draggedItem = null;
     private float dragOffsetX = 0;
     private float dragOffsetY = 0;
 
-    // UI components
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
     private final Texture slotTexture;
     private final Texture coinIconTexture;
     private final Texture characterSprite;
+    private final Texture trashCan;
 
-    // UI settings
+
     private final int SLOT_SIZE = 50;
     private final int SLOT_PADDING = 10;
     private final int UI_PADDING = 20;
@@ -60,18 +58,15 @@ public class Inventory {
     private final Color SLOT_BORDER_COLOR = new Color(0.6f, 0.6f, 0.7f, 1f);
     private final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.15f, 0.95f);
 
-    // Sort button settings
     private final int SORT_BUTTON_WIDTH = 80;
     private final int SORT_BUTTON_HEIGHT = 25;
     private final Color SORT_BUTTON_COLOR = new Color(0.3f, 0.4f, 0.5f, 0.9f);
     private final Color SORT_BUTTON_HOVER_COLOR = new Color(0.4f, 0.5f, 0.6f, 0.9f);
 
-    // Trash area settings
-    private final int TRASH_SIZE = 100; // 2x slot size
-    private final Color TRASH_COLOR = new Color(0.4f, 0.2f, 0.2f, 0.8f);
+    private final int TRASH_SIZE = 100;
+    private final Color TRASH_COLOR = new Color(0.5f, 0.5f, 0.5f, 0.8f);
     private final Color TRASH_HOVER_COLOR = new Color(0.6f, 0.3f, 0.3f, 0.9f);
 
-    // Stats panel settings
     private final int STAT_BUTTON_SIZE = 24;
     private final int RESET_BUTTON_WIDTH = 100;
     private final int RESET_BUTTON_HEIGHT = 30;
@@ -81,7 +76,6 @@ public class Inventory {
 
     private Map<Integer, Integer> itemCounts;
 
-    // Cached panel positions for drag detection
     private float cachedPanelX, cachedPanelY, cachedPanelWidth, cachedPanelHeight;
     private float cachedInvStartX, cachedInvStartY;
     private float cachedEquipmentX, cachedEquipmentY, cachedEquipmentWidth, cachedEquipmentHeight;
@@ -97,6 +91,7 @@ public class Inventory {
         this.slotTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.coinIconTexture = Storage.assetManager.get("icons/items/Coin.png", Texture.class);
         this.characterSprite = Storage.assetManager.get("character/Sprite-0002.png", Texture.class);
+        this.trashCan = Storage.assetManager.get("ui/Trash.png", Texture.class);
     }
 
     public void toggleInventory() {
@@ -287,7 +282,6 @@ public class Inventory {
         // Check if dropped on another inventory slot
         int targetSlot = getSlotAtPosition(mouseX, mouseY);
         if (targetSlot >= 0 && targetSlot != dragSourceSlot) {
-            // Swap or move items
             swapItems(dragSourceSlot, targetSlot);
             cancelDrag();
             return;
@@ -309,7 +303,6 @@ public class Inventory {
 
         // Check if consumable dragged outside inventory bounds
         if (draggedItem.getType() == Item.ItemType.CONSUMABLE && !isInInventoryBounds(mouseX, mouseY)) {
-            // Hand off to AbilityManager
             if (player.getAbilityManager() != null) {
                 player.getAbilityManager().startDraggingConsumable(draggedItem);
             }
@@ -317,7 +310,6 @@ public class Inventory {
             return;
         }
 
-        // Invalid drop location - item stays in place
         cancelDrag();
     }
 
@@ -513,20 +505,17 @@ public class Inventory {
         float mouseX = Gdx.input.getX();
         float mouseY = screenHeight - Gdx.input.getY();
 
-        // Handle drag and drop
         if (isDragging) {
             if (!Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
                 completeDrag(mouseX, mouseY, player);
             }
         } else {
-            // Check for drag start on inventory slots
             if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
                 int clickedSlot = getSlotAtPosition(mouseX, mouseY);
                 if (clickedSlot >= 0 && items[clickedSlot] != null) {
                     startDrag(clickedSlot, mouseX, mouseY);
                 }
 
-                // Check sort button click
                 float sortButtonX = cachedInvStartX;
                 float sortButtonY = cachedInvStartY + SLOT_SIZE + 10;
                 if (isPointInRect(mouseX, mouseY, sortButtonX, sortButtonY, SORT_BUTTON_WIDTH, SORT_BUTTON_HEIGHT)) {
@@ -535,7 +524,6 @@ public class Inventory {
             }
         }
 
-        // Update selected slot (for hover highlighting, but not for right-click when dragging)
         if (!isDragging) {
             for (int i = 0; i < MAX_SLOTS; i++) {
                 int row = i / ITEMS_PER_ROW;
@@ -791,7 +779,7 @@ public class Inventory {
         batch.begin();
         font.setColor(Color.WHITE);
         font.getData().setScale(0.6f);
-        font.draw(batch, "Sort", sortButtonX + 22, sortButtonY + 18);
+        font.draw(batch, "Sort", sortButtonX + 18, sortButtonY + 20);
         font.getData().setScale(1.0f);
         batch.end();
     }
@@ -822,10 +810,7 @@ public class Inventory {
         Gdx.gl.glLineWidth(1);
 
         batch.begin();
-        font.setColor(isHovered ? Color.RED : Color.GRAY);
-        font.getData().setScale(0.7f);
-        font.draw(batch, "Trash", trashX + 25, trashY + TRASH_SIZE / 2f + 8);
-        font.getData().setScale(1.0f);
+        batch.draw(trashCan, trashX - 8, trashY + TRASH_SIZE / 2f - 60, 128, 128);
         batch.end();
     }
 

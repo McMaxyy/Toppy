@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import config.Storage;
+import entities.DestructibleObject;
 import entities.Herman;
 import entities.Player;
 import entities.PlayerClass;
@@ -15,6 +16,7 @@ import game.GameProj;
 import items.Item;
 import managers.Equipment;
 import managers.SoundManager;
+import config.SaveManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -329,22 +331,21 @@ public class AbilityManager {
     public void handleInput() {
         if (skillTree.isOpen() || !Player.gameStarted) return;
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+        if (SaveManager.isActionJustPressed("ability1")) {
             useAbility(0);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+        } else if (SaveManager.isActionJustPressed("ability2")) {
             useAbility(1);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+        } else if (SaveManager.isActionJustPressed("ability3")) {
             useAbility(2);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+        } else if (SaveManager.isActionJustPressed("ability4")) {
             useAbility(3);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) {
+        } else if (SaveManager.isActionJustPressed("ability5")) {
             useAbility(4);
         }
 
-        // Consumable slots
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+        if (SaveManager.isActionJustPressed("consumable1")) {
             useConsumable(0);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+        } else if (SaveManager.isActionJustPressed("consumable2")) {
             useConsumable(1);
         }
 
@@ -423,7 +424,7 @@ public class AbilityManager {
     private void performSpearAttack() {
         if (spearCooldown > 0) return;
 
-        SoundManager.getInstance().playHitSound("Sword");
+        SoundManager.getInstance().playHitSound("Spear");
 
         float attackRange = SPEAR_ATTACK_RANGE;
         player.addAbilityVisual(AbilityVisual.SpearJab.createWhite(player, gameProj, 0.3f, attackRange, 0f));
@@ -541,6 +542,28 @@ public class AbilityManager {
                             enemy.takeDamage(playerDamage);
                             player.onBasicAttackHit();
                         }
+                    }
+                }
+            }
+
+            for (DestructibleObject obj : new ArrayList<>(gameProj.getCurrentDungeon().getDestructables())) {
+                if (obj == null || obj.isMarkedForRemoval()) continue;
+
+                com.badlogic.gdx.math.Rectangle b = obj.getBounds();
+                com.badlogic.gdx.math.Vector2 objCenter = new com.badlogic.gdx.math.Vector2(b.x + b.width / 2f, b.y + b.height / 2f);
+
+                com.badlogic.gdx.math.Vector2 toObj = new com.badlogic.gdx.math.Vector2(
+                        objCenter.x - playerPos.x, objCenter.y - playerPos.y
+                );
+
+                float distanceAlongLine = toObj.dot(attackDir);
+                if (distanceAlongLine > 0 && distanceAlongLine < attackRange) {
+                    com.badlogic.gdx.math.Vector2 projectedPoint = new com.badlogic.gdx.math.Vector2(attackDir).scl(distanceAlongLine);
+                    float perpDistance = toObj.cpy().sub(projectedPoint).len();
+
+                    if (perpDistance < 15f) {
+                        obj.takeDamage(playerDamage);
+                        player.onBasicAttackHit();
                     }
                 }
             }
@@ -727,6 +750,19 @@ public class AbilityManager {
                     }
                 }
             }
+
+            for (DestructibleObject obj : new ArrayList<>(gameProj.getCurrentDungeon().getDestructables())) {
+                if (obj == null || obj.isMarkedForRemoval()) continue;
+
+                com.badlogic.gdx.math.Rectangle b = obj.getBounds();
+                com.badlogic.gdx.math.Vector2 objCenter = new com.badlogic.gdx.math.Vector2(b.x + b.width / 2f, b.y + b.height / 2f);
+                com.badlogic.gdx.math.Vector2 toObj = new com.badlogic.gdx.math.Vector2(objCenter.x - playerPos.x, objCenter.y - playerPos.y);
+
+                if (toObj.len() < attackRange && toObj.nor().dot(attackDir) > 0.5f) {
+                    obj.takeDamage(playerDamage);
+                    player.onBasicAttackHit();
+                }
+            }
         }
 
         // Damage boss room enemies
@@ -887,6 +923,20 @@ public class AbilityManager {
                     }
                 }
             }
+
+            for (DestructibleObject obj : new ArrayList<>(gameProj.getCurrentDungeon().getDestructables())) {
+                if (obj == null || obj.isMarkedForRemoval()) continue;
+
+                com.badlogic.gdx.math.Rectangle b = obj.getBounds();
+                com.badlogic.gdx.math.Vector2 objCenter = new com.badlogic.gdx.math.Vector2(b.x + b.width / 2f, b.y + b.height / 2f);
+                com.badlogic.gdx.math.Vector2 toObj = new com.badlogic.gdx.math.Vector2(objCenter.x - playerPos.x, objCenter.y - playerPos.y);
+
+                if (toObj.len() < attackRange && toObj.nor().dot(attackDir) > 0.5f) {
+                    obj.takeDamage(shieldDamage);
+                    player.onBasicAttackHit();
+                }
+            }
+
         }
 
         // Boss room
@@ -1262,10 +1312,8 @@ public class AbilityManager {
             return;
         }
 
-        // Get count from inventory
         int count = player.getInventory().getItemCountForConsumable(consumable);
 
-        // Draw icon (grayed out if count is 0)
         if (count > 0) {
             batch.setColor(1f, 1f, 1f, 1f);
         } else {

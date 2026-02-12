@@ -516,7 +516,8 @@ public class Cyclops {
             isJustHit = true;
             hitFlashTimer = HIT_FLASH_DURATION;
 
-            ScreenShake.rumble(0.5f, 0.3f);
+            ScreenShake.rumble(0.6f, 0.3f);
+            SoundManager.getInstance().playEnemyHitSound();
         }
 
         if (stats.isDead()) {

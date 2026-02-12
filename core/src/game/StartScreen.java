@@ -2,7 +2,6 @@ package game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.GL20;
@@ -11,6 +10,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -20,8 +20,10 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import config.GameScreen;
 import config.Storage;
 import entities.PlayerClass;
+import managers.SoundManager;
+import config.SaveManager;
 
-public class StartScreen extends Game{
+public class StartScreen extends Game {
     private OrthographicCamera camera;
     private Viewport viewport;
     private Stage stage;
@@ -33,14 +35,12 @@ public class StartScreen extends Game{
     private Texture cursorTexture;
     private boolean useCustomCursor = true;
 
-    // For cursor rendering
     private OrthographicCamera hudCamera;
     private Viewport hudViewport;
 
     private Game game;
     private GameScreen gameScreen;
 
-    // UI elements
     private Table mainTable;
     private Table classSelectionTable;
     private Table settingsTable;
@@ -64,7 +64,18 @@ public class StartScreen extends Game{
     private float cursorX = 0;
     private float cursorY = 0;
     private boolean useVirtualCursor = true;
-
+    private TextButton displayTabButton;
+    private TextButton audioTabButton;
+    private Table displaySettingsTable;
+    private Table audioSettingsTable;
+    private enum SettingsTab { DISPLAY, AUDIO }
+    private SettingsTab currentSettingsTab = SettingsTab.DISPLAY;
+    private Slider musicSlider;
+    private Slider sfxSlider;
+    private CheckBox musicEnabledCheckbox;
+    private CheckBox sfxEnabledCheckbox;
+    private Label musicPercentLabel;
+    private Label sfxPercentLabel;
     private PlayerClass selectedClass = PlayerClass.MERCENARY;
 
     // Screen states
@@ -112,9 +123,25 @@ public class StartScreen extends Game{
         BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
         font.setColor(Color.WHITE);
 
+        isFullscreen = SaveManager.isFullscreen();
+        selectedWidth = SaveManager.getWindowWidth();
+        selectedHeight = SaveManager.getWindowHeight();
+
         createUI();
 
         Gdx.input.setInputProcessor(stage);
+    }
+
+    private ClickListener createButtonListener(Runnable action) {
+        return new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                SoundManager.getInstance().playButtonSound();
+                if (action != null) {
+                    action.run();
+                }
+            }
+        };
     }
 
     private void setupCustomCursor() {
@@ -128,7 +155,6 @@ public class StartScreen extends Game{
             System.err.println("Failed to load cursor texture: " + e.getMessage());
             useCustomCursor = false;
 
-            // Create a fallback cursor
             Pixmap pm = new Pixmap(32, 32, Pixmap.Format.RGBA8888);
             pm.setColor(Color.WHITE);
             pm.fillCircle(16, 16, 8);
@@ -141,7 +167,7 @@ public class StartScreen extends Game{
 
         try {
             Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-            pixmap.setColor(0, 0, 0, 0); // Transparent
+            pixmap.setColor(0, 0, 0, 0);
             pixmap.fill();
             Cursor emptyCursor = Gdx.graphics.newCursor(pixmap, 0, 0);
             Gdx.graphics.setCursor(emptyCursor);
@@ -201,7 +227,6 @@ public class StartScreen extends Game{
 
         if (cursorX <= borderMargin || cursorX >= windowWidth - borderMargin ||
                 cursorY <= borderMargin || cursorY >= windowHeight - borderMargin) {
-
             Gdx.input.setCursorPosition((int)cursorX, windowHeight - (int)cursorY);
         }
 
@@ -211,7 +236,6 @@ public class StartScreen extends Game{
 
         if (Math.abs(currentMouseX - cursorX) > maxDelta ||
                 Math.abs(windowHeight - currentMouseY - cursorY) > maxDelta) {
-
             cursorX = currentMouseX;
             cursorY = windowHeight - currentMouseY;
 
@@ -267,37 +291,21 @@ public class StartScreen extends Game{
 
         playButton = new TextButton("PLAY", skin);
         playButton.getLabel().setFontScale(1f);
-        playButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                showGameModeSelection();
-            }
-        });
+        playButton.addListener(createButtonListener(this::showGameModeSelection));
 
         settingsButton = new TextButton("SETTINGS", skin);
         settingsButton.getLabel().setFontScale(1f);
-        settingsButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                showSettings();
-            }
-        });
+        settingsButton.addListener(createButtonListener(this::showSettings));
 
         exitButton = new TextButton("EXIT", skin);
         exitButton.getLabel().setFontScale(1f);
-        exitButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                Gdx.app.exit();
-            }
-        });
+        exitButton.addListener(createButtonListener(() -> Gdx.app.exit()));
 
         mainTable.add(playButton).size(300, 100).padBottom(20).row();
         mainTable.add(settingsButton).size(300, 100).padBottom(20).row();
         mainTable.add(exitButton).size(300, 100).row();
 
         createClassSelectionUI();
-
         createSettingsUI();
 
         stage.addActor(mainTable);
@@ -324,45 +332,26 @@ public class StartScreen extends Game{
 
         endlessButton = new TextButton("ENDLESS", skin);
         endlessButton.getLabel().setFontScale(1f);
-        endlessButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                GameScreen.setGameMode(0);
-                showClassSelection();
-            }
-        });
+        endlessButton.addListener(createButtonListener(() -> {
+            GameScreen.setGameMode(0);
+            showClassSelection();
+        }));
 
         normalButton = new TextButton("NORMAL", skin);
         normalButton.getLabel().setFontScale(1f);
-        normalButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                GameScreen.setGameMode(1);
-                showClassSelection();
-            }
-        });
+        normalButton.addListener(createButtonListener(() -> {
+            GameScreen.setGameMode(1);
+            showClassSelection();
+        }));
 
         Table modeButtonsTable = new Table();
         modeButtonsTable.add(endlessButton).size(300, 100).pad(10);
         modeButtonsTable.add(normalButton).size(300, 100).pad(10);
         gameModeTable.add(modeButtonsTable).colspan(2).row();
 
-        Label endlessDesc = new Label("Survive endless waves of enemies", skin);
-        endlessDesc.setFontScale(0.7f);
-        gameModeTable.add(endlessDesc).padTop(20).colspan(2).row();
-
-        Label normalDesc = new Label("Explore the world, defeat bosses, complete the game", skin);
-        normalDesc.setFontScale(0.7f);
-        gameModeTable.add(normalDesc).padTop(10).colspan(2).row();
-
         gameModeBackButton = new TextButton("BACK", skin);
         gameModeBackButton.getLabel().setFontScale(1.0f);
-        gameModeBackButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                showMainMenu();
-            }
-        });
+        gameModeBackButton.addListener(createButtonListener(this::showMainMenu));
         gameModeTable.add(gameModeBackButton).size(150, 60).padTop(40).colspan(2).row();
     }
 
@@ -373,21 +362,11 @@ public class StartScreen extends Game{
 
         mercenaryButton = new TextButton("MERCENARY", skin);
         mercenaryButton.getLabel().setFontScale(1f);
-        mercenaryButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                selectClass(PlayerClass.MERCENARY);
-            }
-        });
+        mercenaryButton.addListener(createButtonListener(() -> selectClass(PlayerClass.MERCENARY)));
 
         paladinButton = new TextButton("PALADIN", skin);
         paladinButton.getLabel().setFontScale(1f);
-        paladinButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                selectClass(PlayerClass.PALADIN);
-            }
-        });
+        paladinButton.addListener(createButtonListener(() -> selectClass(PlayerClass.PALADIN)));
 
         Table classButtonsTable = new Table();
         classButtonsTable.add(mercenaryButton).size(300, 100).pad(10);
@@ -400,157 +379,264 @@ public class StartScreen extends Game{
 
         startGameButton = new TextButton("START GAME", skin);
         startGameButton.getLabel().setFontScale(1f);
-        startGameButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                startGame();
-            }
-        });
+        startGameButton.addListener(createButtonListener(this::startGame));
         classSelectionTable.add(startGameButton).size(300, 100).padTop(20).colspan(2).row();
 
         backButton = new TextButton("BACK", skin);
         backButton.getLabel().setFontScale(1.0f);
-        backButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                showGameModeSelection();
-            }
-        });
+        backButton.addListener(createButtonListener(this::showGameModeSelection));
         classSelectionTable.add(backButton).size(150, 60).padTop(10).colspan(2).row();
     }
 
     private void createSettingsUI() {
+        settingsTable.clear();
+        settingsTable.center();
+
+        // Title
+        Label settingsTitle = new Label("SETTINGS", skin);
+        settingsTitle.setFontScale(1.2f);
+        settingsTable.add(settingsTitle).padBottom(25).colspan(2).row();
+
+        // ---------- Tabs row ----------
+        Table tabsRow = new Table();
+
+        displayTabButton = new TextButton("DISPLAY", skin);
+        audioTabButton   = new TextButton("AUDIO", skin);
+
+        displayTabButton.getLabel().setFontScale(0.8f);
+        audioTabButton.getLabel().setFontScale(0.8f);
+
+        displayTabButton.addListener(createButtonListener(() -> switchSettingsTab(SettingsTab.DISPLAY)));
+        audioTabButton.addListener(createButtonListener(() -> switchSettingsTab(SettingsTab.AUDIO)));
+
+        tabsRow.add(displayTabButton).size(160, 55).padRight(10);
+        tabsRow.add(audioTabButton).size(160, 55);
+
+        settingsTable.add(tabsRow).padBottom(25).colspan(2).row();
+
+        displaySettingsTable = new Table();
+        audioSettingsTable = new Table();
+
+        buildDisplaySettings(displaySettingsTable);
+        buildAudioSettings(audioSettingsTable);
+
+        settingsTable.add(displaySettingsTable).colspan(2).row();
+        settingsTable.add(audioSettingsTable).colspan(2).row();
+
+        TextButton applyButton = new TextButton("APPLY", skin);
+        applyButton.getLabel().setFontScale(0.8f);
+        applyButton.addListener(createButtonListener(this::applySettings));
+
+        TextButton settingsBackButton = new TextButton("BACK", skin);
+        settingsBackButton.getLabel().setFontScale(0.8f);
+        settingsBackButton.addListener(createButtonListener(this::showMainMenu));
+
+        Table settingsButtonsTable = new Table();
+        settingsButtonsTable.add(applyButton).size(150, 60).padRight(20);
+        settingsButtonsTable.add(settingsBackButton).size(150, 60);
+
+        settingsTable.add(settingsButtonsTable).padTop(30).colspan(2).row();
+
+        switchSettingsTab(SettingsTab.DISPLAY);
+    }
+
+    private void switchSettingsTab(SettingsTab tab) {
+        currentSettingsTab = tab;
+
+        boolean display = tab == SettingsTab.DISPLAY;
+        displaySettingsTable.setVisible(display);
+        audioSettingsTable.setVisible(!display);
+
+        displayTabButton.setColor(display ? Color.GOLD : Color.WHITE);
+        audioTabButton.setColor(!display ? Color.GOLD : Color.WHITE);
+    }
+
+    private void buildAudioSettings(Table t) {
+        t.clear();
+
+        SoundManager sm = SoundManager.getInstance();
+
+        float initialMusic = sm.getMusicVolume();
+        float initialSfx = sm.getSfxVolume();
+
+        Label audioLabel = new Label("AUDIO:", skin);
+        audioLabel.setFontScale(1.0f);
+        t.add(audioLabel).left().padBottom(20).colspan(2).row();
+
+        // MUSIC
+        Label musicLabel = new Label("Music Volume", skin);
+        musicLabel.setFontScale(0.9f);
+
+        musicPercentLabel = new Label(Math.round(initialMusic * 100) + "%", skin);
+        musicPercentLabel.setFontScale(0.9f);
+
+        musicSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        musicSlider.setValue(initialMusic);
+
+        musicEnabledCheckbox = new CheckBox(" Enabled", skin);
+        musicEnabledCheckbox.setChecked(sm.isMusicEnabled());
+
+        musicSlider.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                float v = musicSlider.getValue();
+                sm.setMusicVolume(v);
+                musicPercentLabel.setText(Math.round(v * 100) + "%");
+            }
+        });
+        musicSlider.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                float v = musicSlider.getValue();
+                sm.setMusicVolume(v);
+                musicPercentLabel.setText(Math.round(v * 100) + "%");
+            }
+        });
+
+        musicEnabledCheckbox.addListener(createButtonListener(() -> {
+            sm.toggleMusic();
+            musicEnabledCheckbox.setChecked(sm.isMusicEnabled());
+        }));
+
+        t.add(musicLabel).left().padBottom(8);
+        t.add(musicPercentLabel).right().padBottom(8).row();
+        t.add(musicSlider).width(420).height(35).left().padBottom(8).colspan(2).row();
+        t.add(musicEnabledCheckbox).left().padBottom(25).colspan(2).row();
+
+        // SFX
+        Label sfxLabel = new Label("SFX Volume", skin);
+        sfxLabel.setFontScale(0.9f);
+
+        sfxPercentLabel = new Label(Math.round(initialSfx * 100) + "%", skin);
+        sfxPercentLabel.setFontScale(0.9f);
+
+        sfxSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        sfxSlider.setValue(initialSfx);
+
+        sfxEnabledCheckbox = new CheckBox(" Enabled", skin);
+        sfxEnabledCheckbox.setChecked(sm.isSfxEnabled());
+
+        sfxSlider.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                float v = sfxSlider.getValue();
+                sm.setSfxVolume(v);
+                sfxPercentLabel.setText(Math.round(v * 100) + "%");
+            }
+        });
+
+        sfxEnabledCheckbox.addListener(createButtonListener(() -> {
+            sm.toggleSfx();
+            sfxEnabledCheckbox.setChecked(sm.isSfxEnabled());
+        }));
+
+        t.add(sfxLabel).left().padBottom(8);
+        t.add(sfxPercentLabel).right().padBottom(8).row();
+        t.add(sfxSlider).width(420).height(35).left().padBottom(8).colspan(2).row();
+        t.add(sfxEnabledCheckbox).left().colspan(2).row();
+    }
+
+    private void buildDisplaySettings(Table t) {
+        t.clear();
+
         Label windowModeLabel = new Label("WINDOW MODE:", skin);
         windowModeLabel.setFontScale(1.0f);
-        settingsTable.add(windowModeLabel).left().padBottom(15).colspan(2).row();
+        t.add(windowModeLabel).left().padBottom(15).colspan(2).row();
 
         fullscreenCheckbox = new CheckBox(" Fullscreen", skin);
-        fullscreenCheckbox.setChecked(true);
-        fullscreenCheckbox.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (fullscreenCheckbox.isChecked()) {
-                    windowedCheckbox.setChecked(false);
-                    isFullscreen = true;
-                } else {
-                    if (!windowedCheckbox.isChecked()) {
-                        fullscreenCheckbox.setChecked(true);
-                    }
-                }
+        fullscreenCheckbox.setChecked(isFullscreen);
+        fullscreenCheckbox.addListener(createButtonListener(() -> {
+            if (fullscreenCheckbox.isChecked()) {
+                windowedCheckbox.setChecked(false);
+                isFullscreen = true;
+                SaveManager.setFullscreen(true);
+            } else if (!windowedCheckbox.isChecked()) {
+                fullscreenCheckbox.setChecked(true);
             }
-        });
+        }));
 
         windowedCheckbox = new CheckBox(" Windowed", skin);
-        windowedCheckbox.setChecked(false);
-        windowedCheckbox.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (windowedCheckbox.isChecked()) {
-                    fullscreenCheckbox.setChecked(false);
-                    isFullscreen = false;
-                } else {
-                    if (!fullscreenCheckbox.isChecked()) {
-                        windowedCheckbox.setChecked(true);
-                    }
-                }
+        windowedCheckbox.setChecked(!isFullscreen);
+        windowedCheckbox.addListener(createButtonListener(() -> {
+            if (windowedCheckbox.isChecked()) {
+                fullscreenCheckbox.setChecked(false);
+                isFullscreen = false;
+                SaveManager.setFullscreen(false);
+            } else if (!fullscreenCheckbox.isChecked()) {
+                windowedCheckbox.setChecked(true);
             }
-        });
+        }));
 
         Table modeTable = new Table();
         modeTable.add(fullscreenCheckbox).padRight(20);
         modeTable.add(windowedCheckbox);
-        settingsTable.add(modeTable).padBottom(30).colspan(2).row();
+        t.add(modeTable).padBottom(30).colspan(2).row();
 
         Label resolutionLabel = new Label("RESOLUTION:", skin);
         resolutionLabel.setFontScale(1.0f);
-        settingsTable.add(resolutionLabel).left().padBottom(15).colspan(2).row();
+        t.add(resolutionLabel).left().padBottom(15).colspan(2).row();
 
         size1280x720Checkbox = new CheckBox(" 1280x720", skin);
-        size1280x720Checkbox.setChecked(false);
-        size1280x720Checkbox.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (size1280x720Checkbox.isChecked()) {
-                    size1600x900Checkbox.setChecked(false);
-                    size1920x1080Checkbox.setChecked(false);
-                    selectedWidth = 1280;
-                    selectedHeight = 720;
-                } else {
-                    if (!size1600x900Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
-                        size1280x720Checkbox.setChecked(true);
-                    }
-                }
-            }
-        });
-
         size1600x900Checkbox = new CheckBox(" 1600x900", skin);
-        size1600x900Checkbox.setChecked(false);
-        size1600x900Checkbox.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (size1600x900Checkbox.isChecked()) {
-                    size1280x720Checkbox.setChecked(false);
-                    size1920x1080Checkbox.setChecked(false);
-                    selectedWidth = 1600;
-                    selectedHeight = 900;
-                } else {
-                    if (!size1280x720Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
-                        size1600x900Checkbox.setChecked(true);
-                    }
-                }
-            }
-        });
-
         size1920x1080Checkbox = new CheckBox(" 1920x1080", skin);
-        size1920x1080Checkbox.setChecked(true);
-        size1920x1080Checkbox.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (size1920x1080Checkbox.isChecked()) {
-                    size1280x720Checkbox.setChecked(false);
-                    size1600x900Checkbox.setChecked(false);
-                    selectedWidth = 1920;
-                    selectedHeight = 1080;
-                } else {
-                    if (!size1280x720Checkbox.isChecked() && !size1600x900Checkbox.isChecked()) {
-                        size1920x1080Checkbox.setChecked(true);
-                    }
-                }
+
+        size1280x720Checkbox.setChecked(selectedWidth == 1280 && selectedHeight == 720);
+        size1600x900Checkbox.setChecked(selectedWidth == 1600 && selectedHeight == 900);
+        size1920x1080Checkbox.setChecked(selectedWidth == 1920 && selectedHeight == 1080);
+
+        if (!size1280x720Checkbox.isChecked() && !size1600x900Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
+            size1920x1080Checkbox.setChecked(true);
+            selectedWidth = 1920;
+            selectedHeight = 1080;
+        }
+
+        size1280x720Checkbox.addListener(createButtonListener(() -> {
+            if (size1280x720Checkbox.isChecked()) {
+                size1600x900Checkbox.setChecked(false);
+                size1920x1080Checkbox.setChecked(false);
+                selectedWidth = 1280;
+                selectedHeight = 720;
+                SaveManager.setWindowSize(selectedWidth, selectedHeight);
+            } else if (!size1600x900Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
+                size1280x720Checkbox.setChecked(true);
             }
-        });
+        }));
+
+        size1600x900Checkbox.addListener(createButtonListener(() -> {
+            if (size1600x900Checkbox.isChecked()) {
+                size1280x720Checkbox.setChecked(false);
+                size1920x1080Checkbox.setChecked(false);
+                selectedWidth = 1600;
+                selectedHeight = 900;
+                SaveManager.setWindowSize(selectedWidth, selectedHeight);
+            } else if (!size1280x720Checkbox.isChecked() && !size1920x1080Checkbox.isChecked()) {
+                size1600x900Checkbox.setChecked(true);
+            }
+        }));
+
+        size1920x1080Checkbox.addListener(createButtonListener(() -> {
+            if (size1920x1080Checkbox.isChecked()) {
+                size1280x720Checkbox.setChecked(false);
+                size1600x900Checkbox.setChecked(false);
+                selectedWidth = 1920;
+                selectedHeight = 1080;
+                SaveManager.setWindowSize(selectedWidth, selectedHeight);
+            } else if (!size1280x720Checkbox.isChecked() && !size1600x900Checkbox.isChecked()) {
+                size1920x1080Checkbox.setChecked(true);
+            }
+        }));
 
         Table resolutionTable = new Table();
         resolutionTable.add(size1280x720Checkbox).padRight(10);
         resolutionTable.add(size1600x900Checkbox).padRight(10);
         resolutionTable.add(size1920x1080Checkbox);
-        settingsTable.add(resolutionTable).padBottom(40).colspan(2).row();
 
-        TextButton applyButton = new TextButton("APPLY", skin);
-        applyButton.getLabel().setFontScale(0.8f);
-        applyButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                applySettings();
-            }
-        });
-
-        TextButton settingsBackButton = new TextButton("BACK", skin);
-        settingsBackButton.getLabel().setFontScale(0.8f);
-        settingsBackButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                showMainMenu();
-            }
-        });
-
-        Table settingsButtonsTable = new Table();
-        settingsButtonsTable.add(applyButton).size(150, 60).padRight(20);
-        settingsButtonsTable.add(settingsBackButton).size(150, 60);
-        settingsTable.add(settingsButtonsTable).colspan(2).row();
+        t.add(resolutionTable).padBottom(10).colspan(2).row();
     }
 
+
     private void applySettings() {
-        showMainMenu();
+        game.setScreen(new GameScreen(game, selectedWidth, selectedHeight, isFullscreen));        showMainMenu();
     }
 
     private void showClassSelection() {
@@ -596,7 +682,8 @@ public class StartScreen extends Game{
         Storage.setSelectedPlayerClass(selectedClass);
 
         Gdx.input.setCursorCatched(false);
-        setScreen(new GameScreen(this, selectedWidth, selectedHeight, isFullscreen));
+
+//        setScreen(new GameScreen(this, selectedWidth, selectedHeight, isFullscreen));
         gameScreen.switchToNewState(GameScreen.HOME);
     }
 
@@ -632,7 +719,6 @@ public class StartScreen extends Game{
 
     @Override
     public void create() {
-
     }
 
     public void resize(int width, int height) {

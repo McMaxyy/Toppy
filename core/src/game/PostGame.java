@@ -20,6 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import config.GameScreen;
 import config.Storage;
+import managers.SoundManager;
 
 public class PostGame implements Screen {
     private final GameScreen gameScreen;
@@ -93,7 +94,6 @@ public class PostGame implements Screen {
             System.err.println("Failed to load cursor texture: " + e.getMessage());
             useCustomCursor = false;
 
-            // Create a fallback cursor
             Pixmap pm = new Pixmap(32, 32, Pixmap.Format.RGBA8888);
             pm.setColor(Color.WHITE);
             pm.fillCircle(16, 16, 8);
@@ -106,7 +106,7 @@ public class PostGame implements Screen {
 
         try {
             Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-            pixmap.setColor(0, 0, 0, 0); // Transparent
+            pixmap.setColor(0, 0, 0, 0);
             pixmap.fill();
             Cursor emptyCursor = Gdx.graphics.newCursor(pixmap, 0, 0);
             Gdx.graphics.setCursor(emptyCursor);
@@ -220,6 +220,7 @@ public class PostGame implements Screen {
         returnButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                SoundManager.getInstance().playButtonSound();
                 gameScreen.switchToNewState(GameScreen.START);
             }
         });

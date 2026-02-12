@@ -22,8 +22,7 @@ public class Storage {
     public TextFieldStyle textStyle;
     public BitmapFont font;
     public static AssetManager assetManager = new AssetManager();
-    private static boolean newLoad = true; 
-    private static boolean stageClear, bossAlive;
+    private static boolean newLoad = true;
     private static PlayerClass selectedPlayerClass = PlayerClass.MERCENARY;
     
     public static synchronized Storage getInstance()  {
@@ -72,6 +71,14 @@ public class Storage {
         assetManager.load("tiles/bush1.png", Texture.class);
         assetManager.load("tiles/bush2.png", Texture.class);
         assetManager.load("tiles/bush3.png", Texture.class);
+        assetManager.load("tiles/Barrel.png", Texture.class);
+        assetManager.load("tiles/Crate.png", Texture.class);
+        assetManager.load("tiles/Urn.png", Texture.class);
+        assetManager.load("tiles/destruct1.png", Texture.class);
+        assetManager.load("tiles/destruct2.png", Texture.class);
+        assetManager.load("tiles/destruct3.png", Texture.class);
+        assetManager.load("tiles/destruct4.png", Texture.class);
+        assetManager.load("tiles/destruct5.png", Texture.class);
 
         assetManager.load("icons/items/Coin.png", Texture.class);
         assetManager.load("icons/items/PileOfCoins.png", Texture.class);
@@ -223,10 +230,12 @@ public class Storage {
         assetManager.load("ui/PaladinCircle.png", Texture.class);
         assetManager.load("ui/MercenaryCircle.png", Texture.class);
         assetManager.load("ui/HealthBar.png", Texture.class);
+        assetManager.load("ui/Trash.png", Texture.class);
 
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
         
         assetManager.finishLoading();
+        SaveManager.load();
     }
     
     public void createFont() {
@@ -249,22 +258,6 @@ public class Storage {
         textStyle = new TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle.class));
         textStyle.font = font;  
     }
-
-	public static boolean isStageClear() {
-		return stageClear;
-	}
-
-	public static void setStageClear(boolean stageClear) {
-		Storage.stageClear = stageClear;
-	}
-
-	public static boolean isBossAlive() {
-		return bossAlive;
-	}
-
-	public static void setBossAlive(boolean bossAlive) {
-		Storage.bossAlive = bossAlive;
-	}
 
     public static void setSelectedPlayerClass(PlayerClass playerClass) {
         selectedPlayerClass = playerClass;

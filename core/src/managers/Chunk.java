@@ -188,7 +188,12 @@ public class Chunk {
     private void generateEnemyClumps(Random random) {
         int clumpCount = 6 + random.nextInt(5);
 
+        final float SAFE_RADIUS = 120f;
+
+        final int MAX_PLACEMENT_ATTEMPTS_PER_ENEMY = 10;
+
         for (int clump = 0; clump < clumpCount; clump++) {
+
             float centerX = chunkX * chunkSize * tileSize +
                     (random.nextInt(chunkSize - 4) + 2) * tileSize;
             float centerY = chunkY * chunkSize * tileSize +
@@ -207,42 +212,42 @@ public class Chunk {
             }
 
             for (int i = 0; i < enemiesInClump; i++) {
-                float offsetX = (random.nextFloat() * 3f - 1.5f) * tileSize;
-                float offsetY = (random.nextFloat() * 3f - 1.5f) * tileSize;
+                for (int attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS_PER_ENEMY; attempt++) {
 
-                float x = centerX + offsetX;
-                float y = centerY + offsetY;
+                    float offsetX = (random.nextFloat() * 3f - 1.5f) * tileSize;
+                    float offsetY = (random.nextFloat() * 3f - 1.5f) * tileSize;
 
-                do {
+                    float x = centerX + offsetX;
+                    float y = centerY + offsetY;
+
                     x = Math.max(chunkX * chunkSize * tileSize + 16,
                             Math.min((chunkX + 1) * chunkSize * tileSize - 16, x));
                     y = Math.max(chunkY * chunkSize * tileSize + 16,
                             Math.min((chunkY + 1) * chunkSize * tileSize - 16, y));
 
-                    Rectangle enemyBounds = new Rectangle(x, y, 16, 16);
-
-                    if (!isOverlapping(enemyBounds)) {
-                        Texture enemyTexture = null;
-                        int enemyLevel = 1;
-
-                        if (Storage.isStageClear()) {
-                            enemyLevel = 2 + random.nextInt(2);
-                            enemyTexture = Storage.assetManager.get("enemy_dark.png", Texture.class);
-                        } else {
-                            enemyLevel = 1 + random.nextInt(2);
-                            enemyTexture = Storage.assetManager.get("enemy.png", Texture.class);
-                        }
-
-                        // Add enemy info with type
-                        pendingEnemies.add(new EnemyInfo(enemyTexture, x, y, enemyLevel, clumpEnemyType));
+                    Vector2 playerPos = player.getPosition();
+                    if (Vector2.dst(x, y, playerPos.x, playerPos.y) < SAFE_RADIUS) {
+                        continue;
                     }
-                } while (x + 10 == player.getPosition().x || x - 10 == player.getPosition().x ||
-                        y + 10 == player.getPosition().y || y - 10 == player.getPosition().y);
+
+                    Rectangle enemyBounds = new Rectangle(x, y, 20, 20);
+
+                    if (isOverlapping(enemyBounds)) {
+                        continue;
+                    }
+
+                    Texture enemyTexture = Storage.assetManager.get("enemy.png", Texture.class);
+                    int enemyLevel = 1 + random.nextInt(2);
+
+                    pendingEnemies.add(new EnemyInfo(enemyTexture, x, y, enemyLevel, clumpEnemyType));
+                    break;
+                }
             }
 
             clump += random.nextInt(2);
         }
     }
+
 
     private boolean isOutOfBounds(Rectangle bounds) {
         return bounds.x < chunkX * chunkSize * tileSize ||
@@ -276,12 +281,12 @@ public class Chunk {
             case 5:
                 return new ObstacleInfo(
                         Storage.assetManager.get("tiles/newrock2.png", Texture.class),
-                        x, y, 18, 10
+                        x, y, 14, 12
                 );
             case 6:
                 return new ObstacleInfo(
                         Storage.assetManager.get("tiles/newrock3.png", Texture.class),
-                        x, y, 20, 22
+                        x, y, 16, 16
                 );
             default:
                 return new ObstacleInfo(
@@ -316,62 +321,53 @@ public class Chunk {
         }
         pendingObstacles.clear();
 
-        if (!Storage.isStageClear()) {
-            for (EnemyInfo enemyInfo : pendingEnemies) {
-                Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
+        for (EnemyInfo enemyInfo : pendingEnemies) {
+            Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
 
-                EnemyStats stats;
-                switch (enemyInfo.enemyType) {
-                    case WOLFIE:
-                        stats = EnemyStats.Factory.createWolfieEnemy(enemyInfo.level);
-                        enemies.add(new Enemy(
-                                new Rectangle(enemyInfo.x, enemyInfo.y, 20, 16),
-                                enemyInfo.texture,
-                                body,
-                                player,
-                                getAnimationManager(),
-                                stats,
-                                enemyInfo.enemyType
-                        ));
-                        break;
-                    case HEDGEHOG:
-                        stats = EnemyStats.Factory.createHedgehogEnemy(enemyInfo.level);
-                        enemies.add(new Enemy(
-                                new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
-                                enemyInfo.texture,
-                                body,
-                                player,
-                                getAnimationManager(),
-                                stats,
-                                enemyInfo.enemyType
-                        ));
-                        break;
-                    case MUSHIE:
-                    default:
-                        stats = EnemyStats.Factory.createMushieEnemy(enemyInfo.level);
-                        enemies.add(new Enemy(
-                                new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
-                                enemyInfo.texture,
-                                body,
-                                player,
-                                getAnimationManager(),
-                                stats,
-                                enemyInfo.enemyType
-                        ));
-                        break;
-                }
+            EnemyStats stats;
+            switch (enemyInfo.enemyType) {
+                case WOLFIE:
+                    stats = EnemyStats.Factory.createWolfieEnemy(enemyInfo.level);
+                    enemies.add(new Enemy(
+                            new Rectangle(enemyInfo.x, enemyInfo.y, 20, 16),
+                            enemyInfo.texture,
+                            body,
+                            player,
+                            getAnimationManager(),
+                            stats,
+                            enemyInfo.enemyType
+                    ));
+                    break;
+                case HEDGEHOG:
+                    stats = EnemyStats.Factory.createHedgehogEnemy(enemyInfo.level);
+                    enemies.add(new Enemy(
+                            new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
+                            enemyInfo.texture,
+                            body,
+                            player,
+                            getAnimationManager(),
+                            stats,
+                            enemyInfo.enemyType
+                    ));
+                    break;
+                case MUSHIE:
+                default:
+                    stats = EnemyStats.Factory.createMushieEnemy(enemyInfo.level);
+                    enemies.add(new Enemy(
+                            new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
+                            enemyInfo.texture,
+                            body,
+                            player,
+                            getAnimationManager(),
+                            stats,
+                            enemyInfo.enemyType
+                    ));
+                    break;
+            }
 
-                body.setUserData(enemies.get(enemies.size() - 1));
-            }
-            pendingEnemies.clear();
-        } else if (!Storage.isBossAlive()) {
-            for (EnemyInfo enemyInfo : pendingEnemies) {
-                Body body = createEnemyBody(world, enemyInfo.x, enemyInfo.y, 16, 16);
-                bossKitty.add(new BossKitty(new Rectangle(enemyInfo.x, enemyInfo.y, 16, 16),
-                        body, player, getAnimationManager(), 3));
-            }
-            pendingEnemies.clear();
+            body.setUserData(enemies.get(enemies.size() - 1));
         }
+        pendingEnemies.clear();
 
         bodiesAdded = true;
     }

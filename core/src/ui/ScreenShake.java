@@ -1,8 +1,8 @@
 package ui;
 
 import java.util.Random;
-
 import com.badlogic.gdx.math.Vector3;
+import config.SaveManager;
 
 public class ScreenShake {
     private static float time = 0;
@@ -17,7 +17,10 @@ public class ScreenShake {
     private static final float COOLDOWN_DURATION = 0.1f;
 
     public static void rumble(float rumblePower, float rumbleLength) {
-        // Only trigger if cooldown has expired
+        if (!SaveManager.isScreenShakeEnabled()) {
+            return;
+        }
+
         if (cooldownTimer <= 0) {
             random = new Random();
             power = rumblePower;

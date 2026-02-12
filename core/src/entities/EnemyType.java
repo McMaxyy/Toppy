@@ -13,7 +13,8 @@ public enum EnemyType {
     GHOST_BOSS("GhostBoss"),
     HERMAN("Herman"),
     HEDGEHOG("Hedgehog"),
-    LEMMY("Lemmy");
+    LEMMY("Lemmy"),
+    DESTRUCTABLE_OBJECT("Destructable");
 
     private final String animationKey;
 

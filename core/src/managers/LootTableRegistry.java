@@ -121,6 +121,10 @@ public class LootTableRegistry {
         LootTable eliteEnemy = new LootTable()
                 .setGuaranteedCoins(3);
         registerLootTable("elite_enemy", eliteEnemy);
+
+        LootTable destructible = new LootTable()
+                .addDrop("coin", 0.5f, 1, 1);
+        registerLootTable("destructible", destructible);
     }
 
     public void registerLootTable(String enemyType, LootTable lootTable) {

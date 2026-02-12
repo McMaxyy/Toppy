@@ -12,6 +12,7 @@ import com.badlogic.gdx.physics.box2d.Body;
 import config.Storage;
 import managers.AnimationManager;
 import managers.AnimationManager.State;
+import managers.SoundManager;
 import ui.ScreenShake;
 
 public class EndlessEnemy {
@@ -419,6 +420,7 @@ public class EndlessEnemy {
 
             applyKnockback();
             ScreenShake.rumble(0.6f, 0.3f);
+            SoundManager.getInstance().playEnemyHitSound();
         }
 
         if (stats.isDead()) {

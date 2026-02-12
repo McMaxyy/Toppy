@@ -209,7 +209,8 @@ public class Lemmy {
 
             SoundManager.getInstance().playLemmyHitSound();
 
-            ScreenShake.rumble(0.5f, 0.15f);
+            ScreenShake.rumble(0.6f, 0.15f);
+            SoundManager.getInstance().playEnemyHitSound();
         }
 
         if (stats.isDead()) {

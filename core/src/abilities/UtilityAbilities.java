@@ -32,6 +32,8 @@ class PaladinBubbleAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("Bubble");
+
         player.setInvulnerable(true);
 
         AbilityVisual.Bubble bubbleVisual = new AbilityVisual.Bubble(
@@ -552,12 +554,12 @@ class LifeLeechAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        // Apply life leech effect
+        SoundManager.getInstance().playAbilitySound("LifeLeech");
+
         LifeLeechEffect leechEffect = new LifeLeechEffect(player, LEECH_DURATION, HEAL_PER_HIT);
         leechEffect.onApply();
         gameProj.addStatusEffect(player, leechEffect);
 
-        // Add visual effect - red/green aura
         AbilityVisual.LifeLeechAura leechVisual = new AbilityVisual.LifeLeechAura(player, LEECH_DURATION);
         player.addAbilityVisual(leechVisual);
     }

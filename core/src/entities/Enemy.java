@@ -452,7 +452,8 @@ public class Enemy {
             hitFlashTimer = HIT_FLASH_DURATION;
 
             applyKnockback();
-            ScreenShake.rumble(0.4f, 0.3f);
+            ScreenShake.rumble(0.6f, 0.3f);
+            SoundManager.getInstance().playEnemyHitSound();
         }
 
         if (stats.isDead()) {

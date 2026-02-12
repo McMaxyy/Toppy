@@ -363,6 +363,8 @@ class HolyAuraAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
+        SoundManager.getInstance().playAbilitySound("HolyAura");
+
         auraPlayer = player;
         currentGameProj = gameProj;
         auraTimer = 0f;
@@ -515,7 +517,7 @@ class HolyBlessingAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        SoundManager.getInstance().playAbilitySound("Prayer");
+        SoundManager.getInstance().playAbilitySound("HolyBlessing");
 
         HolyBlessingEffect blessingEffect = new HolyBlessingEffect(
                 player, BLESSING_DURATION, DEFENSE_BONUS, ATTACK_BONUS, HEALTH_BONUS
@@ -549,7 +551,7 @@ class HolySwordAbility extends Ability {
 
     @Override
     protected void execute(Player player, GameProj gameProj) {
-        SoundManager.getInstance().playAbilitySound("Smite");
+        SoundManager.getInstance().playAbilitySound("BlazingFury");
 
         HolySwordEffect holySwordEffect = new HolySwordEffect(
                 player, HOLY_SWORD_DURATION, ATTACK_BONUS, CONE_SIZE_MULTIPLIER
