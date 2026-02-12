@@ -78,7 +78,6 @@ public class StartScreen extends Game {
     private Label sfxPercentLabel;
     private PlayerClass selectedClass = PlayerClass.MERCENARY;
 
-    // Screen states
     private enum ScreenState {
         MAIN_MENU,
         GAME_MODE_SELECTION,
@@ -87,7 +86,6 @@ public class StartScreen extends Game {
     }
     private ScreenState currentState = ScreenState.MAIN_MENU;
 
-    // Settings
     private CheckBox fullscreenCheckbox;
     private CheckBox windowedCheckbox;
     private CheckBox size1280x720Checkbox;
@@ -451,17 +449,17 @@ public class StartScreen extends Game {
         audioTabButton.setColor(!display ? Color.GOLD : Color.WHITE);
     }
 
-    private void buildAudioSettings(Table t) {
-        t.clear();
+    private void buildAudioSettings(Table table) {
+        table.clear();
 
-        SoundManager sm = SoundManager.getInstance();
+        SoundManager soundManager = SoundManager.getInstance();
 
-        float initialMusic = sm.getMusicVolume();
-        float initialSfx = sm.getSfxVolume();
+        float initialMusic = soundManager.getMusicVolume();
+        float initialSfx = soundManager.getSfxVolume();
 
         Label audioLabel = new Label("AUDIO:", skin);
         audioLabel.setFontScale(1.0f);
-        t.add(audioLabel).left().padBottom(20).colspan(2).row();
+        table.add(audioLabel).left().padBottom(20).colspan(2).row();
 
         // MUSIC
         Label musicLabel = new Label("Music Volume", skin);
@@ -474,13 +472,13 @@ public class StartScreen extends Game {
         musicSlider.setValue(initialMusic);
 
         musicEnabledCheckbox = new CheckBox(" Enabled", skin);
-        musicEnabledCheckbox.setChecked(sm.isMusicEnabled());
+        musicEnabledCheckbox.setChecked(soundManager.isMusicEnabled());
 
         musicSlider.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 float v = musicSlider.getValue();
-                sm.setMusicVolume(v);
+                soundManager.setMusicVolume(v);
                 musicPercentLabel.setText(Math.round(v * 100) + "%");
             }
         });
@@ -488,20 +486,20 @@ public class StartScreen extends Game {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 float v = musicSlider.getValue();
-                sm.setMusicVolume(v);
+                soundManager.setMusicVolume(v);
                 musicPercentLabel.setText(Math.round(v * 100) + "%");
             }
         });
 
         musicEnabledCheckbox.addListener(createButtonListener(() -> {
-            sm.toggleMusic();
-            musicEnabledCheckbox.setChecked(sm.isMusicEnabled());
+            soundManager.toggleMusic();
+            musicEnabledCheckbox.setChecked(soundManager.isMusicEnabled());
         }));
 
-        t.add(musicLabel).left().padBottom(8);
-        t.add(musicPercentLabel).right().padBottom(8).row();
-        t.add(musicSlider).width(420).height(35).left().padBottom(8).colspan(2).row();
-        t.add(musicEnabledCheckbox).left().padBottom(25).colspan(2).row();
+        table.add(musicLabel).left().padBottom(8);
+        table.add(musicPercentLabel).right().padBottom(8).row();
+        table.add(musicSlider).width(420).height(35).left().padBottom(8).colspan(2).row();
+        table.add(musicEnabledCheckbox).left().padBottom(25).colspan(2).row();
 
         // SFX
         Label sfxLabel = new Label("SFX Volume", skin);
@@ -514,34 +512,34 @@ public class StartScreen extends Game {
         sfxSlider.setValue(initialSfx);
 
         sfxEnabledCheckbox = new CheckBox(" Enabled", skin);
-        sfxEnabledCheckbox.setChecked(sm.isSfxEnabled());
+        sfxEnabledCheckbox.setChecked(soundManager.isSfxEnabled());
 
         sfxSlider.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 float v = sfxSlider.getValue();
-                sm.setSfxVolume(v);
+                soundManager.setSfxVolume(v);
                 sfxPercentLabel.setText(Math.round(v * 100) + "%");
             }
         });
 
         sfxEnabledCheckbox.addListener(createButtonListener(() -> {
-            sm.toggleSfx();
-            sfxEnabledCheckbox.setChecked(sm.isSfxEnabled());
+            soundManager.toggleSfx();
+            sfxEnabledCheckbox.setChecked(soundManager.isSfxEnabled());
         }));
 
-        t.add(sfxLabel).left().padBottom(8);
-        t.add(sfxPercentLabel).right().padBottom(8).row();
-        t.add(sfxSlider).width(420).height(35).left().padBottom(8).colspan(2).row();
-        t.add(sfxEnabledCheckbox).left().colspan(2).row();
+        table.add(sfxLabel).left().padBottom(8);
+        table.add(sfxPercentLabel).right().padBottom(8).row();
+        table.add(sfxSlider).width(420).height(35).left().padBottom(8).colspan(2).row();
+        table.add(sfxEnabledCheckbox).left().colspan(2).row();
     }
 
-    private void buildDisplaySettings(Table t) {
-        t.clear();
+    private void buildDisplaySettings(Table table) {
+        table.clear();
 
         Label windowModeLabel = new Label("WINDOW MODE:", skin);
         windowModeLabel.setFontScale(1.0f);
-        t.add(windowModeLabel).left().padBottom(15).colspan(2).row();
+        table.add(windowModeLabel).left().padBottom(15).colspan(2).row();
 
         fullscreenCheckbox = new CheckBox(" Fullscreen", skin);
         fullscreenCheckbox.setChecked(isFullscreen);
@@ -570,11 +568,11 @@ public class StartScreen extends Game {
         Table modeTable = new Table();
         modeTable.add(fullscreenCheckbox).padRight(20);
         modeTable.add(windowedCheckbox);
-        t.add(modeTable).padBottom(30).colspan(2).row();
+        table.add(modeTable).padBottom(30).colspan(2).row();
 
         Label resolutionLabel = new Label("RESOLUTION:", skin);
         resolutionLabel.setFontScale(1.0f);
-        t.add(resolutionLabel).left().padBottom(15).colspan(2).row();
+        table.add(resolutionLabel).left().padBottom(15).colspan(2).row();
 
         size1280x720Checkbox = new CheckBox(" 1280x720", skin);
         size1600x900Checkbox = new CheckBox(" 1600x900", skin);
@@ -631,7 +629,7 @@ public class StartScreen extends Game {
         resolutionTable.add(size1600x900Checkbox).padRight(10);
         resolutionTable.add(size1920x1080Checkbox);
 
-        t.add(resolutionTable).padBottom(10).colspan(2).row();
+        table.add(resolutionTable).padBottom(10).colspan(2).row();
     }
 
 

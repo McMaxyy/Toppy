@@ -376,38 +376,19 @@ public class AbilityManager {
     }
 
     private void useConsumable(int slot) {
-        if (slot >= 0 && slot < NUM_CONSUMABLE_SLOTS && consumableSlots[slot] != null) {
-            Item consumable = consumableSlots[slot];
+        if (slot < 0 || slot >= NUM_CONSUMABLE_SLOTS) return;
 
-            int count = player.getInventory().getItemCountForConsumable(consumable);
-            if (count > 0) {
-                consumable.use(player);
+        Item consumable = consumableSlots[slot];
+        if (consumable == null) return;
 
-                if (consumable.getName().contains("Potion")) {
-                    SoundManager.getInstance().playPotionSound();
-                }
-
-                player.getInventory().removeItemByReference(consumable);
-            }
-        }
+        player.getInventory().tryUseConsumable(consumable, player);
     }
+
 
     public void startDraggingConsumable(Item item) {
         if (item != null && item.getType() == Item.ItemType.CONSUMABLE) {
             draggingConsumable = item;
         }
-    }
-
-    public void clearDraggingConsumable() {
-        draggingConsumable = null;
-    }
-
-    public boolean isDraggingConsumable() {
-        return draggingConsumable != null;
-    }
-
-    public Item getDraggingConsumable() {
-        return draggingConsumable;
     }
 
     private void useOffhandAttack() {
@@ -1232,7 +1213,7 @@ public class AbilityManager {
             if (count > 0) {
                 shapeRenderer.setColor(0.3f, 0.3f, 0.4f, 0.8f);
             } else {
-                // Grayed out - no items left
+                // Grayed out
                 shapeRenderer.setColor(0.2f, 0.2f, 0.25f, 0.6f);
             }
         } else {
@@ -1334,6 +1315,24 @@ public class AbilityManager {
         font.draw(batch, countText, x + SLOT_SIZE - textWidth - 5, y + SLOT_SIZE - 3);
         font.getData().setScale(1.0f);
         font.setColor(Color.WHITE);
+
+        if (consumable.getName() != null && consumable.getName().contains("Health Potion")) {
+            float remaining = player.getInventory().getHealthPotionCooldownRemaining();
+            float total = player.getInventory().getHealthPotionCooldownTotal();
+
+            if (remaining > 0f && total > 0f) {
+                float pct = remaining / total; // 1 -> full overlay, 0 -> none
+                renderCooldownOverlay(batch, x, y, pct);
+
+                font.setColor(Color.YELLOW);
+                font.getData().setScale(0.8f);
+                String t = String.format("%.1f", remaining);
+                float cdTextWidth = font.getSpaceXadvance() * t.length() * 0.8f;
+                font.draw(batch, t, x + (SLOT_SIZE - cdTextWidth) / 2f, y + SLOT_SIZE / 2f + 5);
+                font.getData().setScale(1.0f);
+                font.setColor(Color.WHITE);
+            }
+        }
     }
 
     private void renderCooldownOverlay(SpriteBatch batch, float x, float y, float percentage) {

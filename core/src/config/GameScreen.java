@@ -31,17 +31,32 @@ public class GameScreen implements Screen {
 	public static final int POSTGAME = 3;
 
 	private boolean isDisposed = false;
+	private static boolean isNew = true;
 
 	public GameScreen(Game game, int sWidth, int sHeight, boolean decorated) {
 		this.game = game;
 		viewport = new FitViewport(SELECTED_WIDTH, SELECTED_HEIGHT);
 
-		Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
+		int selectedWidth = SaveManager.getWindowWidth();
+		int selectedHeight = SaveManager.getWindowHeight();
+
+		if (isNew && SaveManager.isFullscreen()) {
+			Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
+			Gdx.graphics.setFullscreenMode(displayMode);
+			Gdx.graphics.setUndecorated(true);
+			isNew = false;
+		} else if (isNew) {
+			Gdx.graphics.setWindowedMode(selectedWidth, selectedHeight);
+			Gdx.graphics.setUndecorated(false);
+			isNew = false;
+		} else {
+			Gdx.graphics.setUndecorated(decorated);
+			Gdx.graphics.setWindowedMode(sWidth, sHeight);
+		}
+
+//		Graphics.DisplayMode displayMode = Gdx.graphics.getDisplayMode();
 //    Gdx.graphics.setUndecorated(false);
 //    Gdx.graphics.setWindowedMode(1600, 900);
-
-		Gdx.graphics.setUndecorated(decorated);
-		Gdx.graphics.setWindowedMode(sWidth, sHeight);
 
 		setCurrentState(START);
 	}
@@ -49,7 +64,6 @@ public class GameScreen implements Screen {
 	public void setCurrentState(int newState) {
 		if (isDisposed) return;
 
-		// Clean up previous state
 		if (currentState == HOME && newState != HOME) {
 			if (gameP != null) {
 				gameP.dispose();

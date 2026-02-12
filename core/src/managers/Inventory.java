@@ -38,6 +38,8 @@ public class Inventory {
     private Item draggedItem = null;
     private float dragOffsetX = 0;
     private float dragOffsetY = 0;
+    private static final float HEALTH_POTION_COOLDOWN = 5f;
+    private float healthPotionCooldownTimer = 0f;
 
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
@@ -200,27 +202,23 @@ public class Inventory {
     public void sortInventory() {
         List<ItemWithCount> allItems = new ArrayList<>();
 
-        // Collect all items with their counts
         for (int i = 0; i < MAX_SLOTS; i++) {
             if (items[i] != null) {
                 allItems.add(new ItemWithCount(items[i], itemCounts.getOrDefault(i, 1)));
             }
         }
 
-        // Sort by type priority
         allItems.sort((a, b) -> {
             int priorityA = getTypePriority(a.item);
             int priorityB = getTypePriority(b.item);
             return Integer.compare(priorityA, priorityB);
         });
 
-        // Clear inventory
         for (int i = 0; i < MAX_SLOTS; i++) {
             items[i] = null;
         }
         itemCounts.clear();
 
-        // Refill in sorted order
         int slotIndex = 0;
         for (ItemWithCount iwc : allItems) {
             if (slotIndex < MAX_SLOTS) {
@@ -422,33 +420,42 @@ public class Inventory {
             if (selectedEquipmentSlot != null) {
                 unequipItemToInventory(selectedEquipmentSlot, player);
             }
-        } else {
-            if (items[selectedSlot] != null) {
-                Item item = items[selectedSlot];
+            return;
+        }
 
-                if (item.getType() == Item.ItemType.WEAPON || item.getType() == Item.ItemType.ARMOR || item.getType() == Item.ItemType.OFFHAND) {
-                    equipItemFromInventory(selectedSlot, player);
-                } else {
-                    item.use(player);
+        if (items[selectedSlot] == null) return;
 
-                    if (item.getName().contains("Potion"))
-                        SoundManager.getInstance().playPotionSound();
+        Item item = items[selectedSlot];
 
-                    if (item.getType() == Item.ItemType.CONSUMABLE) {
-                        removeItem(selectedSlot);
-                    }
-                }
+        if (item.getType() == Item.ItemType.WEAPON ||
+                item.getType() == Item.ItemType.ARMOR ||
+                item.getType() == Item.ItemType.OFFHAND) {
+            equipItemFromInventory(selectedSlot, player);
+            return;
+        }
+
+        if (item.getType() == Item.ItemType.CONSUMABLE) {
+            boolean isHealthPotion = item.getName() != null && item.getName().contains("Health Potion");
+            if (isHealthPotion && healthPotionCooldownTimer > 0f) {
+                System.out.println("Health potion on cooldown: " + String.format("%.1f", healthPotionCooldownTimer) + "s");
+                return;
             }
-        }
-    }
 
-    public Item dropItem(int slot) {
-        if (slot >= 0 && slot < MAX_SLOTS && items[slot] != null) {
-            Item droppedItem = items[slot].copy();
-            removeItem(slot);
-            return droppedItem;
+            item.use(player);
+
+            if (item.getName() != null && item.getName().contains("Potion")) {
+                SoundManager.getInstance().playPotionSound();
+            }
+
+            if (isHealthPotion) {
+                healthPotionCooldownTimer = HEALTH_POTION_COOLDOWN;
+            }
+
+            removeItem(selectedSlot);
+            return;
         }
-        return null;
+
+        item.use(player);
     }
 
     public void addCoins(int amount) {
@@ -469,6 +476,11 @@ public class Inventory {
     }
 
     public void update(float delta, entities.Player player, GameProj gameP) {
+        if (healthPotionCooldownTimer > 0f) {
+            healthPotionCooldownTimer -= delta;
+            if (healthPotionCooldownTimer < 0f) healthPotionCooldownTimer = 0f;
+        }
+
         if (!inventoryOpen) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
                 toggleInventory();
@@ -488,7 +500,6 @@ public class Inventory {
         float panelX = (screenWidth - panelWidth) / 2f;
         float panelY = (screenHeight - panelHeight) / 2f;
 
-        // Cache positions for drag detection
         cachedPanelX = panelX;
         cachedPanelY = panelY;
         cachedPanelWidth = panelWidth;
@@ -622,6 +633,33 @@ public class Inventory {
         }
     }
 
+    public boolean tryUseConsumable(Item consumable, entities.Player player) {
+        if (consumable == null || player == null) return false;
+        if (consumable.getType() != Item.ItemType.CONSUMABLE) return false;
+
+        int count = getItemCountForConsumable(consumable);
+        if (count <= 0) return false;
+
+        boolean isHealthPotion = consumable.getName() != null && consumable.getName().contains("Health Potion");
+        if (isHealthPotion && healthPotionCooldownTimer > 0f) {
+            return false;
+        }
+
+        consumable.use(player);
+
+        if (consumable.getName() != null && consumable.getName().contains("Potion")) {
+            SoundManager.getInstance().playPotionSound();
+        }
+
+        if (isHealthPotion) {
+            healthPotionCooldownTimer = HEALTH_POTION_COOLDOWN;
+        }
+
+        removeItemByReference(consumable);
+        return true;
+    }
+
+
     public void render(SpriteBatch batch, boolean batchIsActive) {
         if (!inventoryOpen) return;
 
@@ -740,7 +778,6 @@ public class Inventory {
 
         renderStatsPanel(batch, panelX, panelY, panelHeight, player);
 
-        // Render dragged item
         if (isDragging && draggedItem != null) {
             float mouseX = Gdx.input.getX();
             float mouseY = screenHeight - Gdx.input.getY();
@@ -1228,20 +1265,12 @@ public class Inventory {
         }
     }
 
-    private String getShortSlotName(EquipmentSlot slot) {
-        switch (slot) {
-            case HELMET: return "";
-            case CHEST: return "";
-            case GLOVES: return "";
-            case BOOTS: return "";
-            case WEAPON: return "";
-            case OFFHAND: return "";
-            default: return slot.toString();
-        }
+    public float getHealthPotionCooldownRemaining() {
+        return healthPotionCooldownTimer;
     }
 
-    public int getSelectedSlot() {
-        return selectedSlot;
+    public float getHealthPotionCooldownTotal() {
+        return HEALTH_POTION_COOLDOWN;
     }
 
     public boolean isFull() {

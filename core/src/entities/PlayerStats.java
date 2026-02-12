@@ -283,9 +283,17 @@ public class PlayerStats {
     private void levelUp() {
         level++;
         experience -= experienceToNextLevel;
-        experienceToNextLevel = (int) (experienceToNextLevel * 2.5f);
 
-        availableStatPoints += STAT_POINTS_PER_LEVEL;
+        if (level < 5) {
+            experienceToNextLevel = (int) (experienceToNextLevel * 2.5f);
+        } else
+            experienceToNextLevel = (int) (experienceToNextLevel * 1.5f);
+
+        if (level != 6)
+            availableStatPoints += STAT_POINTS_PER_LEVEL;
+        else
+            availableStatPoints += 10;
+
         awardSkillPoint();
 
         recalculateStats();

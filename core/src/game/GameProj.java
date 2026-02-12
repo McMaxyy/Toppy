@@ -63,6 +63,7 @@ public class GameProj implements Screen, ContactListener {
     private final ExecutorService chunkGenerator;
     private Label hudLabel;
     private int enemiesKilled = 0;
+    private static final int MAX_LEMMYS = 8;
     private final int MAP_SIZE_CHUNKS = 5;
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 16;
@@ -160,8 +161,8 @@ public class GameProj implements Screen, ContactListener {
             itemSpawner.spawnItem("health_potion", player.getPosition());
             itemSpawner.spawnItem("small_health_potion", player.getPosition());
         } else {
-            spawnLemmys();
-//            spawnHerman();
+//            spawnLemmys();
+            spawnHerman();
         }
 
         setupCursorConfinement();
@@ -323,7 +324,7 @@ public class GameProj implements Screen, ContactListener {
 
         setRandomPlayerSpawn();
         if (gameScreen.getGameMode() == 1) {
-            spawnAllDungeonPortals();
+            spawnDungeonPortals();
             spawnMerchant();
         }
         SoundManager.getInstance().playForestMusic();
@@ -550,7 +551,7 @@ public class GameProj implements Screen, ContactListener {
         }
     }
 
-    private void spawnAllDungeonPortals() {
+    private void spawnDungeonPortals() {
         int halfMapChunks = MAP_SIZE_CHUNKS / 2;
         int minChunk = -halfMapChunks;
 
@@ -797,6 +798,7 @@ public class GameProj implements Screen, ContactListener {
         }
 
         hudLabel.setText("Enemies killed: " + enemiesKilled);
+        clearAllLemmys();
         spawnLemmys();
     }
 
@@ -1020,10 +1022,10 @@ public class GameProj implements Screen, ContactListener {
             batch.end();
         }
 
-        if (world != null) {
-            Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
+//        if (world != null) {
+//            Box2DDebugRenderer debugRenderer = new Box2DDebugRenderer();
 //            debugRenderer.render(world.getWorld(), camera.combined);
-        }
+//        }
     }
 
     public void pauseGame() {
@@ -1433,8 +1435,8 @@ public class GameProj implements Screen, ContactListener {
     private void renderBossRoom(float delta) {
         if (batch == null) return;
 
-        int roomWidth = 22;
-        int roomHeight = 17;
+        int roomWidth = 20;
+        int roomHeight = 15;
         int bossRoomTileSize = (int) (TILE_SIZE / 1.2f);
 
         float bossRoomMinX = 0;
@@ -1442,8 +1444,8 @@ public class GameProj implements Screen, ContactListener {
         float bossRoomMaxX = roomWidth * bossRoomTileSize;
         float bossRoomMaxY = roomHeight * bossRoomTileSize;
 
-        float cameraHalfWidth = camera.viewportWidth / 2f;
-        float cameraHalfHeight = camera.viewportHeight / 2f;
+        float cameraHalfWidth = camera.viewportWidth / 4f;
+        float cameraHalfHeight = camera.viewportHeight / 4f;
 
         float targetX = player.getPosition().x;
         float targetY = player.getPosition().y;
@@ -1776,7 +1778,7 @@ public class GameProj implements Screen, ContactListener {
                     handleEnemyDeath(object, object.getBody().getPosition(), false);
                     bodiesToDestroy.add(object.getBody());
                     object.clearBody();
-                    currentDungeon.getEnemies().remove(object);
+                    currentDungeon.getDestructables().remove(object);
                 }
             }
         }
@@ -2007,11 +2009,34 @@ public class GameProj implements Screen, ContactListener {
 
         if (mainDead && duplicateDead) {
             onHermanFullyDefeated();
-            // Now we can null them out
             herman = null;
             hermanDuplicate = null;
         }
     }
+
+    private void clearAllLemmys() {
+        for (Chunk chunk : chunks.values()) {
+            if (chunk != null && chunk.getLemmys() != null) {
+                chunk.getLemmys().clear();
+            }
+        }
+
+        for (Lemmy lemmy : new ArrayList<>(globalLemmys)) {
+            if (lemmy != null) {
+                if (lemmy.getBody() != null && world != null && world.getWorld() != null) {
+                    try {
+                        world.getWorld().destroyBody(lemmy.getBody());
+                    } catch (Exception e) {
+                        System.err.println("Error destroying Lemmy body: " + e.getMessage());
+                    }
+                    lemmy.clearBody();
+                }
+                lemmy.dispose();
+            }
+        }
+        globalLemmys.clear();
+    }
+
 
     private void spawnLemmys() {
         if (random.nextInt(10) < 5)
@@ -2051,8 +2076,8 @@ public class GameProj implements Screen, ContactListener {
                 }
             }
 
-//            Body lemmyBody = createLemmyBody(lemmyX, lemmyY);
-            Body lemmyBody = createLemmyBody(player.getPosition().x, player.getPosition().y);
+            Body lemmyBody = createLemmyBody(lemmyX, lemmyY);
+//            Body lemmyBody = createLemmyBody(player.getPosition().x, player.getPosition().y);
 
             EnemyStats lemmyStats = EnemyStats.Factory.createLemmy(1);
             Lemmy lemmy = new Lemmy(

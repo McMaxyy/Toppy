@@ -211,7 +211,7 @@ public class EnemyStats {
         public static EnemyStats createSkeletonEnemy(int level) {
             return new EnemyStats(
                     "Skeleton",
-                    75 + (level * 20),
+                    75 + (level * 10),
                     10 + (level * 5),
                     2 + level,
                     15 + (level * 10),
@@ -231,7 +231,7 @@ public class EnemyStats {
         public static EnemyStats createSkeletonRogueEnemy(int level) {
             return new EnemyStats(
                     "Skeleton Rogue",
-                    55 + (level * 15),
+                    55 + (level * 10),
                     12 + (level * 4),
                     1 + level,
                     12 + (level * 8),
@@ -271,7 +271,7 @@ public class EnemyStats {
         public static EnemyStats createBoss(int level) {
             return new EnemyStats(
                     "Boss Kitty",
-                    700 + (level * 50),
+                    600 + (level * 25),
                     15 + (level * 5),
                     5 + (level * 3),
                     1500 + (level * 50),
@@ -291,10 +291,10 @@ public class EnemyStats {
         public static EnemyStats createCyclops(int level) {
             return new EnemyStats(
                     "Cyclops",
-                    800 + (level * 50),
+                    900 + (level * 50),
                     18 + (level * 3),
                     8 + (level * 2),
-                    2500 + (level * 60),
+                    5000 + (level * 100),
                     level,
                     AttackType.AOE,
                     "boss",
@@ -351,9 +351,9 @@ public class EnemyStats {
         public static EnemyStats createGhostBoss(int level) {
             return new EnemyStats(
                     "Ghost Boss",
-                    900 + (level * 50),
+                    1000 + (level * 50),
                     17 + (level * 3),
-                    10 + (level * 2),
+                    12 + (level * 2),
                     4500 + (level * 55),
                     level,
                     AttackType.RANGED,
@@ -411,19 +411,19 @@ public class EnemyStats {
         public static EnemyStats createHerman(int level) {
             return new EnemyStats(
                     "Herman",
-                    200 + (level * 60),
+                    1300 + (level * 60),
                     20 + (level * 5),
                     12 + (level * 4),
                     6000 + (level * 100),
                     level,
                     AttackType.RANGED,
                     "mega_boss",
-                    0.25f,
+                    0.2f,
                     400f,
-                    0.25f,
+                    0.2f,
                     0f,
                     40f,
-                    150f,
+                    170f,
                     0f
             );
         }

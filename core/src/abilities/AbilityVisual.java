@@ -80,7 +80,7 @@ public abstract class AbilityVisual {
             super(duration);
             this.player = player;
             this.world = world;
-            this.size = 32;
+            this.size = 24;
             this.texture = Storage.assetManager.get("character/abilities/Bubble.png", Texture.class);
 
             createBody();
