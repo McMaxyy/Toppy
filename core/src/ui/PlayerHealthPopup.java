@@ -22,6 +22,9 @@ public class PlayerHealthPopup {
     private static final float POPUP_DURATION = 1.0f;
     private static final float FLOAT_SPEED = 200f;
     private static final float INITIAL_Y_OFFSET = 40f;
+    private int spawnIndex = 0;
+    private static final float[] SNAKE_X_OFFSETS = {-40f, -20f, 0f, 20f, 40f};
+
 
     public PlayerHealthPopup(Viewport hudViewport, OrthographicCamera worldCamera) {
         this.hudViewport = hudViewport;
@@ -39,11 +42,12 @@ public class PlayerHealthPopup {
 
         Vector2 screenPos = new Vector2(worldPos.x, worldPos.y);
 
-        float randomOffsetX = (float) (Math.random() * 20 - 10);
+        float orderedOffsetX = SNAKE_X_OFFSETS[spawnIndex];
+        spawnIndex = (spawnIndex + 1) % SNAKE_X_OFFSETS.length;
 
         HealthPopup popup = new HealthPopup(
                 amount,
-                screenPos.x + randomOffsetX,
+                screenPos.x + orderedOffsetX,
                 screenPos.y + INITIAL_Y_OFFSET,
                 amount > 0
         );
@@ -69,6 +73,7 @@ public class PlayerHealthPopup {
     }
 
     public void clear() {
+        spawnIndex = 0;
         activePopups.clear();
     }
 

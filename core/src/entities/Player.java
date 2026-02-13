@@ -83,6 +83,9 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private boolean isLifeLeechActive = false;
     private int lifeLeechHealAmount = 0;
 
+    private boolean isSRLifeLeechActive = false;
+    private float srLifeLeechHealAmount = 0f;
+
     private class Trail {
         Vector2 position;
         float lifetime;
@@ -540,7 +543,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
             try {
                 world.getWorld().destroyBody(spearBody);
             } catch (Exception e) {
-                // Body already destroyed or world locked
             }
         }
 
@@ -650,9 +652,25 @@ public class Player implements PlayerStats.SpeedChangeListener {
         return lifeLeechHealAmount;
     }
 
+    public void setSRLifeLeechActive(boolean active, float healAmount) {
+        this.isSRLifeLeechActive = active;
+        this.srLifeLeechHealAmount = healAmount;
+    }
+
+    public boolean isSRLifeLeechActive() {
+        return isSRLifeLeechActive;
+    }
+
+    public float getSRLifeLeechHealAmount() {
+        return srLifeLeechHealAmount;
+    }
+
     public void onBasicAttackHit() {
         if (isLifeLeechActive && lifeLeechHealAmount > 0) {
             stats.heal(lifeLeechHealAmount);
+        }
+        if (isSRLifeLeechActive && srLifeLeechHealAmount > 0f) {
+            stats.accumulateSRLifeLeech(srLifeLeechHealAmount);
         }
     }
 
@@ -746,7 +764,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
-        // Render projectile spears (these are kept for future projectile functionality)
         if (playerClass == PlayerClass.MERCENARY) {
             for (int i = 0; i < spearBodies.size; i++) {
                 Body spearBody = spearBodies.get(i);

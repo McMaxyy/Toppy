@@ -112,6 +112,10 @@ public class Storage {
         assetManager.load("icons/gear/ironShield.png", Texture.class);
         assetManager.load("icons/gear/ironSword.png", Texture.class);
         assetManager.load("icons/gear/spearVisual.png", Texture.class);
+        assetManager.load("icons/gear/PirateHat.png", Texture.class);
+        assetManager.load("icons/gear/BoxingGlove.png", Texture.class);
+        assetManager.load("icons/gear/BulletVest.png", Texture.class);
+        assetManager.load("icons/gear/Crocs.png", Texture.class);
 
         assetManager.load("icons/abilities/Blink.png", Texture.class);
         assetManager.load("icons/abilities/Charge.png", Texture.class);

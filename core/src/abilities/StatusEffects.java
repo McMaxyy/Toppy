@@ -379,9 +379,6 @@ class SmokeBombEffect extends StatusEffect {
     }
 }
 
-/**
- * Life Leech Effect - Heals player on each basic attack hit
- */
 class LifeLeechEffect extends StatusEffect {
     private Player player;
     private int healPerHit;

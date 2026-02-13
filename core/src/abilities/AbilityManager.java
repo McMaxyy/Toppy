@@ -161,7 +161,11 @@ public class AbilityManager {
 
     private float getEffectiveCooldown(float baseCooldown) {
         float attackSpeedReduction = player.getStats().getTotalAttackSpeed();
-        return Math.max(0.1f, baseCooldown - attackSpeedReduction);
+        float newCooldown = Math.max(0.1f, baseCooldown - attackSpeedReduction);
+        if (newCooldown >= baseCooldown / 1.5f)
+            return newCooldown;
+        else
+            return baseCooldown / 1.5f;
     }
 
     public void update(float delta) {

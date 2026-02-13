@@ -13,12 +13,12 @@ public class ItemRegistry {
     private static ItemRegistry instance;
     private Map<String, ItemDefinition> itemDefinitions;
 
-    // Gear type prefixes for colored borders
     public static final String VALKYRIE = "valkyrie";
     public static final String PROTECTOR = "protector";
     public static final String BARBARIAN = "barbarian";
     public static final String BERSERKER = "berserker";
     public static final String DECEPTOR = "deceptor";
+    public static final String SPECIAL = "special";
 
     public static class ItemDefinition {
         public String id;
@@ -465,6 +465,43 @@ public class ItemRegistry {
                 "icons/gear/ironShield.png",
                 "icons/gear/ironShield.png"
         ).setBonusDex(3).setDefense(6).setValues(150, 100).setGearType(DECEPTOR));
+
+        // ===== SR ITEMS =====
+        registerItem(new ItemDefinition(
+                "speed_shoe",
+                "SR Rubber Shoes",
+                "Additional cooldown reduction",
+                Item.ItemType.ARMOR,
+                "icons/gear/Crocs.png",
+                "icons/gear/Crocs.png"
+        ).setBonusDex(5).setDefense(5).setBonusVitality(5).setDamage(5).setValues(1000, 500).setGearType(SPECIAL));
+
+        registerItem(new ItemDefinition(
+                "bullet_vest",
+                "SR Bullet Vest",
+                "Chance to avoid damage",
+                Item.ItemType.ARMOR,
+                "icons/gear/BulletVest.png",
+                "icons/gear/BulletVest.png"
+        ).setBonusDex(7).setDefense(7).setBonusVitality(7).setDamage(7).setValues(1300, 650).setGearType(SPECIAL));
+
+        registerItem(new ItemDefinition(
+                "pirate_hat",
+                "SR Pirate's Hat",
+                "A chance to steal life from enemies",
+                Item.ItemType.ARMOR,
+                "icons/gear/PirateHat.png",
+                "icons/gear/PirateHat.png"
+        ).setBonusDex(5).setDefense(5).setBonusVitality(5).setDamage(5).setValues(1000, 500).setGearType(SPECIAL));
+
+        registerItem(new ItemDefinition(
+                "boxing_gloves",
+                "SR Boxing Gloves",
+                "Chance to deal double damage",
+                Item.ItemType.ARMOR,
+                "icons/gear/BoxingGlove.png",
+                "icons/gear/BoxingGlove.png"
+        ).setBonusDex(5).setDefense(5).setBonusVitality(5).setDamage(5).setValues(1000, 500).setGearType(SPECIAL));
 
         // ===== CONSUMABLES =====
         registerItem(new ItemDefinition(

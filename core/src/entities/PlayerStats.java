@@ -1,8 +1,10 @@
 package entities;
 
+import java.util.Random;
 import config.GameScreen;
 
 public class PlayerStats {
+    private static final Random random = new Random(System.nanoTime());
     private int maxHealth;
     private int currentHealth;
     private int baseDamage;
@@ -11,6 +13,11 @@ public class PlayerStats {
     private float allocatedAttackSpeed;
     private float gearAttackSpeed;
     private float coinMultiplier = 1.0f;
+
+    // SR item passives
+    private boolean hasBoxingGloves = false;
+    private boolean hasBulletVest = false;
+    private float srLifeLeechAccumulator = 0f;
 
     private static final int BASE_VIT = 30;
     private static final int BASE_DEX = 45;
@@ -236,6 +243,12 @@ public class PlayerStats {
     }
 
     public void takeDamage(int damage) {
+        if (hasBulletVest) {
+            if (random.nextFloat() < 0.10f) {
+                return;
+            }
+        }
+
         int actualDamage = Math.max(1, damage - (getTotalDefense() / 3));
         currentHealth = Math.max(0, currentHealth - actualDamage);
 
@@ -245,7 +258,15 @@ public class PlayerStats {
     }
 
     public int getActualDamage() {
-        return getTotalDamage() / 2;
+        int dmg = getTotalDamage() / 2;
+
+        if (hasBoxingGloves) {
+            if (random.nextFloat() < 0.10f) {
+                dmg *= 2;
+            }
+        }
+
+        return dmg;
     }
 
     public void heal(int amount) {
@@ -259,12 +280,31 @@ public class PlayerStats {
         }
     }
 
+    public void healFlat(int amount) {
+        if (amount <= 0) return;
+        int oldHealth = currentHealth;
+        currentHealth = Math.min(maxHealth, currentHealth + amount);
+        int healedAmount = currentHealth - oldHealth;
+
+        if (healthChangeListener != null && healedAmount > 0) {
+            healthChangeListener.onHealthChanged(healedAmount);
+        }
+    }
+
+    public void accumulateSRLifeLeech(float amount) {
+        srLifeLeechAccumulator += amount;
+        if (srLifeLeechAccumulator >= 1f) {
+            int healAmount = (int) srLifeLeechAccumulator;
+            srLifeLeechAccumulator -= healAmount;
+            healFlat(healAmount);
+        }
+    }
+
     public void fullHeal() {
         int oldHealth = currentHealth;
         currentHealth = maxHealth;
         int healedAmount = currentHealth - oldHealth;
 
-        // Trigger health change callback
         if (healthChangeListener != null && healedAmount > 0) {
             healthChangeListener.onHealthChanged(healedAmount);
         }
@@ -334,7 +374,7 @@ public class PlayerStats {
 
     public void addGearDex(int amount) {
         this.gearDex += amount;
-        this.gearAttackSpeed *= 0.001f;
+        this.gearAttackSpeed += 0.001f;
         recalculateStats();
     }
 
@@ -342,6 +382,31 @@ public class PlayerStats {
         this.gearDex = Math.max(0, this.gearDex - amount);
         this.gearAttackSpeed -= 0.001f;
         recalculateStats();
+    }
+
+    public void addGearAttackSpeed(float amount) {
+        this.gearAttackSpeed += amount;
+    }
+
+    public void removeGearAttackSpeed(float amount) {
+        this.gearAttackSpeed = Math.max(0f, this.gearAttackSpeed - amount);
+    }
+
+    // SR item passive toggles
+    public void setHasBoxingGloves(boolean has) {
+        this.hasBoxingGloves = has;
+    }
+
+    public boolean hasBoxingGloves() {
+        return hasBoxingGloves;
+    }
+
+    public void setHasBulletVest(boolean has) {
+        this.hasBulletVest = has;
+    }
+
+    public boolean hasBulletVest() {
+        return hasBulletVest;
     }
 
     public boolean useSkillPoint() {

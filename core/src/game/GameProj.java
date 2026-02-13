@@ -162,7 +162,11 @@ public class GameProj implements Screen, ContactListener {
             itemSpawner.spawnItem("small_health_potion", player.getPosition());
         } else {
 //            spawnLemmys();
-            spawnHerman();
+//            spawnHerman();
+            itemSpawner.spawnItem("pirate_hat", player.getPosition());
+            itemSpawner.spawnItem("boxing_gloves", player.getPosition());
+            itemSpawner.spawnItem("bullet_vest", player.getPosition());
+            itemSpawner.spawnItem("speed_shoe", player.getPosition());
         }
 
         setupCursorConfinement();
@@ -789,12 +793,12 @@ public class GameProj implements Screen, ContactListener {
             player.getBody().setTransform(overworldPlayerPosition.x, overworldPlayerPosition.y, 0);
         }
 
-        if (!hermanSpawned && ghostBossDefeated) {
-            spawnHerman();
-        }
-
         if (bossHealthUI != null) {
             bossHealthUI.clearAll();
+        }
+
+        if (!hermanSpawned && !ghostBossDefeated) {
+            spawnHerman();
         }
 
         hudLabel.setText("Enemies killed: " + enemiesKilled);

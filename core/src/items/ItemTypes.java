@@ -31,6 +31,19 @@ public abstract class ItemTypes {
             if (damage > 0) player.getStats().addGearDamage(damage);
             if (bonusVitality > 0) player.getStats().addGearVitality(bonusVitality);
             if (bonusDex > 0) player.getStats().addGearDex(bonusDex);
+
+            // SR item passives
+            if (name.contains("SR")) {
+                if (name.contains("Pirate")) {
+                    player.setSRLifeLeechActive(true, 0.5f);
+                } else if (name.contains("Rubber Shoes")) {
+                    player.getStats().addGearAttackSpeed(0.5f);
+                } else if (name.contains("Boxing Gloves")) {
+                    player.getStats().setHasBoxingGloves(true);
+                } else if (name.contains("Bullet Vest")) {
+                    player.getStats().setHasBulletVest(true);
+                }
+            }
         }
 
         @Override
@@ -39,6 +52,19 @@ public abstract class ItemTypes {
             if (damage > 0) player.getStats().removeGearDamage(damage);
             if (bonusVitality > 0) player.getStats().removeGearVitality(bonusVitality);
             if (bonusDex > 0) player.getStats().removeGearDex(bonusDex);
+
+            // SR item passives
+            if (name.contains("SR")) {
+                if (name.contains("Pirate")) {
+                    player.setSRLifeLeechActive(false, 0f);
+                } else if (name.contains("Rubber Shoes")) {
+                    player.getStats().removeGearAttackSpeed(0.5f);
+                } else if (name.contains("Boxing Gloves")) {
+                    player.getStats().setHasBoxingGloves(false);
+                } else if (name.contains("Bullet Vest")) {
+                    player.getStats().setHasBulletVest(false);
+                }
+            }
         }
 
         @Override
@@ -180,8 +206,8 @@ public abstract class ItemTypes {
     public static class OffhandItem extends Item {
 
         public OffhandItem(String name, String description, Texture texture,
-                          Texture iconTexture, Vector2 position, int damage, int defense,
-                          int vitality, int dex, int buyValue, int sellValue) {
+                           Texture iconTexture, Vector2 position, int damage, int defense,
+                           int vitality, int dex, int buyValue, int sellValue) {
             super(name, description, ItemType.OFFHAND, texture, iconTexture, position);
             this.damage = damage;
             this.defense = defense;

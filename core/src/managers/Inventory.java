@@ -76,6 +76,8 @@ public class Inventory {
     private final Color BUTTON_HOVER_COLOR = new Color(0.4f, 0.4f, 0.5f, 0.9f);
     private final Color RESET_BUTTON_COLOR = new Color(0.4f, 0.2f, 0.2f, 0.9f);
 
+    private final Color DESCRIPTION_COLOR = new Color(1f, 0.4f, 0.7f, 1f);
+
     private Map<Integer, Integer> itemCounts;
 
     private float cachedPanelX, cachedPanelY, cachedPanelWidth, cachedPanelHeight;
@@ -1058,10 +1060,10 @@ public class Inventory {
         if (stats.getAvailableStatPoints() > 0) {
             font.setColor(hasPoints ? Color.WHITE : Color.GRAY);
             font.getData().setScale(1.0f);
-            font.draw(batch, "+", buttonX + 6, vitY + 20);
-            font.draw(batch, "+", buttonX + 6, apY + 20);
-            font.draw(batch, "+", buttonX + 6, dpY + 20);
-            font.draw(batch, "+", buttonX + 6, dexY + 20);
+            font.draw(batch, "+", buttonX + 5, vitY + 20);
+            font.draw(batch, "+", buttonX + 5, apY + 20);
+            font.draw(batch, "+", buttonX + 5, dpY + 20);
+            font.draw(batch, "+", buttonX + 5, dexY + 20);
         }
 
         if (stats.getAvailableStatPoints() == 0 && stats.getLevel() > 1) {
@@ -1127,6 +1129,8 @@ public class Inventory {
                 return new Color(0.9f, 0.2f, 0.2f, 1f);
             case ItemRegistry.DECEPTOR:
                 return new Color(0.7f, 0.3f, 0.9f, 1f);
+            case ItemRegistry.SPECIAL:
+                return new Color(1f, 0.4f, 0.7f, 1f);
             default:
                 return SLOT_BORDER_COLOR;
         }
@@ -1189,7 +1193,6 @@ public class Inventory {
         float inventoryStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
 
         for (int i = 0; i < MAX_SLOTS; i++) {
-            // Don't render item in source slot if dragging
             if (isDragging && i == dragSourceSlot) continue;
 
             if (items[i] != null) {
@@ -1232,6 +1235,12 @@ public class Inventory {
 
             int lineOffset = 0;
             float lineSpacing = 20f;
+
+            if (displayItem.getDescription() != null && !displayItem.getDescription().isEmpty()) {
+                font.setColor(DESCRIPTION_COLOR);
+                font.draw(batch, displayItem.getDescription(), infoX, infoY - 25 - (lineOffset * lineSpacing));
+                lineOffset++;
+            }
 
             if (displayItem.getDamage() > 0) {
                 font.setColor(Color.ORANGE);
