@@ -44,7 +44,6 @@ public class GameProj implements Screen, ContactListener {
     private final Viewport viewport;
     private final Viewport hudViewport;
     public Stage stage, hudStage;
-    private Game game;
     private final GameScreen gameScreen;
     private SpriteBatch batch;
     private final AnimationManager animationManager;
@@ -57,14 +56,12 @@ public class GameProj implements Screen, ContactListener {
     private PlayerHealthPopup playerHealthPopup;
     private Texture groundTexture;
     private Player player;
-    private Vector2 initialSpawnPos;
     private final ConcurrentHashMap<Vector2, Chunk> chunks = new ConcurrentHashMap<>();
     private final ConcurrentLinkedQueue<Chunk> pendingChunks = new ConcurrentLinkedQueue<>();
     private final Random random;
     private final ExecutorService chunkGenerator;
     private Label hudLabel;
     private int enemiesKilled = 0;
-    private static final int MAX_LEMMYS = 8;
     private final int MAP_SIZE_CHUNKS = 5;
     private final int CHUNK_SIZE = 32;
     private final int TILE_SIZE = 16;
@@ -78,7 +75,6 @@ public class GameProj implements Screen, ContactListener {
     private BossRoom currentBossRoom;
     private final List<Portal> dungeonPortals = new ArrayList<>();
     private Vector2 overworldPlayerPosition;
-    private final int NUM_DUNGEONS = 3;
     private boolean inEndlessRoom = false;
     private EndlessRoom currentEndlessRoom;
     private Portal endlessPortal;
@@ -90,16 +86,14 @@ public class GameProj implements Screen, ContactListener {
     private boolean ghostBossDefeated = false;
     private Herman herman;
     private Herman hermanDuplicate;
-    private List<Lemmy> globalLemmys = new ArrayList<>();
+    private final List<Lemmy> globalLemmys = new ArrayList<>();
     private boolean hermanSpawned = false;
     private boolean hermanDefeated = false;
-    private List<Body> hermanArenaBarriers = new ArrayList<>();
 
     private MapBoundary mapBoundary;
     private Minimap minimap;
     private DungeonMinimap dungeonMinimap;
     private ItemSpawner itemSpawner;
-    private ItemRegistry itemRegistry;
     private LootTableRegistry lootTableRegistry;
     private Settings settings;
     private boolean isPaused = false;
@@ -109,20 +103,18 @@ public class GameProj implements Screen, ContactListener {
     private MerchantShop merchantShop;
     private boolean merchantShopOpen = false;
     private Texture cursorTexture;
-    private boolean useCustomCursor = true;
-    private boolean cursorConfined = true;
     private float cursorX = 0;
     private float cursorY = 0;
     private SafeStashPopup safeStashPopup;
     private PopupIndicator popupIndicator;
     private LowHealthVignette lowHealthVignette;
+    private final GlyphLayout legendLayout = new GlyphLayout();
 
 
     private Map<Object, List<StatusEffect>> statusEffects;
 
     public GameProj(Viewport viewport, Game game, GameScreen gameScreen) {
         this.gameScreen = gameScreen;
-        this.game = game;
         this.viewport = viewport;
 
         stage = new Stage(viewport);
@@ -140,7 +132,7 @@ public class GameProj implements Screen, ContactListener {
         hudCamera.setToOrtho(false, hudViewport.getWorldWidth(), hudViewport.getWorldHeight());
         hudCamera.update();
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4f), viewport.getWorldHeight() / (TILE_SIZE / 4));
+        camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4f), viewport.getWorldHeight() / (TILE_SIZE / 4f));
         camera.update();
         world = new Box2DWorld(this);
         random = new Random();
@@ -167,10 +159,10 @@ public class GameProj implements Screen, ContactListener {
         } else {
 //            spawnLemmys();
 //            spawnHerman();
-//            itemSpawner.spawnItem("pirate_hat", player.getPosition());
-//            itemSpawner.spawnItem("boxing_gloves", player.getPosition());
-//            itemSpawner.spawnItem("bullet_vest", player.getPosition());
-//            itemSpawner.spawnItem("speed_shoe", player.getPosition());
+            itemSpawner.spawnItem("pirate_hat", player.getPosition());
+            itemSpawner.spawnItem("boxing_gloves", player.getPosition());
+            itemSpawner.spawnItem("bullet_vest", player.getPosition());
+            itemSpawner.spawnItem("speed_shoe", player.getPosition());
         }
 
         setupCursorConfinement();
@@ -236,6 +228,7 @@ public class GameProj implements Screen, ContactListener {
     }
 
     public void updateCursorConfinement() {
+        boolean cursorConfined = true;
         if (!cursorConfined || isPaused || merchantShopOpen) {
             cursorX = Gdx.input.getX();
             cursorY = Gdx.graphics.getHeight() - Gdx.input.getY();
@@ -284,8 +277,8 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void setupCameraProjection() {
-        camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4),
-                viewport.getWorldHeight() / (TILE_SIZE / 4));
+        camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4f),
+                viewport.getWorldHeight() / (TILE_SIZE / 4f));
         camera.update();
 
         hudCamera.setToOrtho(false, hudViewport.getWorldWidth(), hudViewport.getWorldHeight());
@@ -309,18 +302,18 @@ public class GameProj implements Screen, ContactListener {
             playerHealthPopup.showHealthChange(amount, player.getPosition().x, player.getPosition().y);
         });
         player.getStats().setLevelUpListener(() ->
-                popupIndicator.showLevelUp(player.getPosition().x, player.getPosition().y));
+            popupIndicator.showLevelUp(player.getPosition()));
 
         hudStage = new Stage(hudViewport, batch);
 
         hudLabel = new Label("", skin);
         hudLabel.setPosition(10, hudViewport.getWorldHeight() - 150);
         hudStage.addActor(hudLabel);
+        popupIndicator.setObjectiveAnchor(hudLabel.getX(), hudLabel.getY());
 
         mapBoundary = new MapBoundary(world.getWorld(), MAP_SIZE_CHUNKS, CHUNK_SIZE, TILE_SIZE);
         minimap = new Minimap(MAP_SIZE_CHUNKS, CHUNK_SIZE, TILE_SIZE, player);
 
-        itemRegistry = ItemRegistry.getInstance();
         lootTableRegistry = LootTableRegistry.getInstance();
         itemSpawner = new ItemSpawner(world.getWorld());
         player.setItemSpawner(itemSpawner);
@@ -392,9 +385,6 @@ public class GameProj implements Screen, ContactListener {
 
             attempts++;
         }
-
-        initialSpawnPos = new Vector2(spawnPosition);
-        player.getBody().setTransform(spawnPosition.x, spawnPosition.y, 0);
 
         if (spawnPosition == null) {
             int spawnChunkX = minChunk + random.nextInt((maxChunk - minChunk) + 1);
@@ -600,6 +590,7 @@ public class GameProj implements Screen, ContactListener {
         int attempts = 0;
         int maxAttempts = 100;
 
+        int NUM_DUNGEONS = 3;
         for (int i = 0; i < NUM_DUNGEONS; i++) {
             boolean validPosition = false;
             float portalX = 0, portalY = 0;
@@ -721,10 +712,12 @@ public class GameProj implements Screen, ContactListener {
         Vector2 spawnPoint = currentDungeon.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
-        hudLabel.setText("Find the boss portal!");
+        hudLabel.setText("");
 
         relocateMerchant();
         merchantShop.randomizeShopInventory();
+
+        popupIndicator.showTips(player.getPosition(), 0f, 10f, "Find the boss portal");
     }
 
     private void enterBossRoom() {
@@ -767,7 +760,7 @@ public class GameProj implements Screen, ContactListener {
         }
         else {
             currentBossRoom = new BossRoom(bossRoomTileSize, world.getWorld(), player, animationManager, BossRoom.BossType.BOSS_KITTY);
-            bossName = "Freydis";
+            bossName = "Evil Lady Cat";
         }
 
         if (bossHealthUI != null) {
@@ -785,7 +778,7 @@ public class GameProj implements Screen, ContactListener {
         Vector2 spawnPoint = currentBossRoom.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
-        hudLabel.setText("Defeat the " + bossName + "!");
+        popupIndicator.showTips(player.getPosition(), 0f, 10f, "Defeat the " + bossName);
     }
 
     private void exitBossRoom() {
@@ -832,45 +825,16 @@ public class GameProj implements Screen, ContactListener {
             spawnHerman();
         }
 
-        hudLabel.setText("Enemies killed: " + enemiesKilled);
+        hudLabel.setText("");
         clearAllLemmys();
         spawnLemmys();
-    }
 
-    private void exitDungeon() {
-        inDungeon = false;
-        inBossRoom = false;
-        itemSpawner.clear();
-
-        if (currentDungeon != null) {
-            currentDungeon.dispose();
-            currentDungeon = null;
-        }
-
-        if (dungeonMinimap != null) {
-            dungeonMinimap.dispose();
-            dungeonMinimap = null;
-        }
-
-        for (Chunk chunk : chunks.values()) {
-            chunk.enableObstacles();
-            chunk.enableEnemies();
-        }
-
-        if (mapBoundary != null) {
-            mapBoundary.enable();
-        }
-
-        // Re-enable merchant
-        if (merchant != null) {
-            merchant.enable();
-        }
-
-        if (overworldPlayerPosition != null) {
-            player.getBody().setTransform(overworldPlayerPosition.x, overworldPlayerPosition.y, 0);
-        }
-
-        hudLabel.setText("Enemies killed: " + enemiesKilled);
+        if (bossKittyDefeated && cyclopsDefeated && ghostBossDefeated)
+            popupIndicator.showObjective(player.getPosition(), 0f, 10f, "Defeat the final stage boss");
+        else if (bossKittyDefeated && cyclopsDefeated)
+            popupIndicator.showObjective(player.getPosition(), 0f, 10f, "Clear the last dungeon");
+        else
+            popupIndicator.showObjective(player.getPosition(), 0f, 10f, "Find and clear 2 more dungeons");
     }
 
     private void enterEndlessRoom() {
@@ -980,7 +944,6 @@ public class GameProj implements Screen, ContactListener {
             world.getWorld().step(1 / 60f, 6, 2);
 
             totalGameTime += delta;
-            Vector3 shakeOffset = ScreenShake.tick(delta);
 
             playerHealthPopup.update(delta);
             popupIndicator.update(delta);
@@ -1014,7 +977,7 @@ public class GameProj implements Screen, ContactListener {
                 renderDungeon(delta);
             } else if (inBossRoom) {
                 renderBossRoom(delta);
-            } else if (inEndlessRoom) {
+            } else {
                 renderEndlessRoom(delta);
             }
         } else {
@@ -1024,7 +987,7 @@ public class GameProj implements Screen, ContactListener {
                 renderDungeon(0);
             } else if (inBossRoom) {
                 renderBossRoom(0);
-            } else if (inEndlessRoom) {
+            } else {
                 renderEndlessRoom(0);
             }
         }
@@ -1057,7 +1020,7 @@ public class GameProj implements Screen, ContactListener {
             batch.end();
         }
 
-        if (useCustomCursor && batch != null) {
+        if (batch != null) {
             batch.setProjectionMatrix(hudCamera.combined);
             batch.begin();
 
@@ -1171,6 +1134,7 @@ public class GameProj implements Screen, ContactListener {
             if (popupIndicator != null) {
                 popupIndicator.render(batch);
             }
+            renderLegend(batch);
             if (lowHealthVignette != null) {
                 lowHealthVignette.render(batch, hudCamera);
             }
@@ -1199,8 +1163,8 @@ public class GameProj implements Screen, ContactListener {
         String waveText = "Wave: " + currentEndlessRoom.getCurrentWave();
         String killsText = "Kills: " + currentEndlessRoom.getTotalEnemiesKilled();
 
-        float x = hudViewport.getWorldWidth() - 200f;
-        float y = hudViewport.getWorldHeight() - 50f;
+        float x = 15;
+        float y = hudViewport.getWorldHeight() - 210f;
 
         font.draw(batch, timeText, x, y);
         font.draw(batch, waveText, x, y - 25f);
@@ -1376,6 +1340,7 @@ public class GameProj implements Screen, ContactListener {
             if (popupIndicator != null) {
                 popupIndicator.render(batch);
             }
+            renderLegend(batch);
             if (lowHealthVignette != null) {
                 lowHealthVignette.render(batch, hudCamera);
             }
@@ -1485,6 +1450,7 @@ public class GameProj implements Screen, ContactListener {
             if (popupIndicator != null) {
                 popupIndicator.render(batch);
             }
+            renderLegend(batch);
             if (lowHealthVignette != null) {
                 lowHealthVignette.render(batch, hudCamera);
             }
@@ -1593,6 +1559,7 @@ public class GameProj implements Screen, ContactListener {
             if (popupIndicator != null) {
                 popupIndicator.render(batch);
             }
+            renderLegend(batch);
             if (lowHealthVignette != null) {
                 lowHealthVignette.render(batch, hudCamera);
             }
@@ -1623,6 +1590,38 @@ public class GameProj implements Screen, ContactListener {
 
         GlyphLayout layout = new GlyphLayout(font, xpText);
         font.draw(batch, xpText, barX + (barWidth - layout.width) / 2f, barY + barHeight / 2f + layout.height / 2f);
+
+        font.getData().setScale(1f);
+    }
+
+    private void renderLegend(SpriteBatch batch) {
+        if (!SaveManager.isLegendEnabled()) return;
+
+        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.6f);
+
+        float rightPadding = 20f;
+        float topPadding = 20f;
+        float lineSpacing = 20f;
+
+        float rightX = hudViewport.getWorldWidth() - rightPadding;
+        float topY = hudViewport.getWorldHeight() - topPadding;
+
+        String[] lines = {
+                "Inventory: I",
+                "Skill Tree: K",
+                "Map: M",
+                "Interact: F"
+        };
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            legendLayout.setText(font, line);
+            float textX = rightX - legendLayout.width;
+            float textY = topY - i * lineSpacing;
+            font.draw(batch, line, textX, textY);
+        }
 
         font.getData().setScale(1f);
     }
@@ -1695,7 +1694,7 @@ public class GameProj implements Screen, ContactListener {
             player.getStats().addExperience(regularEnemy.getStats().getExpReward());
 
             enemiesKilled++;
-            hudLabel.setText("Enemies killed: " + enemiesKilled);
+            hudLabel.setText("");
 
         } else if (enemy instanceof BossKitty) {
             BossKitty boss = (BossKitty) enemy;
@@ -1774,7 +1773,7 @@ public class GameProj implements Screen, ContactListener {
 
         endlessPortal = new Portal(portalX, portalY, 32, world.getWorld(), false);
 
-        hudLabel.setText("A mysterious portal has appeared...");
+        hudLabel.setText("");
     }
 
     public void checkForDeadEnemies() {
@@ -1823,7 +1822,7 @@ public class GameProj implements Screen, ContactListener {
                         player.getStats().addExperience(lemmy.getStats().getExpReward());
 
                         enemiesKilled++;
-                        hudLabel.setText("Enemies killed: " + enemiesKilled);
+                        hudLabel.setText("");
 
                         bodiesToDestroy.add(lemmy.getBody());
                         lemmy.clearBody();
@@ -2044,13 +2043,6 @@ public class GameProj implements Screen, ContactListener {
         hermanDefeated = true;
         hudLabel.setText("Herman has been defeated! The forest is at peace.");
 
-        for (Body barrier : hermanArenaBarriers) {
-            if (barrier != null) {
-                world.getWorld().destroyBody(barrier);
-            }
-        }
-        hermanArenaBarriers.clear();
-
          SoundManager.getInstance().playForestMusic();
 
         if (!endlessPortalSpawned) {
@@ -2232,6 +2224,10 @@ public class GameProj implements Screen, ContactListener {
         return hermanSpawned;
     }
 
+    public PopupIndicator getPopupIndicator() {
+        return popupIndicator;
+    }
+
     public void safeExit() {
         try {
             dispose();
@@ -2329,19 +2325,6 @@ public class GameProj implements Screen, ContactListener {
                 hermanDuplicate.dispose();
                 hermanDuplicate = null;
             }
-
-            if (world != null && world.getWorld() != null) {
-                for (Body barrier : hermanArenaBarriers) {
-                    if (barrier != null) {
-                        try {
-                            world.getWorld().destroyBody(barrier);
-                        } catch (Exception e) {
-                            System.err.println("Error destroying barrier: " + e.getMessage());
-                        }
-                    }
-                }
-            }
-            hermanArenaBarriers.clear();
 
             if (chunkGenerator != null && !chunkGenerator.isShutdown()) {
                 chunkGenerator.shutdownNow();

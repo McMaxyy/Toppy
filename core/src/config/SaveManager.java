@@ -222,6 +222,15 @@ public class SaveManager {
         save();
     }
 
+    public static boolean isLegendEnabled() {
+        return getSaveData().legendEnabled;
+    }
+
+    public static void setLegendEnabled(boolean enabled) {
+        getSaveData().legendEnabled = enabled;
+        save();
+    }
+
     public static int[] getKeybinding(String action) {
         return getSaveData().getKeybinding(action);
     }

@@ -11,19 +11,5 @@
 	"ability3": [ 10 ],
 	"ability4": [ 11 ],
 	"ability5": [ 12 ]
-},
-"safeStashSlots": [
-	"v2:J1scJkMUBRtUBA==",
-	"v2:NUcCK1IFBQVQAzg=",
-	"v2:NV0WLlkWBRRZHzoGQg==",
-	"v2:JEILIlMuKRtaFQ==",
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null,
-	null
-]
+}
 }

@@ -43,8 +43,6 @@ public class Player implements PlayerStats.SpeedChangeListener {
     private boolean isFlipped = false;
     private boolean isInvisible = false;
     private float dashSpeed = 3000f;
-    private float dashDuration = 0.5f;
-    private float dashCooldown = 1f;
     private float dashTimer = 0f;
     private float dashCooldownTimer = 0f;
     private boolean isDashing = false;
@@ -426,8 +424,13 @@ public class Player implements PlayerStats.SpeedChangeListener {
                 } else
                     SoundManager.getInstance().startStoneRunning();
 
-                if(!gameStarted)
+                if(!gameStarted) {
                     gameStarted = true;
+                    if (GameScreen.getGameMode() == 1)
+                        gameP.getPopupIndicator().showObjective(getPosition(), 0f, 10f, "Find and clear 3 dungeons");
+                    else
+                        gameP.getPopupIndicator().showObjective(getPosition(), 0f, 10f, "Survive");
+                }
             } else {
                 getAnimationManager().setState(AnimationManager.State.IDLE, "Player");
                 SoundManager.getInstance().stopGrassRunning();

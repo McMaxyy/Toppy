@@ -15,7 +15,6 @@ public class PlayerStats {
     private float gearAttackSpeed;
     private float coinMultiplier = 1.0f;
 
-    // SR item passives
     private boolean hasBoxingGloves = false;
     private boolean hasBulletVest = false;
     private float srLifeLeechAccumulator = 0f;

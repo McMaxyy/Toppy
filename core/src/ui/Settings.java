@@ -63,6 +63,7 @@ public class Settings {
     private boolean musicEnabled = true;
     private boolean sfxEnabled = true;
     private boolean screenShakeEnabled = true;
+    private boolean legendEnabled = true;
 
     // Keybinding
     private boolean isListeningForKey = false;
@@ -91,6 +92,7 @@ public class Settings {
         this.musicEnabled = sm.isMusicEnabled();
         this.sfxEnabled = sm.isSfxEnabled();
         this.screenShakeEnabled = SaveManager.isScreenShakeEnabled();
+        this.legendEnabled = SaveManager.isLegendEnabled();
     }
 
     public void setGameProj(GameProj gameProj) { this.gameProj = gameProj; }
@@ -317,11 +319,17 @@ public class Settings {
     private void updateGameSettings(int mouseX, int mouseY) {
         float checkboxX = panelWidth - PADDING - 30;
         float settingsStartY = panelHeight - 180f;
+        float rowSpacing = 60f;
 
         if (Gdx.input.justTouched() && isPointInRect(mouseX, mouseY, checkboxX, settingsStartY, 25, 25)) {
             playClickSound();
             screenShakeEnabled = !screenShakeEnabled;
             SaveManager.setScreenShakeEnabled(screenShakeEnabled);
+        }
+        if (Gdx.input.justTouched() && isPointInRect(mouseX, mouseY, checkboxX, settingsStartY - rowSpacing, 25, 25)) {
+            playClickSound();
+            legendEnabled = !legendEnabled;
+            SaveManager.setLegendEnabled(legendEnabled);
         }
     }
 
@@ -494,23 +502,28 @@ public class Settings {
 
     private void renderGameSettings(SpriteBatch batch) {
         float settingsStartY = panelHeight - 180f;
+        float rowSpacing = 60f;
         float checkboxSize = 25f;
         float checkboxX = panelWidth - PADDING - 30;
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(screenShakeEnabled ? CHECKBOX_CHECKED_COLOR : CHECKBOX_COLOR);
         shapeRenderer.rect(checkboxX, settingsStartY, checkboxSize, checkboxSize);
+        shapeRenderer.setColor(legendEnabled ? CHECKBOX_CHECKED_COLOR : CHECKBOX_COLOR);
+        shapeRenderer.rect(checkboxX, settingsStartY - rowSpacing, checkboxSize, checkboxSize);
         shapeRenderer.end();
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(TAB_BORDER_COLOR);
         shapeRenderer.rect(checkboxX, settingsStartY, checkboxSize, checkboxSize);
+        shapeRenderer.rect(checkboxX, settingsStartY - rowSpacing, checkboxSize, checkboxSize);
         shapeRenderer.end();
 
         batch.begin();
         font.setColor(TEXT_COLOR);
         font.getData().setScale(0.65f);
         font.draw(batch, "SCREEN SHAKE:", PADDING, settingsStartY + checkboxSize - 5);
+        font.draw(batch, "SHOW LEGEND:", PADDING, settingsStartY - rowSpacing + checkboxSize - 5);
         font.getData().setScale(1.0f);
         batch.end();
     }

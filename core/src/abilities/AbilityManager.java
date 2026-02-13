@@ -27,15 +27,15 @@ public class AbilityManager {
     private static final int NUM_ABILITY_SLOTS = 5;
     private static final int NUM_CONSUMABLE_SLOTS = 2;
 
-    private Ability[] abilities;
-    private Player player;
-    private GameProj gameProj;
-    private PlayerClass playerClass;
-    private SkillTree skillTree;
+    private final Ability[] abilities;
+    private final Player player;
+    private final GameProj gameProj;
+    private final PlayerClass playerClass;
+    private final SkillTree skillTree;
 
-    private Map<String, Ability> abilityRegistry;
-    private Map<Object, List<StatusEffect>> activeEffects;
-    private List<AbilityVisual> activeVisuals;
+    private final Map<String, Ability> abilityRegistry;
+    private final Map<Object, List<StatusEffect>> activeEffects;
+    private final List<AbilityVisual> activeVisuals;
 
     private final ShapeRenderer shapeRenderer;
     private final BitmapFont font;
@@ -44,8 +44,7 @@ public class AbilityManager {
     private static final int SLOT_PADDING = 5;
     private static final int SEPARATOR_SPACE = 15;
 
-    // Consumable slots (E and Q keys)
-    private Item[] consumableSlots;
+    private final Item[] consumableSlots;
     private Item draggingConsumable = null;
     private int hoveredConsumableSlot = -1;
 
@@ -1035,13 +1034,14 @@ public class AbilityManager {
             renderAbilitySlot(slotX, startY, i);
         }
 
-        // Render weapon slots
         float attackStartX = startX + (NUM_ABILITY_SLOTS * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
 
-        renderAttackSlot(attackStartX, startY, "LMB", player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.WEAPON));
+        batch.begin();
+        renderAttackSlot(attackStartX, startY, "LMB",
+                player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.WEAPON));
         renderAttackSlot(attackStartX + SLOT_SIZE + SLOT_PADDING, startY, "RMB",
                 player.getInventory().getEquipment().getEquippedItem(Equipment.EquipmentSlot.OFFHAND));
-
+        batch.end();
         // Render consumable slots
         float consumableStartX = attackStartX + (2 * (SLOT_SIZE + SLOT_PADDING)) + SEPARATOR_SPACE;
         for (int i = 0; i < NUM_CONSUMABLE_SLOTS; i++) {
@@ -1083,6 +1083,9 @@ public class AbilityManager {
             }
         }
 
+        renderAttackLabel(batch, attackStartX, startY, "LMB");
+        renderAttackLabel(batch, attackStartX + SLOT_SIZE + SLOT_PADDING, startY, "RMB");
+
         // Render consumable icons and counts
         for (int i = 0; i < NUM_CONSUMABLE_SLOTS; i++) {
             float slotX = consumableStartX + i * (SLOT_SIZE + SLOT_PADDING);
@@ -1092,9 +1095,8 @@ public class AbilityManager {
         // Render tooltip for hovered ability slot
         if (hoveredSlotSkill != null && !skillTree.isDragging()) {
             float slotX = startX + hoveredSlotIndex * (SLOT_SIZE + SLOT_PADDING);
-            float tooltipX = slotX;
             float tooltipY = startY + SLOT_SIZE + 10;
-            skillTree.renderTooltipAt(batch, hoveredSlotSkill, tooltipX, tooltipY, screenWidth, screenHeight);
+            skillTree.renderTooltipAt(batch, hoveredSlotSkill, slotX, tooltipY, screenWidth, screenHeight);
         }
 
         // Highlight slot when dragging skill over it
@@ -1203,6 +1205,14 @@ public class AbilityManager {
         shapeRenderer.end();
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         Gdx.gl.glLineWidth(1);
+
+    }
+
+    private void renderAttackLabel(SpriteBatch batch, float x, float y, String label) {
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.6f);
+        font.draw(batch, label, x + 3, y + SLOT_SIZE - 3);
+        font.getData().setScale(1.0f);
     }
 
     private void renderConsumableSlot(float x, float y, int index) {
@@ -1244,40 +1254,39 @@ public class AbilityManager {
     private void renderAbilityIcon(SpriteBatch batch, float x, float y, int index) {
         Ability ability = abilities[index];
 
-        font.setColor(ability != null ? Color.WHITE : Color.GRAY);
-        font.getData().setScale(0.6f);
-        String keyLabel = index == 0 ? "SP" : String.valueOf(index + 1);
-        font.draw(batch, keyLabel, x + 3, y + SLOT_SIZE - 3);
-        font.getData().setScale(1.0f);
-
         if (ability == null) {
             font.setColor(0.5f, 0.5f, 0.5f, 0.5f);
             font.getData().setScale(1.2f);
             font.draw(batch, "+", x + SLOT_SIZE / 2f - 8, y + SLOT_SIZE / 2f + 10);
             font.getData().setScale(1.0f);
-            return;
+        } else {
+            if (ability.getIconTexture() != null) {
+                batch.draw(ability.getIconTexture(), x + 3, y + 3, SLOT_SIZE - 6, SLOT_SIZE - 6);
+            }
+
+            if (ability.isOnCooldown()) {
+                renderCooldownOverlay(batch, x, y, ability.getCooldownPercentage());
+            }
+
+            if (ability.isCasting()) {
+                renderCastBar(batch, x, y, ability.getCastProgress());
+            }
+
+            if (ability.isOnCooldown()) {
+                font.setColor(Color.YELLOW);
+                font.getData().setScale(0.8f);
+                String cooldownText = String.format("%.1f", ability.getCurrentCooldown());
+                float textWidth = font.getSpaceXadvance() * cooldownText.length() * 0.8f;
+                font.draw(batch, cooldownText, x + (SLOT_SIZE - textWidth) / 2, y + SLOT_SIZE / 2 + 5);
+                font.getData().setScale(1.0f);
+            }
         }
 
-        if (ability.getIconTexture() != null) {
-            batch.draw(ability.getIconTexture(), x + 3, y + 3, SLOT_SIZE - 6, SLOT_SIZE - 6);
-        }
-
-        if (ability.isOnCooldown()) {
-            renderCooldownOverlay(batch, x, y, ability.getCooldownPercentage());
-        }
-
-        if (ability.isCasting()) {
-            renderCastBar(batch, x, y, ability.getCastProgress());
-        }
-
-        if (ability.isOnCooldown()) {
-            font.setColor(Color.YELLOW);
-            font.getData().setScale(0.8f);
-            String cooldownText = String.format("%.1f", ability.getCurrentCooldown());
-            float textWidth = font.getSpaceXadvance() * cooldownText.length() * 0.8f;
-            font.draw(batch, cooldownText, x + (SLOT_SIZE - textWidth) / 2, y + SLOT_SIZE / 2 + 5);
-            font.getData().setScale(1.0f);
-        }
+        font.setColor(Color.WHITE);
+        font.getData().setScale(0.6f);
+        String keyLabel = getActionKeyLabel(getAbilityAction(index), String.valueOf(index + 1));
+        font.draw(batch, keyLabel, x + 3, y + SLOT_SIZE - 3);
+        font.getData().setScale(1.0f);
     }
 
     private void renderConsumableIcon(SpriteBatch batch, float x, float y, int index) {
@@ -1285,7 +1294,7 @@ public class AbilityManager {
 
         font.setColor(Color.WHITE);
         font.getData().setScale(0.6f);
-        String keyLabel = index == 0 ? "E" : "Q";
+        String keyLabel = getActionKeyLabel(getConsumableAction(index), index == 0 ? "E" : "Q");
         font.draw(batch, keyLabel, x + 3, y + SLOT_SIZE - 3);
         font.getData().setScale(1.0f);
 
@@ -1346,6 +1355,160 @@ public class AbilityManager {
         shapeRenderer.rect(x, y, SLOT_SIZE, SLOT_SIZE * percentage);
         shapeRenderer.end();
         batch.begin();
+    }
+
+    private String getAbilityAction(int index) {
+        return "ability" + (index + 1);
+    }
+
+    private String getConsumableAction(int index) {
+        return index == 0 ? "consumable1" : "consumable2";
+    }
+
+    private String getActionKeyLabel(String action, String fallback) {
+        int[] keys = SaveManager.getKeybinding(action);
+        if (keys == null || keys.length == 0) {
+            return fallback;
+        }
+
+        if (keys.length == 1) {
+            return keyToLabel(keys[0], fallback);
+        }
+
+        if (keys.length == 2) {
+            int first = keys[0];
+            int second = keys[1];
+
+            if (isShiftKey(first) || isShiftKey(second)) {
+                int other = isShiftKey(first) ? second : first;
+                return "S+" + firstCharLabel(other, fallback);
+            }
+
+            if (isCtrlKey(first) || isCtrlKey(second)) {
+                int other = isCtrlKey(first) ? second : first;
+                return "C+" + firstCharLabel(other, fallback);
+            }
+
+            if (isAltKey(first) || isAltKey(second)) {
+                int other = isAltKey(first) ? second : first;
+                return "A+" + firstCharLabel(other, fallback);
+            }
+
+            return firstCharLabel(first, fallback) + "+" + firstCharLabel(second, fallback);
+        }
+
+        return keyToLabel(keys[0], fallback);
+    }
+
+    private String keyToLabel(int key, String fallback) {
+        String label = keyToShortLabel(key);
+        return (label == null || label.isEmpty()) ? fallback : label;
+    }
+
+    private boolean isShiftKey(int key) {
+        return key == Input.Keys.SHIFT_LEFT || key == Input.Keys.SHIFT_RIGHT;
+    }
+
+    private boolean isCtrlKey(int key) {
+        return key == Input.Keys.CONTROL_LEFT || key == Input.Keys.CONTROL_RIGHT;
+    }
+
+    private boolean isAltKey(int key) {
+        return key == Input.Keys.ALT_LEFT || key == Input.Keys.ALT_RIGHT;
+    }
+
+    private String firstCharLabel(int key, String fallback) {
+        String label = keyToShortLabel(key);
+        if (label == null || label.isEmpty()) {
+            label = fallback;
+        }
+        if (label == null || label.isEmpty()) {
+            return "?";
+        }
+        return label.substring(0, 1);
+    }
+
+    private String keyToShortLabel(int key) {
+        switch (key) {
+            case Input.Keys.SPACE: return "SP";
+            case Input.Keys.SHIFT_LEFT:
+            case Input.Keys.SHIFT_RIGHT: return "ST";
+            case Input.Keys.CONTROL_LEFT:
+            case Input.Keys.CONTROL_RIGHT: return "CL";
+            case Input.Keys.ALT_LEFT:
+            case Input.Keys.ALT_RIGHT: return "ALT";
+            case Input.Keys.TAB: return "TAB";
+            case Input.Keys.ENTER: return "ENT";
+            case Input.Keys.BACKSPACE: return "BSP";
+            case Input.Keys.ESCAPE: return "ESC";
+            case Input.Keys.CAPS_LOCK: return "CAP";
+            case Input.Keys.NUM_LOCK: return "NUM";
+            case Input.Keys.SCROLL_LOCK: return "SCR";
+            case Input.Keys.INSERT: return "INS";
+            case Input.Keys.HOME: return "HOM";
+            case Input.Keys.END: return "END";
+            case Input.Keys.PAGE_UP: return "PGU";
+            case Input.Keys.PAGE_DOWN: return "PGD";
+            case Input.Keys.UP: return "UP";
+            case Input.Keys.DOWN: return "DN";
+            case Input.Keys.LEFT: return "LT";
+            case Input.Keys.RIGHT: return "RT";
+            case Input.Keys.F1: return "F1";
+            case Input.Keys.F2: return "F2";
+            case Input.Keys.F3: return "F3";
+            case Input.Keys.F4: return "F4";
+            case Input.Keys.F5: return "F5";
+            case Input.Keys.F6: return "F6";
+            case Input.Keys.F7: return "F7";
+            case Input.Keys.F8: return "F8";
+            case Input.Keys.F9: return "F9";
+            case Input.Keys.F10: return "F10";
+            case Input.Keys.F11: return "F11";
+            case Input.Keys.F12: return "F12";
+            case Input.Keys.NUM_0: return "0";
+            case Input.Keys.NUM_1: return "1";
+            case Input.Keys.NUM_2: return "2";
+            case Input.Keys.NUM_3: return "3";
+            case Input.Keys.NUM_4: return "4";
+            case Input.Keys.NUM_5: return "5";
+            case Input.Keys.NUM_6: return "6";
+            case Input.Keys.NUM_7: return "7";
+            case Input.Keys.NUM_8: return "8";
+            case Input.Keys.NUM_9: return "9";
+            case Input.Keys.NUMPAD_0: return "N0";
+            case Input.Keys.NUMPAD_1: return "N1";
+            case Input.Keys.NUMPAD_2: return "N2";
+            case Input.Keys.NUMPAD_3: return "N3";
+            case Input.Keys.NUMPAD_4: return "N4";
+            case Input.Keys.NUMPAD_5: return "N5";
+            case Input.Keys.NUMPAD_6: return "N6";
+            case Input.Keys.NUMPAD_7: return "N7";
+            case Input.Keys.NUMPAD_8: return "N8";
+            case Input.Keys.NUMPAD_9: return "N9";
+            case Input.Keys.PLUS: return "+";
+            case Input.Keys.MINUS: return "-";
+            case Input.Keys.EQUALS: return "=";
+            case Input.Keys.LEFT_BRACKET: return "[";
+            case Input.Keys.RIGHT_BRACKET: return "]";
+            case Input.Keys.BACKSLASH: return "\\";
+            case Input.Keys.SEMICOLON: return ";";
+            case Input.Keys.APOSTROPHE: return "'";
+            case Input.Keys.COMMA: return ",";
+            case Input.Keys.PERIOD: return ".";
+            case Input.Keys.SLASH: return "/";
+            case Input.Keys.GRAVE: return "`";
+            case Input.Keys.AT: return "@";
+        }
+
+        String label = Input.Keys.toString(key);
+        if (label == null || label.isEmpty()) {
+            return null;
+        }
+        label = label.toUpperCase();
+        if (label.length() <= 3) {
+            return label;
+        }
+        return label.substring(0, 3);
     }
 
     private void renderCastBar(SpriteBatch batch, float x, float y, float progress) {

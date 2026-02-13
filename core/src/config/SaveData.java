@@ -18,6 +18,7 @@ public class SaveData {
     public int windowHeight = 1080;
 
     public boolean screenShakeEnabled = true;
+    public boolean legendEnabled = true;
 
     public Map<String, int[]> keybindings;
 
