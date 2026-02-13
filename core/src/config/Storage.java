@@ -235,6 +235,7 @@ public class Storage {
         assetManager.load("ui/MercenaryCircle.png", Texture.class);
         assetManager.load("ui/HealthBar.png", Texture.class);
         assetManager.load("ui/Trash.png", Texture.class);
+        assetManager.load("ui/LevelUp.png", Texture.class);
 
         assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
         

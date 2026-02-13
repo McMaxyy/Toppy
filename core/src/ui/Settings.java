@@ -237,12 +237,16 @@ public class Settings {
             case 0: close(); break;
             case 1: currentMenuState = MenuState.SETTINGS_AUDIO; break;
             case 2:
+                gameProj.transferToSafeStash();
                 this.gameScreen = gameProj.getGameScreen();
                 gameScreen.switchToNewState(GameScreen.START);
                 close();
                 break;
             case 3:
-                if (gameProj != null) gameProj.safeExit();
+                if (gameProj != null) {
+                    gameProj.transferToSafeStash();
+                    gameProj.safeExit();
+                }
                 else Gdx.app.exit();
                 break;
         }

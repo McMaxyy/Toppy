@@ -58,6 +58,7 @@ public class SoundManager implements Disposable {
     public static final String SFX_HOLY_BLESSING_ABILITY = "holyBlessing_sound";
     public static final String SFX_BUTTON = "button_sound";
     public static final String SFX_ENEMY_HIT = "enemyHit_sound";
+    public static final String SFX_LEVEL_UP = "levelUp_sound";
 
     private Music grassRunningSound;
     private boolean isGrassRunningPlaying = false;
@@ -182,6 +183,9 @@ public class SoundManager implements Disposable {
 
             Sound enemyHitSound = Gdx.audio.newSound(Gdx.files.internal("sounds/EnemyHit.mp3"));
             soundEffects.put(SFX_ENEMY_HIT, enemyHitSound);
+
+            Sound levelUpSound = Gdx.audio.newSound(Gdx.files.internal("sounds/LevelUp.mp3"));
+            soundEffects.put(SFX_LEVEL_UP, levelUpSound);
 
             grassRunningSound = Gdx.audio.newMusic(Gdx.files.internal("sounds/GrassRunning.mp3"));
             grassRunningSound.setLooping(true);
@@ -308,6 +312,12 @@ public class SoundManager implements Disposable {
             playSound(SFX_ENEMY_HIT, 0.3f);
             hitSoundCooldown = HIT_SOUND_COOLDOWN_TIME;
         }
+    }
+
+    public void playLevelUpSound() {
+        if (!sfxEnabled) return;
+
+        playSound(SFX_LEVEL_UP);
     }
 
     public void playButtonSound() {

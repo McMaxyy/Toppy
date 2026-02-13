@@ -76,7 +76,7 @@ public class StartScreen extends Game {
     private CheckBox sfxEnabledCheckbox;
     private Label musicPercentLabel;
     private Label sfxPercentLabel;
-    private PlayerClass selectedClass = PlayerClass.MERCENARY;
+    private static PlayerClass selectedClass = PlayerClass.MERCENARY;
 
     private enum ScreenState {
         MAIN_MENU,
@@ -634,7 +634,7 @@ public class StartScreen extends Game {
 
 
     private void applySettings() {
-        game.setScreen(new GameScreen(game, selectedWidth, selectedHeight, isFullscreen));        showMainMenu();
+        game.setScreen(new GameScreen(game, selectedWidth, selectedHeight, isFullscreen));
     }
 
     private void showClassSelection() {
@@ -808,7 +808,7 @@ public class StartScreen extends Game {
         return isDisposed;
     }
 
-    public PlayerClass getSelectedClass() {
+    public static PlayerClass getSelectedClass() {
         return selectedClass;
     }
 }

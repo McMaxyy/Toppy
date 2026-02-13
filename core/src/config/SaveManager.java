@@ -8,6 +8,13 @@ import com.badlogic.gdx.utils.JsonWriter;
 public class SaveManager {
 
     private static final String SAVE_FILE_NAME = "savegame.json";
+    private static final int SAFE_STORAGE_SLOTS = 4;
+    private static final int SAFE_STASH_SLOTS = 12;
+    private static final int CURRENT_SAFE_STASH_KEY_VERSION = 2;
+    private static final String[] SAFE_STASH_KEYS = new String[]{
+            "9gXhRZ0c7vY2nQpL", // v1
+            "W2nG7qZs5pLc1YhR"  // v2
+    };
     private static SaveData currentSaveData = null;
 
     public static SaveData load() {
@@ -31,6 +38,10 @@ public class SaveManager {
                 }
 
                 ensureAllKeybindingsExist();
+                ensureSafeStorageSlotsExist();
+                if (migrateSafeStashSlots()) {
+                    save();
+                }
 
                 System.out.println("SaveManager: Successfully loaded save data");
             } else {
@@ -56,6 +67,57 @@ public class SaveManager {
                 currentSaveData.keybindings.put(action, defaults.getKeybinding(action));
             }
         }
+    }
+
+    private static void ensureSafeStorageSlotsExist() {
+        if (currentSaveData == null) return;
+
+        if (currentSaveData.safeStorageSlots == null || currentSaveData.safeStorageSlots.length != SAFE_STORAGE_SLOTS) {
+            currentSaveData.safeStorageSlots = normalizeSlots(currentSaveData.safeStorageSlots, SAFE_STORAGE_SLOTS);
+        }
+
+        if (currentSaveData.safeStashSlots == null || currentSaveData.safeStashSlots.length != SAFE_STASH_SLOTS) {
+            currentSaveData.safeStashSlots = normalizeSlots(currentSaveData.safeStashSlots, SAFE_STASH_SLOTS);
+        }
+    }
+
+    private static boolean migrateSafeStashSlots() {
+        if (currentSaveData == null || currentSaveData.safeStashSlots == null) return false;
+
+        boolean migrated = false;
+        for (int i = 0; i < currentSaveData.safeStashSlots.length; i++) {
+            String value = currentSaveData.safeStashSlots[i];
+            if (value == null) continue;
+
+            if (value.startsWith("v2:")) {
+                continue;
+            }
+
+            String decoded = null;
+            if (value.startsWith("v1:")) {
+                decoded = decodeSafeStashValue(value);
+            } else {
+                decoded = decodeSafeStashValue("v1:" + value);
+                if (decoded == null) {
+                    decoded = value;
+                }
+            }
+
+            if (decoded != null && isLikelyItemId(decoded)) {
+                currentSaveData.safeStashSlots[i] = encodeSafeStashValue(decoded);
+                migrated = true;
+            }
+        }
+        return migrated;
+    }
+
+    private static String[] normalizeSlots(String[] existing, int size) {
+        String[] slots = new String[size];
+        if (existing != null) {
+            int copyLength = Math.min(existing.length, size);
+            System.arraycopy(existing, 0, slots, 0, copyLength);
+        }
+        return slots;
     }
 
     public static boolean save() {
@@ -182,12 +244,10 @@ public class SaveManager {
         int[] binding = getKeybinding(action);
         if (binding == null) return false;
 
-        // For single key bindings
         if (binding.length == 1) {
             return binding[0] == keycode;
         }
 
-        // For combo bindings, check if this is one of the keys
         for (int key : binding) {
             if (key == keycode) return true;
         }
@@ -245,6 +305,126 @@ public class SaveManager {
     public static void setStorageSlot2(String encodedItem) {
         getSaveData().storageSlot2 = encodedItem;
         save();
+    }
+
+    public static String[] getSafeStorageSlots() {
+        SaveData data = getSaveData();
+        ensureSafeStorageSlotsExist();
+        return data.safeStorageSlots;
+    }
+
+    public static void setSafeStorageSlots(String[] slots) {
+        getSaveData().safeStorageSlots = normalizeSlots(slots, SAFE_STORAGE_SLOTS);
+        save();
+    }
+
+    public static String[] getSafeStashSlots() {
+        SaveData data = getSaveData();
+        ensureSafeStorageSlotsExist();
+        return decodeSafeStashSlots(data.safeStashSlots);
+    }
+
+    public static void setSafeStashSlots(String[] slots) {
+        String[] normalized = normalizeSlots(slots, SAFE_STASH_SLOTS);
+        getSaveData().safeStashSlots = encodeSafeStashSlots(normalized);
+        save();
+    }
+
+    private static String[] encodeSafeStashSlots(String[] slots) {
+        String[] encoded = new String[SAFE_STASH_SLOTS];
+        if (slots == null) return encoded;
+
+        for (int i = 0; i < SAFE_STASH_SLOTS; i++) {
+            if (slots[i] != null) {
+                encoded[i] = encodeSafeStashValue(slots[i]);
+            }
+        }
+        return encoded;
+    }
+
+    private static String[] decodeSafeStashSlots(String[] encodedSlots) {
+        String[] decoded = new String[SAFE_STASH_SLOTS];
+        if (encodedSlots == null) return decoded;
+
+        for (int i = 0; i < SAFE_STASH_SLOTS && i < encodedSlots.length; i++) {
+            if (encodedSlots[i] != null) {
+                decoded[i] = decodeSafeStashValue(encodedSlots[i]);
+            }
+        }
+        return decoded;
+    }
+
+    private static String encodeSafeStashValue(String value) {
+        try {
+            byte[] input = value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            byte[] key = getSafeStashKey(CURRENT_SAFE_STASH_KEY_VERSION)
+                    .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            byte[] output = new byte[input.length];
+
+            for (int i = 0; i < input.length; i++) {
+                output[i] = (byte)(input[i] ^ key[i % key.length]);
+            }
+
+            return "v" + CURRENT_SAFE_STASH_KEY_VERSION + ":" +
+                    java.util.Base64.getEncoder().encodeToString(output);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String decodeSafeStashValue(String value) {
+        try {
+            int version = parseSafeStashVersion(value);
+            String encoded = stripSafeStashPrefix(value, version);
+
+            byte[] input = java.util.Base64.getDecoder().decode(encoded);
+            byte[] key = getSafeStashKey(version).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            byte[] output = new byte[input.length];
+
+            for (int i = 0; i < input.length; i++) {
+                output[i] = (byte)(input[i] ^ key[i % key.length]);
+            }
+
+            String decoded = new String(output, java.nio.charset.StandardCharsets.UTF_8);
+            return isLikelyItemId(decoded) ? decoded : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String getSafeStashKey(int version) {
+        int index = Math.max(1, version) - 1;
+        if (index >= SAFE_STASH_KEYS.length) {
+            index = SAFE_STASH_KEYS.length - 1;
+        }
+        return SAFE_STASH_KEYS[index];
+    }
+
+    private static int parseSafeStashVersion(String value) {
+        if (value == null) return 1;
+        if (value.startsWith("v2:")) return 2;
+        if (value.startsWith("v1:")) return 1;
+        return 1;
+    }
+
+    private static String stripSafeStashPrefix(String value, int version) {
+        String prefix = "v" + version + ":";
+        if (value != null && value.startsWith(prefix)) {
+            return value.substring(prefix.length());
+        }
+        return value;
+    }
+
+    private static boolean isLikelyItemId(String value) {
+        if (value == null || value.isEmpty()) return false;
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            boolean ok = (ch >= 'a' && ch <= 'z') ||
+                    (ch >= '0' && ch <= '9') ||
+                    ch == '_';
+            if (!ok) return false;
+        }
+        return true;
     }
 
     public static void resetAllData() {

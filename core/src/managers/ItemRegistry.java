@@ -534,7 +534,7 @@ public class ItemRegistry {
         registerItem(new ItemDefinition(
                 "attack_potion",
                 "Attack Potion",
-                "Big strong",
+                "Increases attack power",
                 Item.ItemType.CONSUMABLE,
                 "icons/items/AttackPotion.png",
                 "icons/items/AttackPotion.png"
@@ -543,7 +543,7 @@ public class ItemRegistry {
         registerItem(new ItemDefinition(
                 "dex_potion",
                 "Dex Potion",
-                "Big fast",
+                "Increases dexterity",
                 Item.ItemType.CONSUMABLE,
                 "icons/items/DexPotion.png",
                 "icons/items/DexPotion.png"
@@ -552,7 +552,7 @@ public class ItemRegistry {
         registerItem(new ItemDefinition(
                 "defense_potion",
                 "Defense Potion",
-                "Big tank",
+                "Increases defenses",
                 Item.ItemType.CONSUMABLE,
                 "icons/items/DefensePotion.png",
                 "icons/items/DefensePotion.png"
@@ -601,35 +601,47 @@ public class ItemRegistry {
         Texture texture = Storage.assetManager.get(def.texturePath, Texture.class);
         Texture iconTexture = Storage.assetManager.get(def.iconPath, Texture.class);
 
+        Item item;
         switch (def.type) {
             case WEAPON:
                 ItemTypes.WeaponItem weapon = new ItemTypes.WeaponItem(def.name, def.description, texture, iconTexture,
                         position, def.damage, def.defense, def.bonusVitality, def.bonusDex, def.buyValue, def.sellValue);
                 weapon.setGearType(def.gearType);
-                return weapon;
+                item = weapon;
+                break;
 
             case OFFHAND:
                 ItemTypes.OffhandItem offhand = new ItemTypes.OffhandItem(def.name, def.description, texture, iconTexture,
                         position, def.damage, def.defense, def.bonusVitality, def.bonusDex, def.buyValue, def.sellValue);
                 offhand.setGearType(def.gearType);
-                return offhand;
+                item = offhand;
+                break;
 
             case ARMOR:
                 ItemTypes.ArmorItem armor = new ItemTypes.ArmorItem(def.name, def.description, texture, iconTexture,
                         position, def.defense, def.damage, def.bonusVitality, def.bonusDex, def.buyValue, def.sellValue);
                 armor.setGearType(def.gearType);
-                return armor;
+                item = armor;
+                break;
 
             case CONSUMABLE:
-                return new ItemTypes.ConsumableItem(def.name, def.description, texture, iconTexture,
+                item = new ItemTypes.ConsumableItem(def.name, def.description, texture, iconTexture,
                         position, def.healthRestore, def.buyValue, def.sellValue);
+                break;
 
             case COIN:
-                return new ItemTypes.CoinItem(texture, iconTexture, position, def.buyValue);
+                item = new ItemTypes.CoinItem(texture, iconTexture, position, def.buyValue);
+                break;
 
             default:
-                return null;
+                item = null;
+                break;
         }
+
+        if (item != null) {
+            item.setItemId(def.id);
+        }
+        return item;
     }
 
     public String[] getAllItemIds() {

@@ -23,10 +23,14 @@ public class SaveData {
 
     public String storageSlot1 = null;
     public String storageSlot2 = null;
+    public String[] safeStorageSlots;
+    public String[] safeStashSlots;
 
     public SaveData() {
         keybindings = new HashMap<>();
         setDefaultKeybindings();
+        safeStorageSlots = new String[4];
+        safeStashSlots = new String[12];
     }
 
     public void setDefaultKeybindings() {

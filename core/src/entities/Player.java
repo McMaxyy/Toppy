@@ -512,6 +512,7 @@ public class Player implements PlayerStats.SpeedChangeListener {
     public void playerDie() {
         playerDeath = true;
         dyingAnimationStarted = false;
+        inventory.transferSafeStorageToStash();
     }
 
     public void onTakeDamage() {

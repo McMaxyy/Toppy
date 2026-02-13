@@ -73,6 +73,7 @@ public abstract class ItemTypes {
                     new Vector2(bounds.x, bounds.y), defense, damage, bonusVitality, bonusDex,
                     buyValue, sellValue);
             copy.setGearType(gearType);
+            copy.setItemId(itemId);
             return copy;
         }
     }
@@ -101,8 +102,10 @@ public abstract class ItemTypes {
 
         @Override
         public Item copy() {
-            return new CoinItem(texture, iconTexture,
+            CoinItem copy = new CoinItem(texture, iconTexture,
                     new Vector2(bounds.x, bounds.y), amount);
+            copy.setItemId(itemId);
+            return copy;
         }
 
         public int getAmount() {
@@ -148,8 +151,10 @@ public abstract class ItemTypes {
 
         @Override
         public Item copy() {
-            return new ConsumableItem(name, description, texture, iconTexture,
+            ConsumableItem copy = new ConsumableItem(name, description, texture, iconTexture,
                     new Vector2(bounds.x, bounds.y), healthRestore, buyValue, sellValue);
+            copy.setItemId(itemId);
+            return copy;
         }
     }
 
@@ -196,6 +201,7 @@ public abstract class ItemTypes {
                     new Vector2(bounds.x, bounds.y), damage, defense, bonusVitality, bonusDex,
                     buyValue, sellValue);
             copy.setGearType(gearType);
+            copy.setItemId(itemId);
             return copy;
         }
 
@@ -244,6 +250,7 @@ public abstract class ItemTypes {
                     new Vector2(bounds.x, bounds.y), damage, defense, bonusVitality, bonusDex,
                     buyValue, sellValue);
             copy.setGearType(gearType);
+            copy.setItemId(itemId);
             return copy;
         }
     }

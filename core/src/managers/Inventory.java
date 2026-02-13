@@ -14,30 +14,36 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
 import config.Storage;
+import config.SaveManager;
 import entities.PlayerClass;
 import entities.PlayerStats;
 import game.GameProj;
+import game.StartScreen;
 import items.Item;
 import managers.Equipment.EquipmentSlot;
+import com.badlogic.gdx.math.Vector2;
+import managers.ItemRegistry;
 
 public class Inventory {
     private static final int MAX_SLOTS = 28;
     private static final int ITEMS_PER_ROW = 7;
+    private static final int SAFE_SLOTS = 4;
 
     private Item[] items;
     private int coins;
     private boolean inventoryOpen = false;
     private int selectedSlot = 0;
+    private int selectedSafeSlot = -1;
 
     private Equipment equipment;
     private EquipmentSlot selectedEquipmentSlot = null;
     private boolean selectingEquipmentSlot = false;
+    private boolean selectingSafeSlot = false;
 
     private boolean isDragging = false;
     private int dragSourceSlot = -1;
+    private int dragSourceSafeSlot = -1;
     private Item draggedItem = null;
-    private float dragOffsetX = 0;
-    private float dragOffsetY = 0;
     private static final float HEALTH_POTION_COOLDOWN = 5f;
     private float healthPotionCooldownTimer = 0f;
 
@@ -45,7 +51,7 @@ public class Inventory {
     private final BitmapFont font;
     private final Texture slotTexture;
     private final Texture coinIconTexture;
-    private final Texture characterSprite;
+    private Texture characterSprite;
     private final Texture trashCan;
 
 
@@ -59,6 +65,7 @@ public class Inventory {
     private final Color EQUIPMENT_SLOT_COLOR = new Color(0.25f, 0.25f, 0.35f, 0.9f);
     private final Color SLOT_BORDER_COLOR = new Color(0.6f, 0.6f, 0.7f, 1f);
     private final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.15f, 0.95f);
+    private final Color SAFE_BACKGROUND_COLOR = new Color(0.07f, 0.07f, 0.1f, 0.95f);
 
     private final int SORT_BUTTON_WIDTH = 80;
     private final int SORT_BUTTON_HEIGHT = 25;
@@ -79,14 +86,18 @@ public class Inventory {
     private final Color DESCRIPTION_COLOR = new Color(1f, 0.4f, 0.7f, 1f);
 
     private Map<Integer, Integer> itemCounts;
+    private Item[] safeItems;
 
     private float cachedPanelX, cachedPanelY, cachedPanelWidth, cachedPanelHeight;
     private float cachedInvStartX, cachedInvStartY;
     private float cachedEquipmentX, cachedEquipmentY, cachedEquipmentWidth, cachedEquipmentHeight;
     private float cachedTrashX, cachedTrashY;
+    private float cachedSafePanelX, cachedSafePanelY, cachedSafePanelWidth, cachedSafePanelHeight;
+    private float cachedSafeStartX, cachedSafeStartY;
 
     public Inventory() {
         this.items = new Item[MAX_SLOTS];
+        this.safeItems = new Item[SAFE_SLOTS];
         this.coins = 0;
         this.itemCounts = new HashMap<>();
         this.equipment = new Equipment();
@@ -94,15 +105,23 @@ public class Inventory {
         this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
         this.slotTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.coinIconTexture = Storage.assetManager.get("icons/items/Coin.png", Texture.class);
-        this.characterSprite = Storage.assetManager.get("character/Sprite-0002.png", Texture.class);
         this.trashCan = Storage.assetManager.get("ui/Trash.png", Texture.class);
+        this.characterSprite = Storage.assetManager.get("character/Sprite-0002.png", Texture.class);
+
+        if (StartScreen.getSelectedClass() == PlayerClass.PALADIN)
+            characterSprite = Storage.assetManager.get("character/Paladin/Gobbo.png", Texture.class);
+        else if (StartScreen.getSelectedClass() == PlayerClass.MERCENARY)
+            characterSprite = Storage.assetManager.get("character/Mercenary/Mercenary.png", Texture.class);
+        loadSafeStorageFromSave();
     }
 
     public void toggleInventory() {
         inventoryOpen = !inventoryOpen;
         if (!inventoryOpen) {
             selectingEquipmentSlot = false;
+            selectingSafeSlot = false;
             selectedEquipmentSlot = null;
+            selectedSafeSlot = -1;
             cancelDrag();
         }
     }
@@ -263,13 +282,24 @@ public class Inventory {
         if (slot >= 0 && slot < MAX_SLOTS && items[slot] != null) {
             isDragging = true;
             dragSourceSlot = slot;
+            dragSourceSafeSlot = -1;
             draggedItem = items[slot];
+        }
+    }
+
+    private void startSafeDrag(int slot, float mouseX, float mouseY) {
+        if (slot >= 0 && slot < SAFE_SLOTS && safeItems[slot] != null) {
+            isDragging = true;
+            dragSourceSafeSlot = slot;
+            dragSourceSlot = -1;
+            draggedItem = safeItems[slot];
         }
     }
 
     private void cancelDrag() {
         isDragging = false;
         dragSourceSlot = -1;
+        dragSourceSafeSlot = -1;
         draggedItem = null;
     }
 
@@ -279,30 +309,80 @@ public class Inventory {
             return;
         }
 
-        // Check if dropped on another inventory slot
+        boolean fromSafe = isDraggingFromSafe();
         int targetSlot = getSlotAtPosition(mouseX, mouseY);
-        if (targetSlot >= 0 && targetSlot != dragSourceSlot) {
-            swapItems(dragSourceSlot, targetSlot);
-            cancelDrag();
-            return;
+        int targetSafeSlot = getSafeSlotAtPosition(mouseX, mouseY);
+
+        if (fromSafe) {
+            if (targetSafeSlot >= 0 && targetSafeSlot != dragSourceSafeSlot) {
+                swapSafeItems(dragSourceSafeSlot, targetSafeSlot);
+                cancelDrag();
+                return;
+            }
+
+            if (targetSlot >= 0) {
+                if (items[targetSlot] == null) {
+                    items[targetSlot] = draggedItem;
+                    itemCounts.put(targetSlot, 1);
+                    safeItems[dragSourceSafeSlot] = null;
+                    syncSafeStorageToSave();
+                    cancelDrag();
+                    return;
+                }
+
+                if (isEquippableItem(items[targetSlot])) {
+                    Item temp = items[targetSlot];
+                    items[targetSlot] = draggedItem;
+                    itemCounts.put(targetSlot, 1);
+                    safeItems[dragSourceSafeSlot] = temp;
+                    syncSafeStorageToSave();
+                    cancelDrag();
+                    return;
+                }
+            }
+        } else {
+            if (targetSlot >= 0 && targetSlot != dragSourceSlot) {
+                swapItems(dragSourceSlot, targetSlot);
+                cancelDrag();
+                return;
+            }
+
+            if (targetSafeSlot >= 0) {
+                if (isEquippableItem(draggedItem)) {
+                    swapInventoryWithSafe(dragSourceSlot, targetSafeSlot);
+                    syncSafeStorageToSave();
+                }
+                cancelDrag();
+                return;
+            }
         }
 
         // Check if dropped on trash area
         if (isInTrashArea(mouseX, mouseY)) {
-            removeItemCompletely(dragSourceSlot);
+            if (fromSafe) {
+                safeItems[dragSourceSafeSlot] = null;
+                syncSafeStorageToSave();
+            } else {
+                removeItemCompletely(dragSourceSlot);
+            }
             cancelDrag();
             return;
         }
 
         // Check if equipment item dropped on character panel
         if (isEquippableItem(draggedItem) && isInEquipmentPanel(mouseX, mouseY)) {
-            equipItemFromInventory(dragSourceSlot, player);
+            if (fromSafe) {
+                equipItemFromSafe(dragSourceSafeSlot, player);
+                syncSafeStorageToSave();
+            } else {
+                equipItemFromInventory(dragSourceSlot, player);
+            }
             cancelDrag();
             return;
         }
 
         // Check if consumable dragged outside inventory bounds
-        if (draggedItem.getType() == Item.ItemType.CONSUMABLE && !isInInventoryBounds(mouseX, mouseY)) {
+        if (!fromSafe && draggedItem.getType() == Item.ItemType.CONSUMABLE && !isInInventoryBounds(mouseX, mouseY)) {
             if (player.getAbilityManager() != null) {
                 player.getAbilityManager().startDraggingConsumable(draggedItem);
             }
@@ -332,6 +412,26 @@ public class Inventory {
         }
     }
 
+    private void swapSafeItems(int slot1, int slot2) {
+        Item temp = safeItems[slot1];
+        safeItems[slot1] = safeItems[slot2];
+        safeItems[slot2] = temp;
+        syncSafeStorageToSave();
+    }
+
+    private void swapInventoryWithSafe(int inventorySlot, int safeSlot) {
+        Item inventoryItem = items[inventorySlot];
+        Item safeItem = safeItems[safeSlot];
+
+        safeItems[safeSlot] = inventoryItem;
+        items[inventorySlot] = safeItem;
+
+        itemCounts.remove(inventorySlot);
+        if (safeItem != null) {
+            itemCounts.put(inventorySlot, 1);
+        }
+    }
+
     private int getSlotAtPosition(float mouseX, float mouseY) {
         for (int i = 0; i < MAX_SLOTS; i++) {
             int row = i / ITEMS_PER_ROW;
@@ -340,6 +440,22 @@ public class Inventory {
             float y = cachedInvStartY - row * (SLOT_SIZE + SLOT_PADDING);
 
             if (mouseX >= x && mouseX <= x + SLOT_SIZE && mouseY >= y && mouseY <= y + SLOT_SIZE) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int getSafeSlotAtPosition(float mouseX, float mouseY) {
+        if (config.GameScreen.getGameMode() != 1) {
+            return -1;
+        }
+
+        for (int i = 0; i < SAFE_SLOTS; i++) {
+            float slotX = cachedSafeStartX;
+            float slotY = cachedSafeStartY - i * (SLOT_SIZE + SLOT_PADDING);
+
+            if (mouseX >= slotX && mouseX <= slotX + SLOT_SIZE && mouseY >= slotY && mouseY <= slotY + SLOT_SIZE) {
                 return i;
             }
         }
@@ -365,6 +481,22 @@ public class Inventory {
         return item != null && (item.getType() == Item.ItemType.WEAPON ||
                 item.getType() == Item.ItemType.ARMOR ||
                 item.getType() == Item.ItemType.OFFHAND);
+    }
+
+    private boolean isDraggingFromSafe() {
+        return dragSourceSafeSlot >= 0;
+    }
+
+    private int getInventoryGridWidth() {
+        return ITEMS_PER_ROW * SLOT_SIZE + (ITEMS_PER_ROW - 1) * SLOT_PADDING;
+    }
+
+    private int getSafePanelWidth() {
+        return SLOT_SIZE + UI_PADDING * 2;
+    }
+
+    private int getSafePanelHeight() {
+        return UI_PADDING * 2 + SAFE_SLOTS * SLOT_SIZE + (SAFE_SLOTS - 1) * SLOT_PADDING;
     }
 
     public void equipItemFromInventory(int inventorySlot, entities.Player player) {
@@ -398,6 +530,47 @@ public class Inventory {
         } else {
             Item previousItem = equipment.equipItem(item, player);
             removeItemCompletely(inventorySlot);
+            if (previousItem != null) {
+                addItem(previousItem);
+            }
+            SoundManager.getInstance().playPickupSound();
+        }
+    }
+
+    public void equipItemFromSafe(int safeSlot, entities.Player player) {
+        Item item = safeItems[safeSlot];
+        if (item == null) return;
+
+        if (item.getType() != Item.ItemType.WEAPON &&
+                item.getType() != Item.ItemType.ARMOR &&
+                item.getType() != Item.ItemType.OFFHAND) {
+            return;
+        }
+
+        if (item.getType() == Item.ItemType.WEAPON) {
+            if (item.getName().endsWith("Spear") &&
+                    player.getPlayerClass().equals(PlayerClass.MERCENARY)) {
+                Item previousItem = equipment.equipItem(item, player);
+                safeItems[safeSlot] = null;
+                syncSafeStorageToSave();
+                if (previousItem != null) {
+                    addItem(previousItem);
+                }
+                SoundManager.getInstance().playPickupSound();
+            } else if (item.getName().endsWith("Sword") &&
+                    player.getPlayerClass().equals(PlayerClass.PALADIN)) {
+                Item previousItem = equipment.equipItem(item, player);
+                safeItems[safeSlot] = null;
+                syncSafeStorageToSave();
+                if (previousItem != null) {
+                    addItem(previousItem);
+                }
+                SoundManager.getInstance().playPickupSound();
+            }
+        } else {
+            Item previousItem = equipment.equipItem(item, player);
+            safeItems[safeSlot] = null;
+            syncSafeStorageToSave();
             if (previousItem != null) {
                 addItem(previousItem);
             }
@@ -514,6 +687,14 @@ public class Inventory {
         cachedEquipmentHeight = panelHeight - 100;
         cachedTrashX = panelX + panelWidth - UI_PADDING - TRASH_SIZE;
         cachedTrashY = panelY + UI_PADDING;
+        if (config.GameScreen.getGameMode() == 1) {
+            cachedSafePanelWidth = getSafePanelWidth();
+            cachedSafePanelHeight = getSafePanelHeight();
+            cachedSafePanelX = cachedInvStartX + getInventoryGridWidth() + UI_PADDING;
+            cachedSafePanelY = panelY;
+            cachedSafeStartX = cachedSafePanelX + UI_PADDING;
+            cachedSafeStartY = cachedSafePanelY + cachedSafePanelHeight - UI_PADDING - SLOT_SIZE;
+        }
 
         float mouseX = Gdx.input.getX();
         float mouseY = screenHeight - Gdx.input.getY();
@@ -527,6 +708,13 @@ public class Inventory {
                 int clickedSlot = getSlotAtPosition(mouseX, mouseY);
                 if (clickedSlot >= 0 && items[clickedSlot] != null) {
                     startDrag(clickedSlot, mouseX, mouseY);
+                }
+
+                if (config.GameScreen.getGameMode() == 1) {
+                    int clickedSafeSlot = getSafeSlotAtPosition(mouseX, mouseY);
+                    if (clickedSafeSlot >= 0 && safeItems[clickedSafeSlot] != null) {
+                        startSafeDrag(clickedSafeSlot, mouseX, mouseY);
+                    }
                 }
 
                 float sortButtonX = cachedInvStartX;
@@ -547,9 +735,23 @@ public class Inventory {
                 if (mouseX >= x && mouseX <= x + SLOT_SIZE && mouseY >= y && mouseY <= y + SLOT_SIZE) {
                     selectedSlot = i;
                     selectingEquipmentSlot = false;
+                    selectingSafeSlot = false;
 
                     if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
                         useSelectedItem(player, gameP);
+                    }
+                }
+            }
+
+            if (config.GameScreen.getGameMode() == 1) {
+                for (int i = 0; i < SAFE_SLOTS; i++) {
+                    float slotX = cachedSafeStartX;
+                    float slotY = cachedSafeStartY - i * (SLOT_SIZE + SLOT_PADDING);
+
+                    if (mouseX >= slotX && mouseX <= slotX + SLOT_SIZE && mouseY >= slotY && mouseY <= slotY + SLOT_SIZE) {
+                        selectedSafeSlot = i;
+                        selectingSafeSlot = true;
+                        selectingEquipmentSlot = false;
                     }
                 }
             }
@@ -617,6 +819,7 @@ public class Inventory {
             if (mx >= leftX && mx <= leftX + EQUIPMENT_SLOT_SIZE && my >= slotY && my <= slotY + EQUIPMENT_SLOT_SIZE) {
                 selectedEquipmentSlot = leftSlots[i];
                 selectingEquipmentSlot = true;
+                selectingSafeSlot = false;
                 if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) useSelectedItem(player, gameP);
             }
         }
@@ -630,6 +833,7 @@ public class Inventory {
             if (mx >= rightX && mx <= rightX + EQUIPMENT_SLOT_SIZE && my >= slotY && my <= slotY + EQUIPMENT_SLOT_SIZE) {
                 selectedEquipmentSlot = rightSlots[i];
                 selectingEquipmentSlot = true;
+                selectingSafeSlot = false;
                 if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) useSelectedItem(player, gameP);
             }
         }
@@ -691,7 +895,13 @@ public class Inventory {
         Gdx.gl.glLineWidth(1);
 
         renderEquipmentPanel(batch, panelX, panelY, panelHeight);
+        if (config.GameScreen.getGameMode() == 1) {
+            renderSafeStoragePanel(batch, panelX, panelY, panelHeight);
+        }
         renderInventorySlots(batch, panelX, panelY, panelWidth, panelHeight);
+        if (config.GameScreen.getGameMode() == 1) {
+            renderSafeStorageSlots(panelX, panelY, panelHeight);
+        }
         renderTrashArea(batch, panelX, panelY, panelWidth, panelHeight);
         renderSortButton(batch, panelX, panelY, panelWidth, panelHeight);
 
@@ -710,6 +920,9 @@ public class Inventory {
 
         renderEquippedItems(batch, panelX, panelY, panelHeight);
         renderInventoryItems(batch, panelX, panelY, panelWidth, panelHeight);
+        if (config.GameScreen.getGameMode() == 1) {
+            renderSafeStorageItems(batch, panelX, panelY, panelHeight);
+        }
         renderItemInfo(batch, panelX, panelY, panelWidth);
 
         // Render dragged item
@@ -754,7 +967,13 @@ public class Inventory {
         Gdx.gl.glLineWidth(1);
 
         renderEquipmentPanel(batch, panelX, panelY, panelHeight);
+        if (config.GameScreen.getGameMode() == 1) {
+            renderSafeStoragePanel(batch, panelX, panelY, panelHeight);
+        }
         renderInventorySlots(batch, panelX, panelY, panelWidth, panelHeight);
+        if (config.GameScreen.getGameMode() == 1) {
+            renderSafeStorageSlots(panelX, panelY, panelHeight);
+        }
         renderTrashArea(batch, panelX, panelY, panelWidth, panelHeight);
         renderSortButton(batch, panelX, panelY, panelWidth, panelHeight);
 
@@ -773,6 +992,9 @@ public class Inventory {
 
         renderEquippedItems(batch, panelX, panelY, panelHeight);
         renderInventoryItems(batch, panelX, panelY, panelWidth, panelHeight);
+        if (config.GameScreen.getGameMode() == 1) {
+            renderSafeStorageItems(batch, panelX, panelY, panelHeight);
+        }
         renderItemInfo(batch, panelX, panelY, panelWidth);
 
         font.setColor(Color.WHITE);
@@ -1219,6 +1441,8 @@ public class Inventory {
 
         if (selectingEquipmentSlot && selectedEquipmentSlot != null) {
             displayItem = equipment.getEquippedItem(selectedEquipmentSlot);
+        } else if (selectingSafeSlot && selectedSafeSlot >= 0) {
+            displayItem = safeItems[selectedSafeSlot];
         } else if (items[selectedSlot] != null) {
             displayItem = items[selectedSlot];
         }
@@ -1323,5 +1547,174 @@ public class Inventory {
 
     public boolean isInventoryOpen() {
         return inventoryOpen;
+    }
+
+    public void transferSafeStorageToStash() {
+        String[] stashSlots = SaveManager.getSafeStashSlots();
+        int stashIndex = 0;
+
+        for (int i = 0; i < stashSlots.length; i++) {
+            if (stashSlots[i] == null) {
+                stashIndex = i;
+                break;
+            }
+            if (i == stashSlots.length - 1) {
+                stashIndex = stashSlots.length;
+            }
+        }
+
+        for (int i = 0; i < SAFE_SLOTS; i++) {
+            if (safeItems[i] == null) {
+                continue;
+            }
+
+            if (stashIndex >= stashSlots.length) {
+                break;
+            }
+
+            String itemId = safeItems[i].getItemId();
+            if (itemId == null) {
+                continue;
+            }
+            stashSlots[stashIndex] = itemId;
+            stashIndex++;
+            while (stashIndex < stashSlots.length && stashSlots[stashIndex] != null) {
+                stashIndex++;
+            }
+        }
+
+        for (int i = 0; i < SAFE_SLOTS; i++) {
+            safeItems[i] = null;
+        }
+
+        SaveManager.setSafeStashSlots(stashSlots);
+        syncSafeStorageToSave();
+    }
+
+    private void loadSafeStorageFromSave() {
+        String[] savedSlots = SaveManager.getSafeStorageSlots();
+        ItemRegistry registry = ItemRegistry.getInstance();
+
+        for (int i = 0; i < SAFE_SLOTS; i++) {
+            if (i >= savedSlots.length || savedSlots[i] == null) {
+                safeItems[i] = null;
+                continue;
+            }
+
+            Item item = registry.createItem(savedSlots[i], new Vector2(0f, 0f));
+            safeItems[i] = item;
+        }
+    }
+
+    private void syncSafeStorageToSave() {
+        String[] slots = new String[SAFE_SLOTS];
+        for (int i = 0; i < SAFE_SLOTS; i++) {
+            if (safeItems[i] != null) {
+                slots[i] = safeItems[i].getItemId();
+            }
+        }
+        SaveManager.setSafeStorageSlots(slots);
+    }
+
+    private void renderSafeStoragePanel(SpriteBatch batch, float panelX, float panelY, float panelHeight) {
+        float inventoryStartX = panelX + 280;
+        float safePanelWidth = getSafePanelWidth();
+        float safePanelX = inventoryStartX + getInventoryGridWidth() + UI_PADDING;
+        float safePanelY = panelY;
+        float safePanelHeight = panelHeight;
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(SAFE_BACKGROUND_COLOR);
+        shapeRenderer.rect(safePanelX, safePanelY, safePanelWidth, safePanelHeight);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(SLOT_BORDER_COLOR);
+        shapeRenderer.rect(safePanelX, safePanelY, safePanelWidth, safePanelHeight);
+        shapeRenderer.end();
+
+        batch.begin();
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1.0f);
+        font.draw(batch, "Safe", safePanelX + UI_PADDING / 2f, safePanelY + safePanelHeight - UI_PADDING / 2f);
+        font.getData().setScale(1.0f);
+        batch.end();
+    }
+
+    private void renderSafeStorageSlots(float panelX, float panelY, float panelHeight) {
+        float inventoryStartX = panelX + 280;
+        float inventoryStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
+        float safePanelWidth = getSafePanelWidth();
+        float safePanelHeight = getSafePanelHeight();
+        float safePanelX = inventoryStartX + getInventoryGridWidth() + UI_PADDING;
+        float safePanelY = inventoryStartY - (safePanelHeight - UI_PADDING - SLOT_SIZE);
+        float safeSlotStartX = safePanelX + UI_PADDING;
+        float safeSlotStartY = safePanelY + safePanelHeight - UI_PADDING - SLOT_SIZE;
+
+        int screenHeight = Gdx.graphics.getHeight();
+        float mouseX = Gdx.input.getX();
+        float mouseY = screenHeight - Gdx.input.getY();
+
+        boolean canAcceptDrag = isDragging && (isDraggingFromSafe() || isEquippableItem(draggedItem));
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        for (int i = 0; i < SAFE_SLOTS; i++) {
+            float slotX = safeSlotStartX;
+            float slotY = safeSlotStartY - i * (SLOT_SIZE + SLOT_PADDING);
+
+            boolean isHovered = isPointInRect(mouseX, mouseY, slotX, slotY, SLOT_SIZE, SLOT_SIZE);
+            boolean isDragTarget = canAcceptDrag && isHovered && i != dragSourceSafeSlot;
+            boolean isDragSource = isDraggingFromSafe() && i == dragSourceSafeSlot;
+
+            if (isDragTarget) {
+                shapeRenderer.setColor(new Color(0.4f, 0.6f, 0.4f, 0.9f));
+            } else if (isDragSource) {
+                shapeRenderer.setColor(new Color(0.2f, 0.2f, 0.3f, 0.6f));
+            } else if (selectingSafeSlot && i == selectedSafeSlot) {
+                shapeRenderer.setColor(SELECTED_COLOR);
+            } else {
+                shapeRenderer.setColor(SLOT_COLOR);
+            }
+
+            shapeRenderer.rect(slotX, slotY, SLOT_SIZE, SLOT_SIZE);
+
+            shapeRenderer.end();
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+            Color borderColor = SLOT_BORDER_COLOR;
+            if (safeItems[i] != null && safeItems[i].getGearType() != null) {
+                borderColor = getGearTypeColor(safeItems[i].getGearType());
+            }
+
+            Gdx.gl.glLineWidth(selectingSafeSlot && i == selectedSafeSlot ? 4 : 3);
+            shapeRenderer.setColor(borderColor);
+            shapeRenderer.rect(slotX, slotY, SLOT_SIZE, SLOT_SIZE);
+            shapeRenderer.end();
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            Gdx.gl.glLineWidth(1);
+        }
+
+        shapeRenderer.end();
+    }
+
+    private void renderSafeStorageItems(SpriteBatch batch, float panelX, float panelY, float panelHeight) {
+        float inventoryStartX = panelX + 280;
+        float inventoryStartY = panelY + panelHeight - UI_PADDING - 50 - SLOT_SIZE;
+        float safePanelHeight = getSafePanelHeight();
+        float safePanelX = inventoryStartX + getInventoryGridWidth() + UI_PADDING;
+        float safePanelY = inventoryStartY - (safePanelHeight - UI_PADDING - SLOT_SIZE);
+        float safeSlotStartX = safePanelX + UI_PADDING;
+        float safeSlotStartY = safePanelY + safePanelHeight - UI_PADDING - SLOT_SIZE;
+
+        for (int i = 0; i < SAFE_SLOTS; i++) {
+            if (isDraggingFromSafe() && i == dragSourceSafeSlot) continue;
+
+            if (safeItems[i] != null) {
+                float slotX = safeSlotStartX;
+                float slotY = safeSlotStartY - i * (SLOT_SIZE + SLOT_PADDING);
+                safeItems[i].renderIcon(batch, slotX + 5, slotY + 5, SLOT_SIZE - 10);
+            }
+        }
     }
 }

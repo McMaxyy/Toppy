@@ -2,6 +2,7 @@ package entities;
 
 import java.util.Random;
 import config.GameScreen;
+import managers.SoundManager;
 
 public class PlayerStats {
     private static final Random random = new Random(System.nanoTime());
@@ -53,6 +54,7 @@ public class PlayerStats {
 
     private SpeedChangeListener speedChangeListener;
     private HealthChangeListener healthChangeListener;
+    private LevelUpListener levelUpListener;
 
     public interface SpeedChangeListener {
         void onSpeedChanged(float newSpeed);
@@ -60,6 +62,10 @@ public class PlayerStats {
 
     public interface HealthChangeListener {
         void onHealthChanged(int amount);
+    }
+
+    public interface LevelUpListener {
+        void onLevelUp();
     }
 
     public PlayerStats() {
@@ -101,6 +107,9 @@ public class PlayerStats {
         this.healthChangeListener = listener;
     }
 
+    public void setLevelUpListener(LevelUpListener listener) {
+        this.levelUpListener = listener;
+    }
     public void update(float delta) {
 //        if (currentHealth < maxHealth) {
 //            regenTimer += delta;
@@ -339,6 +348,12 @@ public class PlayerStats {
         recalculateStats();
 
         currentHealth = maxHealth;
+
+        if (levelUpListener != null) {
+            levelUpListener.onLevelUp();
+        }
+
+        SoundManager.getInstance().playLevelUpSound();
     }
 
     public boolean isDead() {

@@ -10,6 +10,7 @@ public abstract class Item {
     protected String name;
     protected String description;
     protected ItemType type;
+    protected String itemId;
     protected Texture texture;
     protected Texture iconTexture;
     protected Rectangle bounds;
@@ -101,6 +102,8 @@ public abstract class Item {
     public String getName() { return name; }
     public String getDescription() { return description; }
     public ItemType getType() { return type; }
+    public String getItemId() { return itemId; }
+    public void setItemId(String itemId) { this.itemId = itemId; }
     public Rectangle getBounds() { return bounds; }
     public Body getBody() { return body; }
     public void setBody(Body body) { this.body = body; }

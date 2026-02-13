@@ -29,6 +29,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import config.GameScreen;
+import config.SaveManager;
 import config.Storage;
 import entities.*;
 import managers.*;
@@ -112,6 +113,9 @@ public class GameProj implements Screen, ContactListener {
     private boolean cursorConfined = true;
     private float cursorX = 0;
     private float cursorY = 0;
+    private SafeStashPopup safeStashPopup;
+    private PopupIndicator popupIndicator;
+    private LowHealthVignette lowHealthVignette;
 
 
     private Map<Object, List<StatusEffect>> statusEffects;
@@ -136,7 +140,7 @@ public class GameProj implements Screen, ContactListener {
         hudCamera.setToOrtho(false, hudViewport.getWorldWidth(), hudViewport.getWorldHeight());
         hudCamera.update();
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4), viewport.getWorldHeight() / (TILE_SIZE / 4));
+        camera.setToOrtho(false, viewport.getWorldWidth() / (TILE_SIZE / 4f), viewport.getWorldHeight() / (TILE_SIZE / 4));
         camera.update();
         world = new Box2DWorld(this);
         random = new Random();
@@ -147,7 +151,7 @@ public class GameProj implements Screen, ContactListener {
 
         createComponents();
 
-        if (gameScreen.getGameMode() == 0) {
+        if (GameScreen.getGameMode() == 0) {
             player.getStats().setStatPointsEndless();
 
             startEndlessMode();
@@ -163,10 +167,10 @@ public class GameProj implements Screen, ContactListener {
         } else {
 //            spawnLemmys();
 //            spawnHerman();
-            itemSpawner.spawnItem("pirate_hat", player.getPosition());
-            itemSpawner.spawnItem("boxing_gloves", player.getPosition());
-            itemSpawner.spawnItem("bullet_vest", player.getPosition());
-            itemSpawner.spawnItem("speed_shoe", player.getPosition());
+//            itemSpawner.spawnItem("pirate_hat", player.getPosition());
+//            itemSpawner.spawnItem("boxing_gloves", player.getPosition());
+//            itemSpawner.spawnItem("bullet_vest", player.getPosition());
+//            itemSpawner.spawnItem("speed_shoe", player.getPosition());
         }
 
         setupCursorConfinement();
@@ -298,10 +302,14 @@ public class GameProj implements Screen, ContactListener {
 
         playerStatusUI = new PlayerStatusUI(player, hudViewport);
         playerHealthPopup = new PlayerHealthPopup(hudViewport, camera);
+        popupIndicator = new PopupIndicator(hudViewport, camera);
+        lowHealthVignette = new LowHealthVignette();
 
         player.getStats().setHealthChangeListener((amount) -> {
             playerHealthPopup.showHealthChange(amount, player.getPosition().x, player.getPosition().y);
         });
+        player.getStats().setLevelUpListener(() ->
+                popupIndicator.showLevelUp(player.getPosition().x, player.getPosition().y));
 
         hudStage = new Stage(hudViewport, batch);
 
@@ -325,13 +333,36 @@ public class GameProj implements Screen, ContactListener {
         merchantShop.setPlayer(player);
 
         bossHealthUI = new BossHealthUI(hudViewport);
+        initializeSafeStashPopup();
 
         setRandomPlayerSpawn();
-        if (gameScreen.getGameMode() == 1) {
+        if (GameScreen.getGameMode() == 1) {
             spawnDungeonPortals();
             spawnMerchant();
         }
         SoundManager.getInstance().playForestMusic();
+    }
+
+    public void transferToSafeStash() {
+        player.getInventory().transferSafeStorageToStash();
+    }
+
+    private void initializeSafeStashPopup() {
+        if (GameScreen.getGameMode() != 1) {
+            safeStashPopup = null;
+            return;
+        }
+
+        String[] stashSlots = SaveManager.getSafeStashSlots();
+        boolean hasItems = false;
+        for (String slot : stashSlots) {
+            if (slot != null) {
+                hasItems = true;
+                break;
+            }
+        }
+
+        safeStashPopup = hasItems ? new SafeStashPopup(stashSlots) : null;
     }
 
     private void setRandomPlayerSpawn() {
@@ -886,7 +917,12 @@ public class GameProj implements Screen, ContactListener {
 
     @Override
     public void render(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && (merchantShopOpen ||
+        boolean stashPopupOpen = safeStashPopup != null && safeStashPopup.isOpen();
+        if (stashPopupOpen) {
+            safeStashPopup.update(delta, player.getInventory());
+        }
+
+        if (!stashPopupOpen && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && (merchantShopOpen ||
                 player.getInventory().isInventoryOpen() || minimap.isMapOpen() || isSkillTreeOpen())) {
             if (merchantShopOpen) {
                 merchantShop.close();
@@ -904,7 +940,7 @@ public class GameProj implements Screen, ContactListener {
 
             return;
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        else if (!stashPopupOpen && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (isPaused) {
                 unpauseGame();
             } else {
@@ -947,6 +983,8 @@ public class GameProj implements Screen, ContactListener {
             Vector3 shakeOffset = ScreenShake.tick(delta);
 
             playerHealthPopup.update(delta);
+            popupIndicator.update(delta);
+            lowHealthVignette.update(delta, player.getStats().getHealthPercentage());
 
             if (!inDungeon && !inBossRoom) {
                 if (minimap != null) {
@@ -1006,6 +1044,10 @@ public class GameProj implements Screen, ContactListener {
 
         if (settings != null && settings.isOpen()) {
             settings.render(batch, false);
+        }
+
+        if (safeStashPopup != null && safeStashPopup.isOpen()) {
+            safeStashPopup.render(batch, hudCamera);
         }
 
         if (bossHealthUI != null) {
@@ -1125,6 +1167,12 @@ public class GameProj implements Screen, ContactListener {
             renderEndlessStats(batch);
             if (playerHealthPopup != null) {
                 playerHealthPopup.render(batch);
+            }
+            if (popupIndicator != null) {
+                popupIndicator.render(batch);
+            }
+            if (lowHealthVignette != null) {
+                lowHealthVignette.render(batch, hudCamera);
             }
             if (currentEndlessRoom != null) {
                 currentEndlessRoom.renderHUD(batch);
@@ -1325,6 +1373,12 @@ public class GameProj implements Screen, ContactListener {
             if (playerHealthPopup != null) {
                 playerHealthPopup.render(batch);
             }
+            if (popupIndicator != null) {
+                popupIndicator.render(batch);
+            }
+            if (lowHealthVignette != null) {
+                lowHealthVignette.render(batch, hudCamera);
+            }
             batch.end();
 
             if (minimap != null && minimap.isMapOpen()) {
@@ -1428,6 +1482,12 @@ public class GameProj implements Screen, ContactListener {
             if (playerHealthPopup != null) {
                 playerHealthPopup.render(batch);
             }
+            if (popupIndicator != null) {
+                popupIndicator.render(batch);
+            }
+            if (lowHealthVignette != null) {
+                lowHealthVignette.render(batch, hudCamera);
+            }
             batch.end();
 
             if (dungeonMinimap != null && dungeonMinimap.isMapOpen()) {
@@ -1529,6 +1589,12 @@ public class GameProj implements Screen, ContactListener {
             renderExpBar(batch);
             if (playerHealthPopup != null) {
                 playerHealthPopup.render(batch);
+            }
+            if (popupIndicator != null) {
+                popupIndicator.render(batch);
+            }
+            if (lowHealthVignette != null) {
+                lowHealthVignette.render(batch, hudCamera);
             }
             batch.end();
         }
@@ -2350,6 +2416,16 @@ public class GameProj implements Screen, ContactListener {
             if (bossHealthUI != null) {
                 bossHealthUI.dispose();
                 bossHealthUI = null;
+            }
+
+            if (safeStashPopup != null) {
+                safeStashPopup.dispose();
+                safeStashPopup = null;
+            }
+            popupIndicator = null;
+            if (lowHealthVignette != null) {
+                lowHealthVignette.dispose();
+                lowHealthVignette = null;
             }
 
             // 11. Clean up portals
