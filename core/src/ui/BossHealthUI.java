@@ -30,7 +30,7 @@ public class BossHealthUI {
         this.hudViewport = hudViewport;
 
         this.healthBarTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
     }
 
     public void setHerman(Herman herman) {

@@ -794,6 +794,66 @@ atlasData: {
 			type: FONT
 			hidden: false
 		}
+		{
+			file: C:/Users/Max/Documents/repos/Toppy/assets/fonts/Cascadia.png
+			bgColor: {
+				r: 1
+				g: 1
+				b: 1
+				a: 1
+			}
+			tint: null
+			tintName: null
+			name: Cascadia
+			tiled: false
+			minWidth: -1
+			minHeight: -1
+			customized: false
+			tenPatchData: null
+			tvgData: null
+			type: FONT
+			hidden: false
+		}
+		{
+			file: C:/Users/Max/Documents/repos/Toppy/assets/buttons/newskin/Upheave.png
+			bgColor: {
+				r: 1
+				g: 1
+				b: 1
+				a: 1
+			}
+			tint: null
+			tintName: null
+			name: Upheave
+			tiled: false
+			minWidth: -1
+			minHeight: -1
+			customized: false
+			tenPatchData: null
+			tvgData: null
+			type: FONT
+			hidden: false
+		}
+		{
+			file: C:/Users/Max/Documents/repos/Toppy/assets/buttons/newskin/CascadiaBold.png
+			bgColor: {
+				r: 1
+				g: 1
+				b: 1
+				a: 1
+			}
+			tint: null
+			tintName: null
+			name: CascadiaBold
+			tiled: false
+			minWidth: -1
+			minHeight: -1
+			customized: false
+			tenPatchData: null
+			tvgData: null
+			type: FONT
+			hidden: false
+		}
 	]
 }
 jsonData: {
@@ -852,11 +912,35 @@ jsonData: {
 	fonts: [
 		{
 			class: com.ray3k.skincomposer.data.FontData
+			name: Cascadia
+			flip: false
+			markupEnabled: false
+			scaling: -1
+			file: C:/Users/Max/Documents/repos/Toppy/assets/fonts/Cascadia.fnt
+		}
+		{
+			class: com.ray3k.skincomposer.data.FontData
+			name: CascadiaBold
+			flip: false
+			markupEnabled: false
+			scaling: -1
+			file: C:/Users/Max/Documents/repos/Toppy/assets/buttons/newskin/CascadiaBold.fnt
+		}
+		{
+			class: com.ray3k.skincomposer.data.FontData
 			name: default-font
 			flip: false
 			markupEnabled: false
 			scaling: -1
 			file: C:/Users/Max/Documents/repos/Toppy/assets/buttons/newskin/newskin_data/default.fnt
+		}
+		{
+			class: com.ray3k.skincomposer.data.FontData
+			name: Upheave
+			flip: false
+			markupEnabled: false
+			scaling: -1
+			file: C:/Users/Max/Documents/repos/Toppy/assets/buttons/newskin/Upheave.fnt
 		}
 	]
 	freeTypeFonts: []
@@ -1392,7 +1476,7 @@ jsonData: {
 						type: com.badlogic.gdx.graphics.g2d.BitmapFont
 						name: font
 						optional: false
-						value: default-font
+						value: Cascadia
 					}
 					fontColor: {
 						type: com.badlogic.gdx.graphics.Color
@@ -1933,7 +2017,7 @@ jsonData: {
 						type: com.badlogic.gdx.graphics.g2d.BitmapFont
 						name: font
 						optional: false
-						value: default-font
+						value: CascadiaBold
 					}
 					fontColor: {
 						type: com.badlogic.gdx.graphics.Color
@@ -2615,7 +2699,7 @@ jsonData: {
 						type: com.badlogic.gdx.graphics.g2d.BitmapFont
 						name: font
 						optional: false
-						value: default-font
+						value: CascadiaBold
 					}
 					fontColor: {
 						type: com.badlogic.gdx.graphics.Color

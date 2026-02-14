@@ -58,18 +58,16 @@ public class StartScreen extends Game {
     private Label classDescriptionLabel;
     private Image titleImage;
     private Image backgroundImage;
-    private boolean cursorConfined = true;
     private int lastMouseX = 0;
     private int lastMouseY = 0;
     private float cursorX = 0;
     private float cursorY = 0;
-    private boolean useVirtualCursor = true;
     private TextButton displayTabButton;
     private TextButton audioTabButton;
     private Table displaySettingsTable;
     private Table audioSettingsTable;
     private enum SettingsTab { DISPLAY, AUDIO }
-    private SettingsTab currentSettingsTab = SettingsTab.DISPLAY;
+
     private Slider musicSlider;
     private Slider sfxSlider;
     private CheckBox musicEnabledCheckbox;
@@ -118,7 +116,7 @@ public class StartScreen extends Game {
         stage = new Stage(viewport, batch);
 
         skin = storage.skin;
-        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        BitmapFont font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         font.setColor(Color.WHITE);
 
         isFullscreen = SaveManager.isFullscreen();
@@ -128,6 +126,8 @@ public class StartScreen extends Game {
         createUI();
 
         Gdx.input.setInputProcessor(stage);
+        GameScreen.setCurrentScreen(0);
+        SoundManager.getInstance().playMenuMusic();
     }
 
     private ClickListener createButtonListener(Runnable action) {
@@ -204,6 +204,7 @@ public class StartScreen extends Game {
     }
 
     public void updateCursorConfinement() {
+        boolean cursorConfined = true;
         if (!cursorConfined) return;
 
         int deltaX = Gdx.input.getDeltaX();
@@ -288,15 +289,15 @@ public class StartScreen extends Game {
         }
 
         playButton = new TextButton("PLAY", skin);
-        playButton.getLabel().setFontScale(1f);
+        playButton.getLabel().setFontScale(0.8f);
         playButton.addListener(createButtonListener(this::showGameModeSelection));
 
         settingsButton = new TextButton("SETTINGS", skin);
-        settingsButton.getLabel().setFontScale(1f);
+        settingsButton.getLabel().setFontScale(0.8f);
         settingsButton.addListener(createButtonListener(this::showSettings));
 
         exitButton = new TextButton("EXIT", skin);
-        exitButton.getLabel().setFontScale(1f);
+        exitButton.getLabel().setFontScale(0.8f);
         exitButton.addListener(createButtonListener(() -> Gdx.app.exit()));
 
         mainTable.add(playButton).size(300, 100).padBottom(20).row();
@@ -325,18 +326,18 @@ public class StartScreen extends Game {
 
     private void createGameModeUI() {
         Label selectModeLabel = new Label("SELECT GAME MODE", skin);
-        selectModeLabel.setFontScale(1f);
+        selectModeLabel.setFontScale(0.8f);
         gameModeTable.add(selectModeLabel).padBottom(50).colspan(2).row();
 
         endlessButton = new TextButton("ENDLESS", skin);
-        endlessButton.getLabel().setFontScale(1f);
+        endlessButton.getLabel().setFontScale(0.8f);
         endlessButton.addListener(createButtonListener(() -> {
             GameScreen.setGameMode(0);
             showClassSelection();
         }));
 
         normalButton = new TextButton("NORMAL", skin);
-        normalButton.getLabel().setFontScale(1f);
+        normalButton.getLabel().setFontScale(0.8f);
         normalButton.addListener(createButtonListener(() -> {
             GameScreen.setGameMode(1);
             showClassSelection();
@@ -348,22 +349,22 @@ public class StartScreen extends Game {
         gameModeTable.add(modeButtonsTable).colspan(2).row();
 
         gameModeBackButton = new TextButton("BACK", skin);
-        gameModeBackButton.getLabel().setFontScale(1.0f);
+        gameModeBackButton.getLabel().setFontScale(0.8f);
         gameModeBackButton.addListener(createButtonListener(this::showMainMenu));
         gameModeTable.add(gameModeBackButton).size(150, 60).padTop(40).colspan(2).row();
     }
 
     private void createClassSelectionUI() {
         Label selectClassLabel = new Label("SELECT YOUR CLASS", skin);
-        selectClassLabel.setFontScale(1f);
+        selectClassLabel.setFontScale(0.8f);
         classSelectionTable.add(selectClassLabel).padBottom(30).colspan(2).row();
 
         mercenaryButton = new TextButton("MERCENARY", skin);
-        mercenaryButton.getLabel().setFontScale(1f);
+        mercenaryButton.getLabel().setFontScale(0.8f);
         mercenaryButton.addListener(createButtonListener(() -> selectClass(PlayerClass.MERCENARY)));
 
         paladinButton = new TextButton("PALADIN", skin);
-        paladinButton.getLabel().setFontScale(1f);
+        paladinButton.getLabel().setFontScale(0.8f);
         paladinButton.addListener(createButtonListener(() -> selectClass(PlayerClass.PALADIN)));
 
         Table classButtonsTable = new Table();
@@ -376,12 +377,12 @@ public class StartScreen extends Game {
         classSelectionTable.add(classDescriptionLabel).width(400).padTop(20).colspan(2).row();
 
         startGameButton = new TextButton("START GAME", skin);
-        startGameButton.getLabel().setFontScale(1f);
+        startGameButton.getLabel().setFontScale(0.8f);
         startGameButton.addListener(createButtonListener(this::startGame));
         classSelectionTable.add(startGameButton).size(300, 100).padTop(20).colspan(2).row();
 
         backButton = new TextButton("BACK", skin);
-        backButton.getLabel().setFontScale(1.0f);
+        backButton.getLabel().setFontScale(0.8f);
         backButton.addListener(createButtonListener(this::showGameModeSelection));
         classSelectionTable.add(backButton).size(150, 60).padTop(10).colspan(2).row();
     }
@@ -392,7 +393,7 @@ public class StartScreen extends Game {
 
         // Title
         Label settingsTitle = new Label("SETTINGS", skin);
-        settingsTitle.setFontScale(1.2f);
+        settingsTitle.setFontScale(0.8f);
         settingsTable.add(settingsTitle).padBottom(25).colspan(2).row();
 
         // ---------- Tabs row ----------
@@ -439,7 +440,6 @@ public class StartScreen extends Game {
     }
 
     private void switchSettingsTab(SettingsTab tab) {
-        currentSettingsTab = tab;
 
         boolean display = tab == SettingsTab.DISPLAY;
         displaySettingsTable.setVisible(display);
@@ -458,15 +458,15 @@ public class StartScreen extends Game {
         float initialSfx = soundManager.getSfxVolume();
 
         Label audioLabel = new Label("AUDIO:", skin);
-        audioLabel.setFontScale(1.0f);
+        audioLabel.setFontScale(0.8f);
         table.add(audioLabel).left().padBottom(20).colspan(2).row();
 
         // MUSIC
         Label musicLabel = new Label("Music Volume", skin);
-        musicLabel.setFontScale(0.9f);
+        musicLabel.setFontScale(0.7f);
 
         musicPercentLabel = new Label(Math.round(initialMusic * 100) + "%", skin);
-        musicPercentLabel.setFontScale(0.9f);
+        musicPercentLabel.setFontScale(0.7f);
 
         musicSlider = new Slider(0f, 1f, 0.01f, false, skin);
         musicSlider.setValue(initialMusic);
@@ -503,10 +503,10 @@ public class StartScreen extends Game {
 
         // SFX
         Label sfxLabel = new Label("SFX Volume", skin);
-        sfxLabel.setFontScale(0.9f);
+        sfxLabel.setFontScale(0.7f);
 
         sfxPercentLabel = new Label(Math.round(initialSfx * 100) + "%", skin);
-        sfxPercentLabel.setFontScale(0.9f);
+        sfxPercentLabel.setFontScale(0.7f);
 
         sfxSlider = new Slider(0f, 1f, 0.01f, false, skin);
         sfxSlider.setValue(initialSfx);
@@ -528,6 +528,9 @@ public class StartScreen extends Game {
             sfxEnabledCheckbox.setChecked(soundManager.isSfxEnabled());
         }));
 
+        sfxEnabledCheckbox.getLabel().setFontScale(0.6f);
+        musicEnabledCheckbox.getLabel().setFontScale(0.6f);
+
         table.add(sfxLabel).left().padBottom(8);
         table.add(sfxPercentLabel).right().padBottom(8).row();
         table.add(sfxSlider).width(420).height(35).left().padBottom(8).colspan(2).row();
@@ -538,7 +541,7 @@ public class StartScreen extends Game {
         table.clear();
 
         Label windowModeLabel = new Label("WINDOW MODE:", skin);
-        windowModeLabel.setFontScale(1.0f);
+        windowModeLabel.setFontScale(0.8f);
         table.add(windowModeLabel).left().padBottom(15).colspan(2).row();
 
         fullscreenCheckbox = new CheckBox(" Fullscreen", skin);
@@ -565,18 +568,25 @@ public class StartScreen extends Game {
             }
         }));
 
+        fullscreenCheckbox.getLabel().setFontScale(0.6f);
+        windowedCheckbox.getLabel().setFontScale(0.6f);
+
         Table modeTable = new Table();
         modeTable.add(fullscreenCheckbox).padRight(20);
         modeTable.add(windowedCheckbox);
         table.add(modeTable).padBottom(30).colspan(2).row();
 
         Label resolutionLabel = new Label("RESOLUTION:", skin);
-        resolutionLabel.setFontScale(1.0f);
+        resolutionLabel.setFontScale(0.8f);
         table.add(resolutionLabel).left().padBottom(15).colspan(2).row();
 
         size1280x720Checkbox = new CheckBox(" 1280x720", skin);
         size1600x900Checkbox = new CheckBox(" 1600x900", skin);
         size1920x1080Checkbox = new CheckBox(" 1920x1080", skin);
+
+        size1280x720Checkbox.getLabel().setFontScale(0.6f);
+        size1600x900Checkbox.getLabel().setFontScale(0.6f);
+        size1920x1080Checkbox.getLabel().setFontScale(0.6f);
 
         size1280x720Checkbox.setChecked(selectedWidth == 1280 && selectedHeight == 720);
         size1600x900Checkbox.setChecked(selectedWidth == 1600 && selectedHeight == 900);

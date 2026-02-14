@@ -71,7 +71,7 @@ public class AbilityManager {
         this.consumableSlots = new Item[NUM_CONSUMABLE_SLOTS];
         this.activeEffects = new HashMap<>();
         this.shapeRenderer = new ShapeRenderer();
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.activeVisuals = new ArrayList<>();
         this.abilityRegistry = new HashMap<>();
 

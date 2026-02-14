@@ -78,7 +78,7 @@ public class Settings {
 
     public Settings() {
         this.shapeRenderer = new ShapeRenderer();
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.pixelTexture = Storage.assetManager.get("white_pixel.png", Texture.class);
         this.glyphLayout = new GlyphLayout();
         syncWithSaveData();

@@ -30,7 +30,7 @@ public class PlayerHealthPopup {
         this.hudViewport = hudViewport;
         this.worldCamera = worldCamera;
         this.activePopups = new ArrayList<>();
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
     }
 
     public void showHealthChange(int amount, float playerWorldX, float playerWorldY) {

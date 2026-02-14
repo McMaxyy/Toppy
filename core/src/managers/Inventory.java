@@ -102,7 +102,7 @@ public class Inventory {
         this.itemCounts = new HashMap<>();
         this.equipment = new Equipment();
         this.shapeRenderer = new ShapeRenderer();
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.slotTexture = Storage.assetManager.get("tiles/green_tile.png", Texture.class);
         this.coinIconTexture = Storage.assetManager.get("icons/items/Coin.png", Texture.class);
         this.trashCan = Storage.assetManager.get("ui/Trash.png", Texture.class);

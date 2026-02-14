@@ -39,7 +39,7 @@ public class PopupIndicator {
         this.hudViewport = hudViewport;
         this.worldCamera = worldCamera;
         this.levelUpTexture = Storage.assetManager.get("ui/LevelUp.png", Texture.class);
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.objectiveAnchorX = 10f;
         this.objectiveAnchorY = hudViewport.getWorldHeight() - 150f;
     }

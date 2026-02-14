@@ -144,6 +144,7 @@ public class GameProj implements Screen, ContactListener {
         createComponents();
 
         if (GameScreen.getGameMode() == 0) {
+            GameScreen.setCurrentScreen(4);
             player.getStats().setStatPointsEndless();
 
             startEndlessMode();
@@ -163,13 +164,14 @@ public class GameProj implements Screen, ContactListener {
             itemSpawner.spawnItem("boxing_gloves", player.getPosition());
             itemSpawner.spawnItem("bullet_vest", player.getPosition());
             itemSpawner.spawnItem("speed_shoe", player.getPosition());
+            GameScreen.setCurrentScreen(1);
         }
 
         setupCursorConfinement();
     }
 
     private void startEndlessMode() {
-        SoundManager.getInstance().playDungeonMusic();
+        SoundManager.getInstance().playEndlessMusic();
 
         inEndlessRoom = true;
         inDungeon = false;
@@ -201,8 +203,6 @@ public class GameProj implements Screen, ContactListener {
 
         Vector2 spawnPoint = currentEndlessRoom.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
-
-        hudLabel.setText("Endless Mode - Survive as long as you can!");
     }
 
     private void setupCursorConfinement() {
@@ -672,6 +672,8 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void enterDungeon() {
+        GameScreen.setCurrentScreen(2);
+
         for (Portal portal: dungeonPortals) {
             if (portal.getBounds().contains(player.getPosition())) {
                 portal.setIsCleared(true);
@@ -712,7 +714,6 @@ public class GameProj implements Screen, ContactListener {
         Vector2 spawnPoint = currentDungeon.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
-        hudLabel.setText("");
 
         relocateMerchant();
         merchantShop.randomizeShopInventory();
@@ -721,6 +722,7 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void enterBossRoom() {
+        GameScreen.setCurrentScreen(3);
         SoundManager.getInstance().playBossMusic();
 
         inBossRoom = true;
@@ -792,6 +794,7 @@ public class GameProj implements Screen, ContactListener {
             }
         }
 
+        GameScreen.setCurrentScreen(1);
         SoundManager.getInstance().stopStoneRunning();
         SoundManager.getInstance().playForestMusic();
 
@@ -825,7 +828,6 @@ public class GameProj implements Screen, ContactListener {
             spawnHerman();
         }
 
-        hudLabel.setText("");
         clearAllLemmys();
         spawnLemmys();
 
@@ -838,7 +840,7 @@ public class GameProj implements Screen, ContactListener {
     }
 
     private void enterEndlessRoom() {
-        SoundManager.getInstance().playDungeonMusic();
+        SoundManager.getInstance().playEndlessMusic();
 
         for (Lemmy lemmy : globalLemmys) {
             if (lemmy.getBody() != null) {
@@ -873,7 +875,6 @@ public class GameProj implements Screen, ContactListener {
         Vector2 spawnPoint = currentEndlessRoom.getSpawnPoint();
         player.getBody().setTransform(spawnPoint.x, spawnPoint.y, 0);
 
-        hudLabel.setText("Endless Mode - Survive as long as you can!");
     }
 
     @Override
@@ -1152,7 +1153,7 @@ public class GameProj implements Screen, ContactListener {
     private void renderEndlessStats(SpriteBatch batch) {
         if (currentEndlessRoom == null) return;
 
-        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        BitmapFont font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         font.setColor(Color.WHITE);
         font.getData().setScale(0.5f);
 
@@ -1584,7 +1585,7 @@ public class GameProj implements Screen, ContactListener {
 
         batch.setColor(1, 1, 1, 1);
         String xpText = player.getStats().getExperience() + "/" + player.getStats().getExperienceToNextLevel();
-        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        BitmapFont font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         font.setColor(Color.WHITE);
         font.getData().setScale(0.45f);
 
@@ -1597,7 +1598,7 @@ public class GameProj implements Screen, ContactListener {
     private void renderLegend(SpriteBatch batch) {
         if (!SaveManager.isLegendEnabled()) return;
 
-        BitmapFont font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        BitmapFont font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         font.setColor(Color.WHITE);
         font.getData().setScale(0.6f);
 
@@ -1694,7 +1695,6 @@ public class GameProj implements Screen, ContactListener {
             player.getStats().addExperience(regularEnemy.getStats().getExpReward());
 
             enemiesKilled++;
-            hudLabel.setText("");
 
         } else if (enemy instanceof BossKitty) {
             BossKitty boss = (BossKitty) enemy;
@@ -1707,7 +1707,6 @@ public class GameProj implements Screen, ContactListener {
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getBoss() == boss) {
                 bossKittyDefeated = true;
                 currentBossRoom.onBossDefeated();
-                hudLabel.setText("Freydis defeated! Use the portal to return!");
             }
 
         } else if (enemy instanceof Cyclops) {
@@ -1721,7 +1720,6 @@ public class GameProj implements Screen, ContactListener {
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getCyclops() == cyclopsEnemy) {
                 cyclopsDefeated = true;
                 currentBossRoom.onBossDefeated();
-                hudLabel.setText("Cyclops defeated! Use the portal to return!");
             }
 
         } else if (enemy instanceof GhostBoss) {
@@ -1735,7 +1733,6 @@ public class GameProj implements Screen, ContactListener {
             if (inBossRoom && currentBossRoom != null && currentBossRoom.getGhostBoss() == ghostBoss) {
                 ghostBossDefeated = true;
                 currentBossRoom.onBossDefeated();
-                hudLabel.setText("Vengeful Spirit defeated! Use the portal to return");
             }
         }
 
@@ -1773,7 +1770,6 @@ public class GameProj implements Screen, ContactListener {
 
         endlessPortal = new Portal(portalX, portalY, 32, world.getWorld(), false);
 
-        hudLabel.setText("");
     }
 
     public void checkForDeadEnemies() {
@@ -1822,7 +1818,6 @@ public class GameProj implements Screen, ContactListener {
                         player.getStats().addExperience(lemmy.getStats().getExpReward());
 
                         enemiesKilled++;
-                        hudLabel.setText("");
 
                         bodiesToDestroy.add(lemmy.getBody());
                         lemmy.clearBody();
@@ -1981,7 +1976,6 @@ public class GameProj implements Screen, ContactListener {
         });
 
         hermanSpawned = true;
-        hudLabel.setText("A powerful presence awakens in the forest...");
 
         if (minimap != null) {
              minimap.setHerman(herman);
@@ -2011,7 +2005,6 @@ public class GameProj implements Screen, ContactListener {
         );
         duplicateBody.setUserData(hermanDuplicate);
 
-        hudLabel.setText("Herman has split in two!");
 
         if (bossHealthUI != null) {
             bossHealthUI.setHermanDuplicate(hermanDuplicate);
@@ -2041,7 +2034,6 @@ public class GameProj implements Screen, ContactListener {
 
     private void onHermanFullyDefeated() {
         hermanDefeated = true;
-        hudLabel.setText("Herman has been defeated! The forest is at peace.");
 
          SoundManager.getInstance().playForestMusic();
 

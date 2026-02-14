@@ -86,7 +86,7 @@ public class PlayerStatusUI {
 
         whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
 
-        font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
     }
 
     public void updatePosition() {

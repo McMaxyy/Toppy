@@ -1,8 +1,8 @@
 package entities;
 
 public enum PlayerClass {
-    MERCENARY("Mercenary", "A fierce warrior skilled with spears and aggressive combat"),
-    PALADIN("Paladin", "A holy knight with divine powers and defensive abilities");
+    MERCENARY("Mercenary", ""),
+    PALADIN("Paladin", "");
 
     private final String displayName;
     private final String description;

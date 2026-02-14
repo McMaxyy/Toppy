@@ -237,14 +237,14 @@ public class Storage {
         assetManager.load("ui/Trash.png", Texture.class);
         assetManager.load("ui/LevelUp.png", Texture.class);
 
-        assetManager.load("fonts/Cascadia.fnt", BitmapFont.class);    
+        assetManager.load("fonts/CascadiaBold.fnt", BitmapFont.class);
         
         assetManager.finishLoading();
         SaveManager.load();
     }
     
     public void createFont() {
-        font = assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        font = assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         
         Texture borderTextureUp = new Texture(Gdx.files.internal("buttons/newskin/newskin_data/textbutton.9.png"));
         Texture borderTextureDown = new Texture(Gdx.files.internal("buttons/newskin/newskin_data/textbutton-down.9.png"));

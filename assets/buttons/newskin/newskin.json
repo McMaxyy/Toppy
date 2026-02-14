@@ -1,53 +1,41 @@
 {
 	"com.badlogic.gdx.graphics.g2d.BitmapFont": {
+		"Cascadia": {
+			"file": "Cascadia.fnt",
+			"scaledSize": -1,
+			"markupEnabled": false,
+			"flip": false
+		},
+		"CascadiaBold": {
+			"file": "CascadiaBold.fnt",
+			"scaledSize": -1,
+			"markupEnabled": false,
+			"flip": false
+		},
 		"default-font": {
 			"file": "default.fnt",
+			"scaledSize": -1,
+			"markupEnabled": false,
+			"flip": false
+		},
+		"Upheave": {
+			"file": "Upheave.fnt",
 			"scaledSize": -1,
 			"markupEnabled": false,
 			"flip": false
 		}
 	},
 	"com.badlogic.gdx.graphics.Color": {
-		"green": {
-			"r": 0,
-			"g": 1,
-			"b": 0,
-			"a": 1
-		},
-		"white": {
-			"r": 1,
-			"g": 1,
-			"b": 1,
-			"a": 1
-		},
-		"red": {
-			"r": 1,
-			"g": 0,
-			"b": 0,
-			"a": 1
-		},
-		"black": {
-			"r": 0,
-			"g": 0,
-			"b": 0,
-			"a": 1
-		},
-		"gray": {
-			"r": 0.8,
-			"g": 0.8,
-			"b": 0.8,
-			"a": 1
-		}
+		"green": { "r": 0, "g": 1, "b": 0, "a": 1 },
+		"white": { "r": 1, "g": 1, "b": 1, "a": 1 },
+		"red": { "r": 1, "g": 0, "b": 0, "a": 1 },
+		"black": { "r": 0, "g": 0, "b": 0, "a": 1 },
+		"gray": { "r": 0.8, "g": 0.8, "b": 0.8, "a": 1 }
 	},
 	"com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable": {
 		"dialogDim": {
 			"name": "white",
-			"color": {
-				"r": 0,
-				"g": 0,
-				"b": 0,
-				"a": 0.45
-			}
+			"color": { "r": 0, "g": 0, "b": 0, "a": 0.45 }
 		},
 		"ButtonDownNew": {
 			"name": "Button",
@@ -74,7 +62,7 @@
 		"default": {
 			"checkboxOn": "Asset 7",
 			"checkboxOff": "Asset 6",
-			"font": "default-font",
+			"font": "Cascadia",
 			"fontColor": "white"
 		}
 	},
@@ -94,7 +82,7 @@
 	},
 	"com.badlogic.gdx.scenes.scene2d.ui.Label$LabelStyle": {
 		"default": {
-			"font": "default-font",
+			"font": "CascadiaBold",
 			"fontColor": "white"
 		}
 	},
@@ -137,7 +125,7 @@
 	"com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle": {
 		"default": {
 			"parent": "default",
-			"font": "default-font",
+			"font": "CascadiaBold",
 			"fontColor": "white",
 			"disabledFontColor": "gray",
 			"up": "Button",

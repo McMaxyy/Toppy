@@ -109,7 +109,7 @@ public class SkillTree {
         this.allSkillsById = new HashMap<>();
 
         this.shapeRenderer = new ShapeRenderer();
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.defaultIcon = Storage.assetManager.get("icons/abilities/DoubleSwing.png", Texture.class);
 
         initializeSkills();

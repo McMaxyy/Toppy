@@ -32,6 +32,7 @@ public class GameScreen implements Screen {
 
 	private boolean isDisposed = false;
 	private static boolean isNew = true;
+	private static int currentScreen = 0;
 
 	public GameScreen(Game game, int sWidth, int sHeight, boolean decorated) {
 		this.game = game;
@@ -134,6 +135,14 @@ public class GameScreen implements Screen {
 
 	public static void setGameMode(int mode) {
 		gameMode = mode;
+	}
+
+	public static int getCurrentScreen() {
+		return currentScreen;
+	}
+
+	public static void setCurrentScreen(int screen) {
+		currentScreen = screen;
 	}
 
 	@Override

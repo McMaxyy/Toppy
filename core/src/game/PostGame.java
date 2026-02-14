@@ -68,8 +68,8 @@ public class PostGame implements Screen {
         Storage storage = Storage.getInstance();
         skin = storage.skin;
 
-        titleFont = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
-        statsFont = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        titleFont = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
+        statsFont = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
 
         try {
             backgroundTexture = Storage.assetManager.get("MainMenu.png", Texture.class);
@@ -81,6 +81,8 @@ public class PostGame implements Screen {
 
         createUI();
         Gdx.input.setInputProcessor(stage);
+        GameScreen.setCurrentScreen(0);
+        SoundManager.getInstance().playMenuMusic();
     }
 
     private void setupCustomCursor() {
@@ -216,7 +218,7 @@ public class PostGame implements Screen {
         mainTable.add(statsTable).padBottom(50).row();
 
         TextButton returnButton = new TextButton("Return to Menu", skin);
-        returnButton.getLabel().setFontScale(1.2f);
+        returnButton.getLabel().setFontScale(0.8f);
         returnButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -225,7 +227,7 @@ public class PostGame implements Screen {
             }
         });
 
-        mainTable.add(returnButton).width(300).height(60).row();
+        mainTable.add(returnButton).width(300).height(100).row();
     }
 
     private Label createStatLabel(String text) {

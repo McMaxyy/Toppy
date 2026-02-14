@@ -64,7 +64,7 @@ public class BuffManager {
         this.activeBuffs = new boolean[4];
         this.buffIcons = new Texture[4];
         this.shapeRenderer = new ShapeRenderer();
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.glyphLayout = new GlyphLayout();
         this.whitePixel = Storage.assetManager.get("white_pixel.png", Texture.class);
 

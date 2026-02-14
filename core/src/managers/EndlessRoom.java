@@ -112,7 +112,7 @@ public class EndlessRoom {
         this.random = new Random();
 
         this.shapeRenderer = new ShapeRenderer();
-        this.buttonFont = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.buttonFont = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.nextWaveButtonBounds = new Rectangle();
 
         loadTextures();

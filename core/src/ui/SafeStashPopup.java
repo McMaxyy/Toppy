@@ -41,7 +41,7 @@ public class SafeStashPopup {
 
     public SafeStashPopup(String[] stashItemIds) {
         this.shapeRenderer = new ShapeRenderer();
-        this.font = Storage.assetManager.get("fonts/Cascadia.fnt", BitmapFont.class);
+        this.font = Storage.assetManager.get("fonts/CascadiaBold.fnt", BitmapFont.class);
         this.glyphLayout = new GlyphLayout();
         this.stashItems = new Item[STASH_SLOTS];
         loadItems(stashItemIds);

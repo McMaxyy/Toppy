@@ -1,10 +1,12 @@
 package managers;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.utils.Disposable;
 
+import config.GameScreen;
 import config.SaveManager;
 
 import java.util.HashMap;
@@ -33,6 +35,8 @@ public class SoundManager implements Disposable {
     public static final String MUSIC_FOREST = "forest";
     public static final String MUSIC_DUNGEON = "dungeon";
     public static final String MUSIC_BOSS = "boss";
+    public static final String MUSIC_MENU = "menu";
+    public static final String MUSIC_ENDLESS = "endless";
 
     public static final String SFX_ENTITY_HIT = "entity_hit";
     public static final String SFX_CONSECRATE = "consecrated_ground";
@@ -111,6 +115,14 @@ public class SoundManager implements Disposable {
             Music bossMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/BossSong.mp3"));
             bossMusic.setLooping(true);
             musicTracks.put(MUSIC_BOSS, bossMusic);
+
+            Music menuMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/MainMenuSong.mp3"));
+            menuMusic.setLooping(true);
+            musicTracks.put(MUSIC_MENU, menuMusic);
+
+            Music endlessMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/EndlessSong.mp3"));
+            endlessMusic.setLooping(true);
+            musicTracks.put(MUSIC_ENDLESS, endlessMusic);
 
             Sound hitSound = Gdx.audio.newSound(Gdx.files.internal("sounds/SwordSwing.mp3"));
             soundEffects.put(SFX_ENTITY_HIT, hitSound);
@@ -230,15 +242,28 @@ public class SoundManager implements Disposable {
     }
 
     public void playForestMusic() {
-        playMusic(MUSIC_FOREST);
+        if (musicEnabled)
+            playMusic(MUSIC_FOREST);
     }
 
     public void playDungeonMusic() {
-        playMusic(MUSIC_DUNGEON);
+        if (musicEnabled)
+            playMusic(MUSIC_DUNGEON);
     }
 
     public void playBossMusic() {
-        playMusic(MUSIC_BOSS);
+        if (musicEnabled)
+            playMusic(MUSIC_BOSS);
+    }
+
+    public void playMenuMusic() {
+        if (musicEnabled)
+            playMusic(MUSIC_MENU);
+    }
+
+    public void playEndlessMusic() {
+        if (musicEnabled)
+            playMusic(MUSIC_ENDLESS);
     }
 
     public void stopMusic() {
@@ -505,7 +530,23 @@ public class SoundManager implements Disposable {
             if (currentMusicKey != null) {
                 playMusic(currentMusicKey);
             } else {
-                playForestMusic();
+                switch (GameScreen.getCurrentScreen()) {
+                    case 0:
+                        playMenuMusic();
+                        break;
+                    case 1:
+                        playForestMusic();
+                        break;
+                    case 2:
+                        playDungeonMusic();
+                        break;
+                    case 3:
+                        playBossMusic();
+                        break;
+                    case 4:
+                        playEndlessMusic();
+                        break;
+                }
             }
         }
     }
